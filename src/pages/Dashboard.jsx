@@ -30,10 +30,10 @@ import {
 } from "lucide-react";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { todayDateValue } from "../utils/afghanDate";
-import { formatCurrencyAmount } from "../utils/currencyExchange";
+import { convertCurrencyAmount, formatBusinessCurrencyAmount } from "../utils/currencyExchange";
 import "../App.css";
 
-const money = (value, currency = "AFN") => formatCurrencyAmount(Number(value || 0), currency);
+const money = (value, currency = "AFN") => formatBusinessCurrencyAmount(Number(value || 0), currency);
 const count = (value) => Number(value || 0).toLocaleString("en-US");
 const clean = (value) => String(value || "").trim();
 const normalize = (value) => clean(value).toLowerCase();
@@ -165,8 +165,14 @@ function Dashboard({ t = {} }) {
   const [suppliers] = useJsonCollection("suppliers");
   const [godownEntries] = useJsonCollection("godownEntries");
   const [transactions] = useJsonCollection("transactions");
+  const [settings] = useJsonCollection("settings");
   const [dateFilter, setDateFilter] = useState("All");
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
+  const company = settings[0] || {};
+  const baseCurrency = company.baseCurrency || "AFN";
+  const exchangeRates = company.exchangeRates || {};
+  const toBase = (value, currency = baseCurrency) =>
+    convertCurrencyAmount(value, { baseCurrency, exchangeRates, fromCurrency: currency, targetCurrency: baseCurrency }) ?? 0;
 
   const activeDateRange = useMemo(
     () => getDateRange(dateFilter, customRange),
@@ -191,28 +197,28 @@ function Dashboard({ t = {} }) {
   );
 
   const metrics = useMemo(() => {
-    const revenue = filteredInvoices.reduce((sum, invoice) => sum + invoiceTotal(invoice), 0);
-    const paidRevenue = filteredInvoices.reduce((sum, invoice) => sum + invoicePaid(invoice), 0);
-    const pendingPayments = filteredInvoices.reduce((sum, invoice) => sum + invoiceBalance(invoice), 0);
-    const expenseTotal = filteredExpenses.reduce((sum, expense) => sum + parseNumber(expense.amount), 0);
+    const revenue = filteredInvoices.reduce((sum, invoice) => sum + toBase(invoiceTotal(invoice), invoice.currency), 0);
+    const paidRevenue = filteredInvoices.reduce((sum, invoice) => sum + toBase(invoicePaid(invoice), invoice.currency), 0);
+    const pendingPayments = filteredInvoices.reduce((sum, invoice) => sum + toBase(invoiceBalance(invoice), invoice.currency), 0);
+    const expenseTotal = filteredExpenses.reduce((sum, expense) => sum + toBase(parseNumber(expense.amount), expense.currency), 0);
     const refundTotal = filteredInvoices.reduce((sum, invoice) => {
       const refunds = invoice.refundHistory || invoice.refunds || [];
-      return sum + refunds.reduce((refundSum, refund) => refundSum + parseNumber(refund.amount), 0);
+      return sum + refunds.reduce((refundSum, refund) => refundSum + toBase(parseNumber(refund.amount), refund.currency || invoice.currency), 0);
     }, 0);
-    const soldGoodsCost = filteredInvoices.reduce(
+const soldGoodsCost = filteredInvoices.reduce(
   (sum, invoice) =>
-    sum + invoiceCost(invoice, products),
+    sum + toBase(invoiceCost(invoice, products), invoice.currency),
   0
 );
 
 const pureProfit =
   revenue - soldGoodsCost - refundTotal;
     const stockValue = products.reduce(
-      (sum, product) => sum + productQuantity(product) * productCost(product),
+      (sum, product) => sum + toBase(productQuantity(product) * productCost(product), product.currency),
       0
     );
     const stockSaleValue = products.reduce(
-      (sum, product) => sum + productQuantity(product) * productSalePrice(product),
+      (sum, product) => sum + toBase(productQuantity(product) * productSalePrice(product), product.currency),
       0
     );
     const stockQuantity = products.reduce((sum, product) => sum + productQuantity(product), 0);
@@ -224,25 +230,25 @@ const pureProfit =
     const staffPayable = staff.reduce(
   (sum, member) =>
     sum +
-    parseNumber(
+    toBase(parseNumber(
       member.payable ??
         member.remainingSalary ??
         member.remaining ??
         member.salary ??
         member.monthlySalary
-    ),
+    ), member.currency),
   0
 );
 
 const staffPaidFromRecords = staff.reduce(
   (sum, member) =>
     sum +
-    parseNumber(
+    toBase(parseNumber(
       member.paidSalary ??
         member.salaryPaid ??
         member.paidAmount ??
         member.totalPaid
-    ),
+    ), member.currency),
   0
 );
 
@@ -270,7 +276,7 @@ const staffPaidFromTransactions =
       return sum;
     }
 
-    return sum + parseNumber(transaction.amount);
+    return sum + toBase(parseNumber(transaction.amount), transaction.currency);
   }, 0);
 
 const staffPaid =
@@ -285,7 +291,7 @@ const staffPaid =
         supplier.openingBalance
     );
 
-    return sum + Math.max(0, balance);
+    return sum + toBase(Math.max(0, balance), supplier.currency);
   },
   0
 );
@@ -298,7 +304,7 @@ const supplierReceivables = suppliers.reduce(
         supplier.openingBalance
     );
 
-    return sum + Math.max(0, -balance);
+    return sum + toBase(Math.max(0, -balance), supplier.currency);
   },
   0
 );
@@ -307,7 +313,7 @@ const supplierNetBalance =
   supplierPayables - supplierReceivables;
     const cashWallet = filteredTransactions.reduce((sum, transaction) => {
       const type = normalize(transaction.type || transaction.kind || transaction.category);
-      const amount = parseNumber(transaction.amount);
+      const amount = toBase(parseNumber(transaction.amount), transaction.currency);
       if (/expense|withdraw|payment out/.test(type)) return sum - amount;
       if (/income|sale|deposit|payment in/.test(type)) return sum + amount;
       return sum;
@@ -354,7 +360,7 @@ const supplierNetBalance =
   totalInvoices: filteredInvoices.length,
   totalStaff: staff.length,
 };
-  }, [customers, filteredExpenses, filteredInvoices, filteredTransactions, products, staff, suppliers]);
+  }, [customers, filteredExpenses, filteredInvoices, filteredTransactions, products, staff, suppliers, baseCurrency, exchangeRates]);
 
 const trendData = useMemo(() => {
   const grouped = new Map();
@@ -379,8 +385,8 @@ const trendData = useMemo(() => {
     const date = recordDate(invoice);
     const bucket = ensure(date);
 
-    bucket.revenue += invoiceTotal(invoice);
-    bucket.pendingPayments += invoiceBalance(invoice);
+    bucket.revenue += toBase(invoiceTotal(invoice), invoice.currency);
+    bucket.pendingPayments += toBase(invoiceBalance(invoice), invoice.currency);
     bucket.sales += 1;
 
     const refunds =
@@ -388,7 +394,7 @@ const trendData = useMemo(() => {
 
     bucket.refunds += refunds.reduce(
       (sum, refund) =>
-        sum + parseNumber(refund.amount),
+        sum + toBase(parseNumber(refund.amount), refund.currency || invoice.currency),
       0
     );
   });
@@ -396,9 +402,7 @@ const trendData = useMemo(() => {
   filteredExpenses.forEach((expense) => {
     const date = recordDate(expense);
 
-    ensure(date).expenses += parseNumber(
-      expense.amount
-    );
+    ensure(date).expenses += toBase(parseNumber(expense.amount), expense.currency);
   });
 
   return [...grouped.values()]
@@ -406,7 +410,7 @@ const trendData = useMemo(() => {
     .sort((a, b) =>
       String(a.date).localeCompare(String(b.date))
     );
-}, [filteredExpenses, filteredInvoices]);
+}, [filteredExpenses, filteredInvoices, baseCurrency, exchangeRates]);
 
   const recentActivity = useMemo(() => {
     const rows = [
@@ -440,16 +444,16 @@ const statCards = [
   // Financial overview
   {
     group: "Financial overview",
-    label: "Total Revenue",
-    value: money(metrics.revenue),
+    label: t.totalRevenue || "Total Revenue",
+    value: money(metrics.revenue, baseCurrency),
     icon: DollarSign,
     tone: "green",
     path: "/sales-bills",
   },
   {
     group: "Financial overview",
-    label: "Current cash wallet",
-    value: money(metrics.cashWallet),
+    label: t.currentCashWallet || "Current cash wallet",
+    value: money(metrics.cashWallet, baseCurrency),
     icon: WalletCards,
     tone: "green",
     path: "/financials",
@@ -457,8 +461,8 @@ const statCards = [
   },
   {
     group: "Financial overview",
-    label: "Net Profit (After Expenses & Refunds)",
-    value: money(metrics.netProfit),
+    label: t.netProfit || "Net Profit (After Expenses & Refunds)",
+    value: money(metrics.netProfit, baseCurrency),
     icon: TrendingUp,
     tone: "green",
     path: "/financials",
@@ -466,8 +470,8 @@ const statCards = [
   },
   {
     group: "Financial overview",
-    label: "Pure Profit",
-    value: money(metrics.pureProfit),
+    label: t.pureProfit || "Pure Profit",
+    value: money(metrics.pureProfit, baseCurrency),
     icon: TrendingUp,
     tone: "green",
     path: "/financials",
@@ -475,7 +479,7 @@ const statCards = [
   },
   {
     group: "Financial overview",
-    label: "Total sales",
+    label: t.totalSales || "Total sales",
     value: count(metrics.totalInvoices),
     icon: ShoppingCart,
     tone: "blue",
@@ -483,31 +487,31 @@ const statCards = [
   },
   {
     group: "Financial overview",
-    label: "Total Expenses",
-    value: money(metrics.expenseTotal),
+    label: t.totalExpenses || "Total Expenses",
+    value: money(metrics.expenseTotal, baseCurrency),
     icon: WalletCards,
     tone: "dark",
     path: "/expenses",
   },
   {
     group: "Financial overview",
-    label: "Pending Payments",
-    value: money(metrics.pendingPayments),
+    label: t.pendingPayments || "Pending Payments",
+    value: money(metrics.pendingPayments, baseCurrency),
     icon: Clock3,
     tone: "orange",
     path: "/sales-bills",
   },
   {
     group: "Financial overview",
-    label: "Total refunds",
-    value: money(metrics.refundTotal),
+    label: t.totalRefunds || "Total refunds",
+    value: money(metrics.refundTotal, baseCurrency),
     icon: Redo2,
     tone: "red",
     path: "/sales-bills",
   },
   {
     group: "Financial overview",
-    label: "Total customers",
+    label: t.totalCustomers || "Total customers",
     value: count(metrics.totalCustomers),
     icon: UserRound,
     tone: "dark",
@@ -517,31 +521,31 @@ const statCards = [
   // Suppliers / Katanama overview
   {
     group: "Suppliers / Katanama overview",
-    label: "Total Payables",
-    value: money(metrics.supplierPayables),
+    label: t.totalPayables || "Total Payables",
+    value: money(metrics.supplierPayables, baseCurrency),
     icon: Banknote,
     tone: "orange",
     path: "/suppliers",
   },
   {
     group: "Suppliers / Katanama overview",
-    label: "Total Receivables",
-    value: money(metrics.supplierReceivables),
+    label: t.totalReceivables || "Total Receivables",
+    value: money(metrics.supplierReceivables, baseCurrency),
     icon: TrendingUp,
     tone: "green",
     path: "/suppliers",
   },
   {
     group: "Suppliers / Katanama overview",
-    label: "Net Balance",
+    label: t.netBalance || "Net Balance",
     value: `${money(
       Math.abs(metrics.supplierNetBalance)
     )} ${
       metrics.supplierNetBalance > 0
-        ? "(Net Payable)"
+        ? `(${t.netPayable || "Net Payable"})`
         : metrics.supplierNetBalance < 0
-          ? "(Net Receivable)"
-          : "(Settled)"
+          ? `(${t.netReceivable || "Net Receivable"})`
+          : `(${t.settled || "Settled"})`
     }`,
     icon: DollarSign,
     tone: "orange",
@@ -551,7 +555,7 @@ const statCards = [
   // Stock overview
   {
     group: "Stock overview",
-    label: "Active products",
+    label: t.activeProducts || "Active products",
     value: count(metrics.activeProducts),
     icon: Boxes,
     tone: "dark",
@@ -559,7 +563,7 @@ const statCards = [
   },
   {
     group: "Stock overview",
-    label: "Stock Quantity",
+    label: t.stockQuantity || "Stock Quantity",
     value: count(metrics.stockQuantity),
     icon: PackageCheck,
     tone: "dark",
@@ -567,8 +571,8 @@ const statCards = [
   },
   {
     group: "Stock overview",
-    label: "Global Stock Value",
-    value: money(metrics.stockValue),
+    label: t.globalStockValue || "Global Stock Value",
+    value: money(metrics.stockValue, baseCurrency),
     icon: Warehouse,
     tone: "orange",
     path: "/products",
@@ -576,7 +580,7 @@ const statCards = [
 // Staff overview
 {
   group: "Staff overview",
-  label: "Total staff",
+  label: t.totalStaff || "Total staff",
   value: count(metrics.totalStaff),
   icon: Users,
   tone: "dark",
@@ -584,16 +588,16 @@ const statCards = [
 },
 {
   group: "Staff overview",
-  label: "Staff Payable",
-  value: money(metrics.staffPayable),
+  label: t.staffPayable || "Staff Payable",
+  value: money(metrics.staffPayable, baseCurrency),
   icon: BriefcaseBusiness,
   tone: "orange",
   path: "/staff",
 },
 {
   group: "Staff overview",
-  label: "Staff Paid",
-  value: money(metrics.staffPaid),
+  label: t.staffPaid || "Staff Paid",
+  value: money(metrics.staffPaid, baseCurrency),
   icon: DollarSign,
   tone: "green",
   path: "/staff",
@@ -639,26 +643,26 @@ const statGroups = [
 }));
 
   const quickActions = [
-    { label: "New Bill", icon: ReceiptText, path: "/billing" },
-    { label: "Products", icon: Boxes, path: "/products" },
-    { label: "Customers", icon: Users, path: "/customers" },
-    { label: "Godown", icon: Warehouse, path: "/godown" },
-    { label: "Suppliers", icon: Truck, path: "/suppliers" },
-    { label: "Expenses", icon: WalletCards, path: "/expenses" },
-    { label: "Loans", icon: Banknote, path: "/loans" },
-    { label: "Staff", icon: BriefcaseBusiness, path: "/staff" },
+    { label: t.newBill || "New Bill", icon: ReceiptText, path: "/billing" },
+    { label: t.products || "Products", icon: Boxes, path: "/products" },
+    { label: t.customers || "Customers", icon: Users, path: "/customers" },
+    { label: t.godown || "Godown", icon: Warehouse, path: "/godown" },
+    { label: t.suppliers || "Suppliers", icon: Truck, path: "/suppliers" },
+    { label: t.expenses || "Expenses", icon: WalletCards, path: "/expenses" },
+    { label: t.loans || "Loans", icon: Banknote, path: "/loans" },
+    { label: t.staff || "Staff", icon: BriefcaseBusiness, path: "/staff" },
   ];
 
   return (
     <div className="dashboard-page">
       <section className="dashboard-date-filters smart-dashboard-header">
         <div>
-          <span>Smart Office Dashboard</span>
-          <strong>{dateFilter}</strong>
+          <span>{t.dashboardTitle || "Smart Office Dashboard"}</span>
+          <strong>{{ All: t.all || "All", Today: t.today || "Today", Yesterday: t.yesterday || "Yesterday", "Last Week": t.lastWeek || "Last Week", "Last Month": t.lastMonth || "Last Month", Custom: t.custom || "Custom" }[dateFilter]}</strong>
           <p>
             {activeDateRange.from || activeDateRange.to
-              ? `${activeDateRange.from || "Start"} to ${activeDateRange.to || "Today"}`
-              : "Showing all business records"}
+              ? `${activeDateRange.from || t.start || "Start"} ${t.to || "to"} ${activeDateRange.to || t.today || "Today"}`
+              : t.showingAllRecords || "Showing all business records"}
           </p>
         </div>
 
@@ -670,7 +674,7 @@ const statGroups = [
               className={dateFilter === filter ? "active" : ""}
               onClick={() => setDateFilter(filter)}
             >
-              {filter}
+              {{ All: t.all || "All", Today: t.today || "Today", Yesterday: t.yesterday || "Yesterday", "Last Week": t.lastWeek || "Last Week", "Last Month": t.lastMonth || "Last Month", Custom: t.custom || "Custom" }[filter]}
             </button>
           ))}
         </div>
@@ -678,7 +682,7 @@ const statGroups = [
         {dateFilter === "Custom" && (
           <div className="dashboard-custom-date-range">
             <label>
-              From
+              {t.from || "From"}
               <input
                 type="date"
                 value={customRange.from}
@@ -688,7 +692,7 @@ const statGroups = [
               />
             </label>
             <label>
-              To
+              {t.to || "To"}
               <input
                 type="date"
                 value={customRange.to}
@@ -707,8 +711,8 @@ const statGroups = [
           type="button"
           onClick={() => navigate("/products")}
         >
-          <span>{count(metrics.lowStock)} product(s) are running low on stock.</span>
-          <strong>View Products</strong>
+          <span>{count(metrics.lowStock)} {t.lowStockMessage || "product(s) are running low on stock."}</span>
+          <strong>{t.viewProducts || "View Products"}</strong>
         </button>
       )}
 
@@ -759,18 +763,18 @@ const statGroups = [
 
      <section className="dashboard-trends-card">
   <div className="dashboard-trends-title">
-    <h3>Trends</h3>
+    <h3>{t.trends || "Trends"}</h3>
   </div>
 
-  <TrendGraph data={trendData} />
+  <TrendGraph data={trendData} t={t} />
 </section>
 
       <section className="dashboard-bottom-grid">
         <div className="card dashboard-quick-card">
           <div className="card-title">
             <div>
-              <h3>Quick Actions</h3>
-              <span>Open common workflows</span>
+              <h3>{t.quickActions || "Quick Actions"}</h3>
+              <span>{t.openCommonWorkflows || "Open common workflows"}</span>
             </div>
           </div>
 
@@ -795,14 +799,14 @@ const statGroups = [
         <div className="card dashboard-recent-card">
           <div className="card-title">
             <div>
-              <h3>Recent Activity</h3>
-              <span>Latest bills, expenses, and stock movement</span>
+              <h3>{t.recentActivity || "Recent Activity"}</h3>
+              <span>{t.latestActivityHint || "Latest bills, expenses, and stock movement"}</span>
             </div>
           </div>
 
           <div className="dashboard-recent-list">
             {recentActivity.length === 0 ? (
-              <p className="dashboard-chart-empty">No recent activity yet.</p>
+              <p className="dashboard-chart-empty">{t.noRecentActivity || "No recent activity yet."}</p>
             ) : (
               recentActivity.map((item, index) => (
                 <div className="dashboard-recent-item" key={`${item.module}-${item.title}-${index}`}>
@@ -854,7 +858,7 @@ function BarGraph({ data, dataKey, onItemClick }) {
     </div>
   );
 }
-function TrendGraph({ data }) {
+function TrendGraph({ data, t = {} }) {
   const graphData = data.length
     ? data
     : [
@@ -917,7 +921,7 @@ function TrendGraph({ data }) {
               formatDateTick(value)
             }
             formatter={(value, name) => {
-              if (name === "Sales") {
+              if (name === (t.sales || "Sales")) {
                 return [count(value), name];
               }
 
@@ -933,7 +937,7 @@ function TrendGraph({ data }) {
           <Line
             type="monotone"
             dataKey="revenue"
-            name="Total Revenue"
+            name={t.totalRevenue || "Total Revenue"}
             stroke="#172554"
             strokeWidth={2}
             dot={false}
@@ -943,7 +947,7 @@ function TrendGraph({ data }) {
           <Line
             type="monotone"
             dataKey="expenses"
-            name="Total Expenses"
+            name={t.totalExpenses || "Total Expenses"}
             stroke="#ef4444"
             strokeWidth={2}
             dot={false}
@@ -953,7 +957,7 @@ function TrendGraph({ data }) {
           <Line
             type="monotone"
             dataKey="refunds"
-            name="Refunds"
+            name={t.totalRefunds || "Refunds"}
             stroke="#f59e0b"
             strokeWidth={2}
             dot={false}
@@ -963,7 +967,7 @@ function TrendGraph({ data }) {
           <Line
             type="monotone"
             dataKey="pendingPayments"
-            name="Pending Payments"
+            name={t.pendingPayments || "Pending Payments"}
             stroke="#8b5cf6"
             strokeWidth={2}
             dot={false}
@@ -973,7 +977,7 @@ function TrendGraph({ data }) {
           <Line
             type="monotone"
             dataKey="sales"
-            name="Sales"
+            name={t.sales || "Sales"}
             stroke="#10b981"
             strokeWidth={2}
             dot={false}

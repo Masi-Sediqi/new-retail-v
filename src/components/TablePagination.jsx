@@ -1,16 +1,18 @@
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
-function TablePagination({ page, totalPages, setPage, totalItems, pageSize = 20, setPageSize }) {
+function TablePagination({ page, totalPages, setPage, totalItems, pageSize = 20, setPageSize, labels = {} }) {
   const first = (page - 1) * pageSize + 1;
   const last = Math.min(page * pageSize, totalItems);
 
   return (
     <div className="table-pagination">
-      <span>Showing {totalItems ? first : 0} to {last} of {totalItems} records</span>
+      <span>{labels.showing
+        ? labels.showing(totalItems ? first : 0, last, totalItems)
+        : `Showing ${totalItems ? first : 0} to ${last} of ${totalItems} records`}</span>
       <div>
         {setPageSize && (
           <>
-            <label>Rows per page</label>
+            <label>{labels.rowsPerPage || "Rows per page"}</label>
             <select
               value={pageSize}
               onChange={(event) => {
@@ -27,11 +29,11 @@ function TablePagination({ page, totalPages, setPage, totalItems, pageSize = 20,
           </>
         )}
         <button type="button" onClick={() => setPage(page - 1)} disabled={page === 1}>
-          Previous
+          {labels.previous || "Previous"}
         </button>
-        <strong>Page {page} of {totalPages}</strong>
+        <strong>{labels.page ? labels.page(page, totalPages) : `Page ${page} of ${totalPages}`}</strong>
         <button type="button" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
-          Next
+          {labels.next || "Next"}
         </button>
       </div>
     </div>

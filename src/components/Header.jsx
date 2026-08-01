@@ -112,6 +112,8 @@ const currencyOptions = [
   },
 ];
 
+const currencyTranslationKeys = { AFN: "afghanAfghani", USD: "usDollar", EUR: "euro", GBP: "britishPound", PKR: "pakistaniRupee", IRR: "iranianRial", SAR: "saudiRiyal", AED: "uaeDirham", INR: "indianRupee" };
+
 const readNotificationState = () => {
   try {
     const parsed = JSON.parse(localStorage.getItem(NOTIFICATION_STATE_KEY) || "{}");
@@ -587,7 +589,7 @@ const saveCashWalletTransaction = async (event) => {
       <div className="dropdown header-preference-dropdown language-dropdown">
         <div className="header-preference-dropdown-title">
           <strong>{t.language || "Language"}</strong>
-          <span>Select system language</span>
+          <span>{t.selectSystemLanguage || "Select system language"}</span>
         </div>
 
         {languageOptions.map((item) => (
@@ -620,8 +622,8 @@ const saveCashWalletTransaction = async (event) => {
       ? "active"
       : ""
   }`}
-  aria-label="Select primary currency"
-  title={`Primary Currency: ${primaryCurrency}`}
+  aria-label={t.selectPrimaryCurrency || "Select primary currency"}
+  title={`${t.primaryCurrency || "Primary Currency"}: ${primaryCurrency}`}
   aria-expanded={
     openMenu === "primary-currency"
   }
@@ -639,10 +641,10 @@ const saveCashWalletTransaction = async (event) => {
     {openMenu === "primary-currency" && (
       <div className="dropdown header-preference-dropdown currency-dropdown">
         <div className="header-preference-dropdown-title">
-          <strong>Primary Currency</strong>
+          <strong>{t.primaryCurrency || "Primary Currency"}</strong>
 
           <span>
-            Main currency used by the system
+            {t.primaryCurrencyHint || "Main currency used by the system"}
           </span>
         </div>
 
@@ -668,7 +670,7 @@ const saveCashWalletTransaction = async (event) => {
 
               <span>
                 <strong>{currency.value}</strong>
-                <small>{currency.label}</small>
+                <small>{t[currencyTranslationKeys[currency.value]] || currency.label}</small>
               </span>
 
               {primaryCurrency ===
@@ -685,8 +687,8 @@ const saveCashWalletTransaction = async (event) => {
   <button
   type="button"
   className="header-preference-btn header-icon-only-btn header-wallet-btn"
-  aria-label="Open cash wallet"
-  title="Cash Wallet"
+  aria-label={t.openCashWallet || "Open cash wallet"}
+  title={t.cashWallet || "Cash Wallet"}
   onClick={openCashWallet}
 >
   <WalletCards size={18} strokeWidth={1.9} />
@@ -701,7 +703,7 @@ const saveCashWalletTransaction = async (event) => {
       ? "active"
       : ""
   }`}
-  aria-label="Select exchange currency"
+  aria-label={t.selectExchangeCurrency || "Select exchange currency"}
   title={`${primaryCurrency} / ${secondaryCurrency}`}
   aria-expanded={
     openMenu === "secondary-currency"
@@ -720,10 +722,10 @@ const saveCashWalletTransaction = async (event) => {
     {openMenu === "secondary-currency" && (
       <div className="dropdown header-preference-dropdown currency-dropdown secondary-currency-dropdown">
         <div className="header-preference-dropdown-title">
-          <strong>Exchange Currency</strong>
+          <strong>{t.exchangeCurrency || "Exchange Currency"}</strong>
 
           <span>
-            Secondary currency used for exchange
+            {t.exchangeCurrencyHint || "Secondary currency used for exchange"}
           </span>
         </div>
 
@@ -760,7 +762,7 @@ const saveCashWalletTransaction = async (event) => {
                     {currency.value}
                   </strong>
 
-                  <small>{currency.label}</small>
+                  <small>{t[currencyTranslationKeys[currency.value]] || currency.label}</small>
                 </span>
 
                 {secondaryCurrency ===
@@ -779,7 +781,7 @@ const saveCashWalletTransaction = async (event) => {
           <button
             className="icon-btn"
             onClick={() => setOpenMenu(openMenu === "alerts" ? null : "alerts")}
-            aria-label="Alerts"
+            aria-label={t.alerts || "Alerts"}
           >
             <Bell size={21} strokeWidth={1.9} />
             {alertCount > 0 && <span className="alert-count">{alertCount}</span>}
@@ -789,7 +791,7 @@ const saveCashWalletTransaction = async (event) => {
             <div className="dropdown alert-dropdown notification-dropdown">
               <div className="notification-dropdown-header">
   <div className="notification-dropdown-title">
-    <strong>Notifications</strong>
+    <strong>{t.notifications || "Notifications"}</strong>
 
     {alertCount > 0 && (
       <span>{alertCount}</span>
@@ -799,8 +801,8 @@ const saveCashWalletTransaction = async (event) => {
   <div className="notification-header-actions">
     <button
       type="button"
-      aria-label="Mark all notifications as read"
-      title="Mark all as read"
+      aria-label={t.markAllRead || "Mark all notifications as read"}
+      title={t.markAllRead || "Mark all as read"}
       onClick={markAllNotificationsRead}
       disabled={visibleNotificationItems.length === 0 || alertCount === 0}
     >
@@ -810,8 +812,8 @@ const saveCashWalletTransaction = async (event) => {
     <button
       type="button"
       className="notification-clear-btn"
-      aria-label="Clear all notifications"
-      title="Clear notifications"
+      aria-label={t.clearNotifications || "Clear all notifications"}
+      title={t.clearNotifications || "Clear notifications"}
       onClick={clearAllNotifications}
       disabled={visibleNotificationItems.length === 0}
     >
@@ -852,14 +854,14 @@ const saveCashWalletTransaction = async (event) => {
   <div className="notification-item-content">
     <strong>{item.title}</strong>
     <p>{item.description}</p>
-    <small>{isRead ? "Read" : "Unread"}</small>
+    <small>{isRead ? (t.read || "Read") : (t.unread || "Unread")}</small>
   </div>
 
   <button
     type="button"
     className="notification-remove-btn"
     aria-label={`Remove ${item.title}`}
-    title="Remove notification"
+    title={t.removeNotification || "Remove notification"}
     onClick={() => removeNotification(item.id)}
   >
     <Trash2 size={13} />
@@ -870,7 +872,7 @@ const saveCashWalletTransaction = async (event) => {
                   </div>
                 </>
               ) : (
-                <div className="notification-empty">No notifications right now.</div>
+                <div className="notification-empty">{t.noNotifications || "No notifications right now."}</div>
               )}
             </div>
           )}
@@ -882,13 +884,13 @@ const saveCashWalletTransaction = async (event) => {
   onClick={toggleDarkMode}
   aria-label={
     darkMode
-      ? "Switch to light mode"
-      : "Switch to dark mode"
+      ? (t.switchLightMode || "Switch to light mode")
+      : (t.switchDarkMode || "Switch to dark mode")
   }
   title={
     darkMode
-      ? "Light mode"
-      : "Dark mode"
+      ? (t.lightMode || "Light mode")
+      : (t.darkMode || "Dark mode")
   }
 >
   {darkMode ? (
@@ -902,7 +904,7 @@ const saveCashWalletTransaction = async (event) => {
           <button
             className="profile-btn"
             onClick={() => setOpenMenu(openMenu === "profile" ? null : "profile")}
-            aria-label="Profile"
+            aria-label={t.profile || "Profile"}
           >
           <User size={21} strokeWidth={1.9} />
           </button>
@@ -912,11 +914,11 @@ const saveCashWalletTransaction = async (event) => {
               <strong>
                 {currentUser?.fullName || currentUser?.email || currentUser?.username}
               </strong>
-              <p>{currentUser?.email || "No email configured"}</p>
+              <p>{currentUser?.email || t.noEmailConfigured || "No email configured"}</p>
 
           <button className="dropdown-logout" onClick={onLogout}>
                 <LogOut size={15} />
-                Logout
+                {t.logout || "Logout"}
               </button>
             </div>
           )}
@@ -932,6 +934,7 @@ const saveCashWalletTransaction = async (event) => {
           setWalletType={setWalletType}
           walletForm={walletForm}
           walletType={walletType}
+          t={t}
         />
       )}
     </>
@@ -946,6 +949,7 @@ function CashWalletModal({
   setWalletType,
   walletForm,
   walletType,
+  t = {},
 }) {
   return (
     <div className="cash-wallet-backdrop" onMouseDown={closeCashWallet}>
@@ -957,8 +961,8 @@ function CashWalletModal({
             </span>
 
             <div>
-              <h3>Cash Wallet</h3>
-              <p>Track owner cash deposits and withdrawals.</p>
+              <h3>{t.cashWallet || "Cash Wallet"}</h3>
+              <p>{t.walletHint || "Track owner cash deposits and withdrawals."}</p>
             </div>
           </div>
 
@@ -966,7 +970,7 @@ function CashWalletModal({
             type="button"
             className="cash-wallet-close"
             onClick={closeCashWallet}
-            aria-label="Close cash wallet"
+            aria-label={t.closeCashWallet || "Close cash wallet"}
           >
             <X size={17} />
           </button>
@@ -980,7 +984,7 @@ function CashWalletModal({
               onClick={() => setWalletType("deposit")}
             >
               <ArrowDownCircle size={16} />
-              Deposit
+              {t.deposit || "Deposit"}
             </button>
 
             <button
@@ -989,13 +993,13 @@ function CashWalletModal({
               onClick={() => setWalletType("withdraw")}
             >
               <ArrowUpCircle size={16} />
-              Withdraw
+              {t.withdraw || "Withdraw"}
             </button>
           </div>
 
           <div className="cash-wallet-form-grid">
             <label>
-              <span>Amount *</span>
+              <span>{t.amountRequired || "Amount *"}</span>
               <input
                 type="number"
                 name="amount"
@@ -1009,7 +1013,7 @@ function CashWalletModal({
             </label>
 
             <label>
-              <span>Currency</span>
+              <span>{t.currency || "Currency"}</span>
               <select
                 name="currency"
                 value={walletForm.currency}
@@ -1025,7 +1029,7 @@ function CashWalletModal({
           </div>
 
           <label className="cash-wallet-note">
-            <span>Reason / Note</span>
+            <span>{t.reasonNote || "Reason / Note"}</span>
             <textarea
               name="note"
               value={walletForm.note}
@@ -1040,10 +1044,10 @@ function CashWalletModal({
 
           <div className="cash-wallet-actions">
             <button type="button" className="cash-wallet-cancel" onClick={closeCashWallet}>
-              Cancel
+              {t.cancel || "Cancel"}
             </button>
             <button type="submit" className={`cash-wallet-save ${walletType}`}>
-              {walletType === "deposit" ? "Save Deposit" : "Save Withdrawal"}
+              {walletType === "deposit" ? (t.saveDeposit || "Save Deposit") : (t.saveWithdrawal || "Save Withdrawal")}
             </button>
           </div>
         </form>

@@ -18,6 +18,17 @@ import {
   Trash2,
   Upload,
   Users,
+  Check,
+  Monitor,
+  Moon,
+  Sun,
+  Eye,
+  RotateCcw,
+  Play,
+  Volume2,
+  Share2,
+  UserRound,
+  X,
 } from "lucide-react";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { apiUrl } from "../utils/api";
@@ -25,6 +36,10 @@ import { downloadBackup, loadBackupCollectionNames } from "../utils/backup";
 import { notify } from "../utils/notify";
 import { confirmAction } from "../utils/confirmDialog";
 import "./Settings.css";
+import { applyTheme, themePresets } from "../utils/theme";
+import { currencies, getCurrencyMeta, rebaseExchangeRates } from "../utils/currencyExchange";
+import { defaultPrintStudio, normalizePrintSettings, openPrintPreview } from "../utils/printStudio";
+import { playNotificationSound, soundOptions as notificationSoundOptions } from "../utils/notificationSounds";
 
 const defaultSystemName = "Smart Office";
 const defaultSystemSubtitle = "Business Management System";
@@ -44,13 +59,7 @@ const settingTabs = [
   { key: "license", label: "Your License Key", icon: KeyRound },
 ];
 
-const currencyOptions = [
-  "Afghan Afghani (AFN)",
-  "US Dollar (USD)",
-  "Euro (EUR)",
-  "Pakistani Rupee (PKR)",
-  "Iranian Rial (IRR)",
-];
+const currencyOptions = currencies.map(({ name, code }) => `${name} (${code})`);
 
 const languageOptions = [
   "English (English)",
@@ -59,10 +68,10 @@ const languageOptions = [
 ];
 
 const themeOptions = ["System", "Light", "Dark"];
-const accentOptions = ["Indigo", "Blue", "Emerald", "Amber", "Rose"];
+const accentOptions = ["Preset", "Indigo", "Blue", "Emerald", "Amber", "Rose"];
 const printTemplateOptions = ["Standard", "Compact", "Thermal", "Detailed"];
-const soundOptions = ["Chime", "Bell", "Pop", "Ding", "Silent"];
 const formModules = ["products", "customers", "suppliers", "expenses", "staffMembers", "billing"];
+const permissionModules = ["Dashboard", "Products", "Billing", "Sales/Bills", "Staff", "Customers", "Godown", "Suppliers", "Expenses", "Loans", "Financials", "Reports", "Settings"];
 
 const currencyCodeFromLabel = (value) => {
   const match = String(value || "").match(/\(([A-Z]{3})\)/);
@@ -107,6 +116,8 @@ function Settings() {
   const [settings, setSettings] = useJsonCollection("settings");
   const current = settings[0] || {};
   const logoInputRef = useRef(null);
+  const printLogoInputRef = useRef(null);
+  const watermarkInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("general");
   const [companyName, setCompanyName] = useState(defaultSystemName);
@@ -130,17 +141,14 @@ function Settings() {
   const [themeMode, setThemeMode] = useState(themeOptions[0]);
   const [accentColor, setAccentColor] = useState(accentOptions[0]);
   const [sidebarCompact, setSidebarCompact] = useState(false);
+  const [themePreset, setThemePreset] = useState("default");
+  const [interfaceDensity, setInterfaceDensity] = useState("Comfortable");
+  const [cornerStyle, setCornerStyle] = useState("Rounded");
   const [exchangeRates, setExchangeRates] = useState({});
-  const [printSettings, setPrintSettings] = useState({
-    template: "Standard",
-    paperSize: "A4",
-    showLogo: true,
-    showSignature: true,
-    footerText: "",
-  });
+  const [printSettings, setPrintSettings] = useState(defaultPrintStudio);
   const [notificationSettings, setNotificationSettings] = useState({
     enabled: true,
-    sound: "Chime",
+    sound: "chime",
     lowStock: true,
     duePayments: true,
     dailySummary: false,
@@ -167,10 +175,13 @@ function Settings() {
     expiresAt: "",
   });
   const [systemUsers, setSystemUsers] = useState([]);
-  const [userDraft, setUserDraft] = useState({ name: "", role: "Operator", email: "" });
+  const [userDraft, setUserDraft] = useState({ name: "", username: "", password: "", confirmPassword: "", role: "Operator", email: "" });
   const [customFields, setCustomFields] = useState({});
   const [activeFormModule, setActiveFormModule] = useState("products");
-  const [fieldDraft, setFieldDraft] = useState({ label: "", type: "text", required: false });
+  const [fieldDraft, setFieldDraft] = useState({ label: "", placeholder: "", type: "text", required: false });
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [fieldModalOpen, setFieldModalOpen] = useState(false);
+  const [userPermissions, setUserPermissions] = useState({});
 
   useEffect(() => {
     setCompanyName(current.companyName || defaultSystemName);
@@ -192,17 +203,14 @@ function Settings() {
     setThemeMode(current.themeMode || themeOptions[0]);
     setAccentColor(current.accentColor || accentOptions[0]);
     setSidebarCompact(Boolean(current.sidebarCompact));
+    setThemePreset(current.themePreset || "default");
+    setInterfaceDensity(current.interfaceDensity || "Comfortable");
+    setCornerStyle(current.cornerStyle || "Rounded");
     setExchangeRates(current.exchangeRates || {});
-    setPrintSettings({
-      template: current.printSettings?.template || "Standard",
-      paperSize: current.printSettings?.paperSize || "A4",
-      showLogo: current.printSettings?.showLogo ?? true,
-      showSignature: current.printSettings?.showSignature ?? true,
-      footerText: current.printSettings?.footerText || "",
-    });
+    setPrintSettings(normalizePrintSettings(current.printSettings, current));
     setNotificationSettings({
       enabled: current.notificationSettings?.enabled ?? true,
-      sound: current.notificationSettings?.sound || "Chime",
+      sound: current.notificationSettings?.sound || "chime",
       lowStock: current.notificationSettings?.lowStock ?? true,
       duePayments: current.notificationSettings?.duePayments ?? true,
       dailySummary: current.notificationSettings?.dailySummary ?? false,
@@ -211,6 +219,8 @@ function Settings() {
       businessProfile: Boolean(current.sharingSettings?.businessProfile),
       publicReports: Boolean(current.sharingSettings?.publicReports),
       shareUrl: current.sharingSettings?.shareUrl || "",
+      whatsappNumber: current.sharingSettings?.whatsappNumber || current.phoneNumber || "",
+      emailAddress: current.sharingSettings?.emailAddress || current.emailAddress || "",
     });
     setSyncSettings({
       enabled: Boolean(current.syncSettings?.enabled),
@@ -250,6 +260,9 @@ function Settings() {
     current.securitySettings,
     current.sharingSettings,
     current.sidebarCompact,
+    current.themePreset,
+    current.interfaceDensity,
+    current.cornerStyle,
     current.syncSettings,
     current.systemSubtitle,
     current.systemUsers,
@@ -260,6 +273,10 @@ function Settings() {
     current.exchangeRates,
     current.website,
   ]);
+
+  useEffect(() => {
+    applyTheme({ themePreset, themeMode, accentColor, sidebarCompact, interfaceDensity, cornerStyle });
+  }, [themePreset, themeMode, accentColor, sidebarCompact, interfaceDensity, cornerStyle]);
 
   const activeTabMeta = useMemo(
     () => settingTabs.find((tab) => tab.key === activeTab) || settingTabs[0],
@@ -308,6 +325,9 @@ function Settings() {
         themeMode,
         accentColor,
         sidebarCompact,
+        themePreset,
+        interfaceDensity,
+        cornerStyle,
         exchangeRates,
         printSettings,
         notificationSettings,
@@ -417,9 +437,9 @@ function Settings() {
     try {
       setAppDataBusy(true);
       const collections = await loadCollectionNames();
-      await Promise.all(collections.map((name) => axios.put(apiUrl(name), [])));
+      await Promise.all(collections.filter((name) => name !== "settings").map((name) => axios.put(apiUrl(name), [])));
       setClearConfirm("");
-      notify("App data cleared successfully. Refresh the app to start clean.");
+      notify("App data cleared successfully. System settings were preserved.");
     } catch (error) {
       console.error("Unable to clear app data:", error);
       notify("Unable to clear app data.", "error");
@@ -432,10 +452,33 @@ function Settings() {
     setKpiRouting((previous) => ({ ...previous, [key]: enabled }));
   };
 
+  const changeBaseCurrency = (nextLabel) => {
+    const oldBase = currencyCodeFromLabel(defaultCurrency);
+    const newBase = currencyCodeFromLabel(nextLabel);
+    const rebased = rebaseExchangeRates(oldBase, newBase, { ...exchangeRates, [oldBase]: 1 });
+    setDefaultCurrency(nextLabel);
+    setAdjustmentsCurrency(nextLabel);
+    setExchangeRates(rebased || { [newBase]: 1 });
+  };
+
+  const updatePrint = (key, value) => setPrintSettings((previous) => ({ ...previous, [key]: value }));
+  const uploadPrintImage = (key, event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return notify("Please select an image file.", "error");
+    const reader = new FileReader();
+    reader.onload = () => updatePrint(key, String(reader.result || ""));
+    reader.readAsDataURL(file);
+  };
+
   const addSystemUser = () => {
     if (!userDraft.name.trim()) {
       notify("Please enter the user name.", "error");
       return;
+    }
+    if (!userDraft.username.trim() || !userDraft.password || userDraft.password !== userDraft.confirmPassword) {
+      notify("Enter a username and matching passwords.", "error"); return;
     }
     setSystemUsers((previous) => [
       ...previous,
@@ -444,10 +487,13 @@ function Settings() {
         name: userDraft.name.trim(),
         role: userDraft.role,
         email: userDraft.email.trim(),
+        username: userDraft.username.trim(),
+        permissions: userPermissions,
         createdAt: new Date().toISOString(),
       },
     ]);
-    setUserDraft({ name: "", role: "Operator", email: "" });
+    setUserDraft({ name: "", username: "", password: "", confirmPassword: "", role: "Operator", email: "" });
+    setUserPermissions({}); setUserModalOpen(false);
   };
 
   const addCustomField = () => {
@@ -463,11 +509,13 @@ function Settings() {
           id: `field-${Date.now()}`,
           label: fieldDraft.label.trim(),
           type: fieldDraft.type,
+          placeholder: fieldDraft.placeholder.trim(),
           required: fieldDraft.required,
         },
       ],
     }));
-    setFieldDraft({ label: "", type: "text", required: false });
+    setFieldDraft({ label: "", placeholder: "", type: "text", required: false });
+    setFieldModalOpen(false);
   };
 
   return (
@@ -735,94 +783,100 @@ function Settings() {
         />
       ) : activeTab === "themes" ? (
         <div className="settings-stack">
-          <section className="settings-card">
-            <SectionTitle title="Themes" description="Choose how the application should look." icon={Globe2} />
-            <div className="settings-field-grid three">
-              <Field label="Theme mode">
-                <select value={themeMode} onChange={(event) => setThemeMode(event.target.value)}>
-                  {themeOptions.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </Field>
-              <Field label="Accent color">
-                <select value={accentColor} onChange={(event) => setAccentColor(event.target.value)}>
-                  {accentOptions.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </Field>
-              <div className="settings-toggle-field">
-                <span>Compact sidebar</span>
-                <Switch checked={sidebarCompact} onChange={setSidebarCompact} />
-              </div>
+          <section className="settings-card settings-theme-card">
+            <SectionTitle title="Theme Selection" description="Choose a visual style — changes apply instantly." icon={Palette} />
+            <div className="theme-preset-grid">
+              {themePresets.map((preset) => (
+                <button type="button" key={preset.id} className={`theme-preset ${themePreset === preset.id ? "active" : ""}`} onClick={() => setThemePreset(preset.id)} aria-pressed={themePreset === preset.id}>
+                  <span className="theme-swatch" style={{ background: `linear-gradient(90deg, ${preset.colors[0]}, ${preset.colors[1]})` }} />
+                  <span className="theme-preset-copy"><strong>{preset.name}</strong><small>{preset.description}</small></span>
+                  {themePreset === preset.id && <span className="theme-active-mark"><Check size={13} /> Active</span>}
+                </button>
+              ))}
             </div>
+          </section>
+
+          <section className="settings-card settings-theme-card">
+            <SectionTitle title="Appearance" description="Fine-tune the selected theme for your workspace." icon={Monitor} />
+            <div className="theme-mode-picker" role="radiogroup" aria-label="Color mode">
+              {[{ name: "System", Icon: Monitor }, { name: "Light", Icon: Sun }, { name: "Dark", Icon: Moon }].map(({ name, Icon }) => (
+                <button type="button" key={name} className={themeMode === name ? "active" : ""} onClick={() => setThemeMode(name)} role="radio" aria-checked={themeMode === name}><Icon size={17} /><span>{name}</span>{themeMode === name && <Check size={14} />}</button>
+              ))}
+            </div>
+            <div className="settings-field-grid three theme-advanced-grid">
+              <Field label="Accent color"><select value={accentColor} onChange={(event) => setAccentColor(event.target.value)}>{accentOptions.map((option) => <option key={option}>{option}</option>)}</select></Field>
+              <Field label="Interface density"><select value={interfaceDensity} onChange={(event) => setInterfaceDensity(event.target.value)}>{["Comfortable", "Compact"].map((option) => <option key={option}>{option}</option>)}</select></Field>
+              <Field label="Corner style"><select value={cornerStyle} onChange={(event) => setCornerStyle(event.target.value)}>{["Rounded", "Soft", "Square"].map((option) => <option key={option}>{option}</option>)}</select></Field>
+            </div>
+            <div className="theme-sidebar-setting"><div><strong>Compact sidebar</strong><p>Use a narrower navigation panel to create more workspace.</p></div><Switch checked={sidebarCompact} onChange={setSidebarCompact} /></div>
           </section>
         </div>
       ) : activeTab === "currency" ? (
         <div className="settings-stack">
-          <section className="settings-card">
-            <SectionTitle title="Currency" description="Manage base currency and exchange rates." icon={CircleDollarSign} />
-            <div className="settings-field-grid two">
+          <section className="settings-card settings-currency-card">
+            <div className="settings-currency-heading">
+              <SectionTitle title="Exchange Rates" description="Set exchange rates relative to your base currency." icon={CircleDollarSign} />
+              <button type="submit" className="settings-save"><Save size={15} />Save Rates</button>
+            </div>
+            <div className="settings-currency-base">
               <Field label="Base currency">
-                <select value={defaultCurrency} onChange={(event) => setDefaultCurrency(event.target.value)}>
-                  {currencyOptions.map((currency) => <option key={currency}>{currency}</option>)}
+                <select value={defaultCurrency} onChange={(event) => changeBaseCurrency(event.target.value)}>
+                  {currencyOptions.map((currency) => { const code = currencyCodeFromLabel(currency); return <option key={currency} value={currency}>{getCurrencyMeta(code).symbol} {currency}</option>; })}
                 </select>
               </Field>
-              <Field label="Currency code">
-                <input value={currencyCodeFromLabel(defaultCurrency)} readOnly />
-              </Field>
             </div>
-            <div className="settings-rate-grid">
-              {["USD", "EUR", "PKR", "IRR"].map((code) => (
-                <Field key={code} label={`${code} exchange rate`}>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.0001"
-                    value={exchangeRates[code] || ""}
-                    onChange={(event) => setExchangeRates((previous) => ({ ...previous, [code]: event.target.value }))}
-                    placeholder={`1 ${currencyCodeFromLabel(defaultCurrency)} to ${code}`}
-                  />
-                </Field>
+            <h3 className="settings-rate-title">Exchange rates (1 {currencyCodeFromLabel(defaultCurrency)} = ?)</h3>
+            <div className="settings-currency-rate-grid">
+              {currencies.filter(({ code }) => code !== currencyCodeFromLabel(defaultCurrency)).map(({ code, name, symbol }) => (
+                <div className="settings-currency-rate" key={code}>
+                  <span className="settings-currency-symbol">{symbol}</span>
+                  <Field label={`${name} (${code})`}>
+                    <input type="number" min="0" step="any" inputMode="decimal" value={exchangeRates[code] || ""} onChange={(event) => setExchangeRates((previous) => ({ ...previous, [code]: event.target.value }))} placeholder="0.000000" />
+                  </Field>
+                </div>
               ))}
             </div>
+            <div className="settings-rate-note"><strong>Calculation rule</strong><span>One {currencyCodeFromLabel(defaultCurrency)} equals the entered amount. Records keep their original currency; reports and totals convert them using these rates.</span></div>
           </section>
         </div>
       ) : activeTab === "printing" ? (
         <div className="settings-stack">
-          <section className="settings-card">
-            <SectionTitle title="Printing" description="Control invoices, receipts and report print-outs." icon={Printer} />
+          <section className="settings-card print-studio-card">
+            <div className="print-studio-heading"><SectionTitle title="Print Studio" description="Brand every printed document — invoices, receipts, reports and statements." icon={Printer} /><div><button type="button" className="settings-light-button" onClick={() => openPrintPreview(printSettings, current)}><Eye size={15} />Preview</button><button type="button" className="settings-light-button" onClick={() => setPrintSettings(normalizePrintSettings(defaultPrintStudio, current))}><RotateCcw size={15} />Reset</button></div></div>
+
+            <h3 className="print-studio-group-title">Business identity</h3>
             <div className="settings-field-grid three">
-              <Field label="Template">
-                <select value={printSettings.template} onChange={(event) => setPrintSettings((previous) => ({ ...previous, template: event.target.value }))}>
-                  {printTemplateOptions.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </Field>
-              <Field label="Paper size">
-                <select value={printSettings.paperSize} onChange={(event) => setPrintSettings((previous) => ({ ...previous, paperSize: event.target.value }))}>
-                  {["A4", "Letter", "A5", "80mm Thermal"].map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </Field>
-              <Field label="Footer text">
-                <input value={printSettings.footerText} onChange={(event) => setPrintSettings((previous) => ({ ...previous, footerText: event.target.value }))} />
-              </Field>
+              <Field label="Name (English)"><input value={printSettings.businessNameEn} onChange={(e) => updatePrint("businessNameEn", e.target.value)} /></Field>
+              <Field label="نام (دری)"><input dir="rtl" value={printSettings.businessNameFa} onChange={(e) => updatePrint("businessNameFa", e.target.value)} /></Field>
+              <Field label="نوم (پښتو)"><input dir="rtl" value={printSettings.businessNamePs} onChange={(e) => updatePrint("businessNamePs", e.target.value)} /></Field>
+              <Field label="Subtitle (English)"><input value={printSettings.subtitleEn} onChange={(e) => updatePrint("subtitleEn", e.target.value)} /></Field>
+              <Field label="عنوان فرعی (دری)"><input dir="rtl" value={printSettings.subtitleFa} onChange={(e) => updatePrint("subtitleFa", e.target.value)} /></Field>
+              <Field label="فرعي عنوان (پښتو)"><input dir="rtl" value={printSettings.subtitlePs} onChange={(e) => updatePrint("subtitlePs", e.target.value)} /></Field>
+              {[['address','Address'],['phone','Phone'],['email','Email'],['website','Website'],['hours','Hours'],['registrationNumber','GSTIN / Reg No.']].map(([key,label]) => <Field key={key} label={label}><input value={printSettings[key]} onChange={(e) => updatePrint(key, e.target.value)} /></Field>)}
             </div>
-            <div className="settings-inline-switches">
-              <div><span>Show logo</span><Switch checked={printSettings.showLogo} onChange={(value) => setPrintSettings((previous) => ({ ...previous, showLogo: value }))} /></div>
-              <div><span>Show signature</span><Switch checked={printSettings.showSignature} onChange={(value) => setPrintSettings((previous) => ({ ...previous, showSignature: value }))} /></div>
-            </div>
+
+            <h3 className="print-studio-group-title">Brand colors</h3>
+            <div className="print-color-grid">{[['primaryColor','Primary'],['accentColor','Accent'],['headerTextColor','Header text'],['footerTextColor','Footer text'],['titleColor','Title'],['subtitleColor','Subtitle'],['bodyTextColor','Body text']].map(([key,label]) => <label className="print-color-field" key={key}><span>{label}</span><div><input type="color" value={printSettings[key]} onChange={(e) => updatePrint(key,e.target.value)} /><input value={printSettings[key]} onChange={(e) => updatePrint(key,e.target.value)} /></div></label>)}</div>
+
+            <div className="print-upload-grid"><div><span>Logo</span><button type="button" className="settings-light-button" onClick={() => printLogoInputRef.current?.click()}><Upload size={14} />Upload logo</button><input ref={printLogoInputRef} hidden type="file" accept="image/*" onChange={(e) => uploadPrintImage("logo",e)} />{printSettings.logo && <img src={printSettings.logo} alt="Print logo" />}</div><div><span>Watermark</span><button type="button" className="settings-light-button" onClick={() => watermarkInputRef.current?.click()}><Upload size={14} />Upload watermark</button><input ref={watermarkInputRef} hidden type="file" accept="image/*" onChange={(e) => uploadPrintImage("watermark",e)} />{printSettings.watermark && <img src={printSettings.watermark} alt="Watermark" />}</div></div>
+            <PrintRange label="Watermark opacity" value={printSettings.watermarkOpacity} min="0" max="30" unit="%" onChange={(value) => updatePrint("watermarkOpacity",value)} />
+
+            <h3 className="print-studio-group-title">Typography</h3>
+            <div className="print-range-grid">{[['titleSize','Title',14,34],['subtitleSize','Subtitle',8,20],['headerTextSize','Header text',8,18],['bodyTextSize','Body',8,18],['footerTextSize','Footer',8,16]].map(([key,label,min,max]) => <PrintRange key={key} label={label} value={printSettings[key]} min={min} max={max} unit="px" onChange={(value) => updatePrint(key,value)} />)}</div>
+
+            <h3 className="print-studio-group-title">Layout</h3>
+            <div className="settings-field-grid three"><PrintRange label="Header height" value={printSettings.headerHeight} min="20" max="70" unit="mm" onChange={(value) => updatePrint("headerHeight",value)} /><PrintRange label="Footer height" value={printSettings.footerHeight} min="10" max="45" unit="mm" onChange={(value) => updatePrint("footerHeight",value)} /><Field label="Rows per page"><input type="number" min="5" max="100" value={printSettings.rowsPerPage} onChange={(e) => updatePrint("rowsPerPage",Number(e.target.value))} /></Field></div>
+            <div className="settings-field-grid three"><Field label="Default print template"><select value={printSettings.template} onChange={(e) => updatePrint("template",e.target.value)}>{printTemplateOptions.map((option) => <option key={option}>{option}</option>)}</select></Field><Field label="Paper size"><select value={printSettings.paperSize} onChange={(e) => updatePrint("paperSize",e.target.value)}>{["A4","Letter","A5","80mm Thermal"].map((option) => <option key={option}>{option}</option>)}</select></Field><Field label="Footer text"><input value={printSettings.footerText} onChange={(e) => updatePrint("footerText",e.target.value)} /></Field></div>
+            <div className="settings-inline-switches"><div><span>Show timestamp</span><Switch checked={printSettings.showTimestamp} onChange={(value) => updatePrint("showTimestamp",value)} /></div><div><span>Show logo</span><Switch checked={printSettings.showLogo} onChange={(value) => updatePrint("showLogo",value)} /></div><div><span>Show signature</span><Switch checked={printSettings.showSignature} onChange={(value) => updatePrint("showSignature",value)} /></div></div>
           </section>
         </div>
       ) : activeTab === "notifications" ? (
         <div className="settings-stack">
           <section className="settings-card">
-            <SectionTitle title="Notifications" description="Choose which alerts the system should show." icon={Bell} />
-            <div className="settings-field-grid two">
-              <div className="settings-toggle-field"><span>Enable notifications</span><Switch checked={notificationSettings.enabled} onChange={(value) => setNotificationSettings((previous) => ({ ...previous, enabled: value }))} /></div>
-              <Field label="Alert sound">
-                <select value={notificationSettings.sound} onChange={(event) => setNotificationSettings((previous) => ({ ...previous, sound: event.target.value }))}>
-                  {soundOptions.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </Field>
-            </div>
+            <SectionTitle title="Notification Sounds" description="Choose a notification sound for alerts." icon={Bell} />
+            <div className="notification-sound-grid">{notificationSoundOptions.filter((item) => item.value !== "none").map((sound) => <button type="button" key={sound.value} className={notificationSettings.sound === sound.value ? "active" : ""} onClick={() => { setNotificationSettings((previous) => ({ ...previous, sound: sound.value })); playNotificationSound(sound.value); }}><Volume2 size={16}/><span><strong>{sound.label}</strong><small>{sound.description}</small></span><Play size={14}/></button>)}</div>
             <div className="settings-inline-switches">
+              <div><span>Enable notifications</span><Switch checked={notificationSettings.enabled} onChange={(value) => setNotificationSettings((previous) => ({ ...previous, enabled: value }))} /></div>
               <div><span>Low stock alerts</span><Switch checked={notificationSettings.lowStock} onChange={(value) => setNotificationSettings((previous) => ({ ...previous, lowStock: value }))} /></div>
               <div><span>Due payment alerts</span><Switch checked={notificationSettings.duePayments} onChange={(value) => setNotificationSettings((previous) => ({ ...previous, duePayments: value }))} /></div>
               <div><span>Daily summary</span><Switch checked={notificationSettings.dailySummary} onChange={(value) => setNotificationSettings((previous) => ({ ...previous, dailySummary: value }))} /></div>
@@ -832,20 +886,18 @@ function Settings() {
       ) : activeTab === "sharing" ? (
         <div className="settings-stack">
           <section className="settings-card">
-            <SectionTitle title="Sharing" description="Control export and public sharing preferences." icon={Upload} />
-            <div className="settings-field-grid two">
-              <div className="settings-toggle-field"><span>Business profile sharing</span><Switch checked={sharingSettings.businessProfile} onChange={(value) => setSharingSettings((previous) => ({ ...previous, businessProfile: value }))} /></div>
-              <div className="settings-toggle-field"><span>Public report link</span><Switch checked={sharingSettings.publicReports} onChange={(value) => setSharingSettings((previous) => ({ ...previous, publicReports: value }))} /></div>
-            </div>
-            <Field label="Share URL">
-              <input value={sharingSettings.shareUrl} onChange={(event) => setSharingSettings((previous) => ({ ...previous, shareUrl: event.target.value }))} placeholder="https://..." />
-            </Field>
+            <SectionTitle title="Sharing Settings" description="Configure WhatsApp and Email for invoice sharing." icon={Share2} />
+            <div className="sharing-fields"><Field label="WhatsApp Number"><input type="tel" value={sharingSettings.whatsappNumber || ""} onChange={(event) => setSharingSettings((previous) => ({ ...previous, whatsappNumber: event.target.value }))} placeholder="+93700000000" /><small>Include country code (e.g. +93 for Afghanistan)</small></Field><Field label="Email Address"><input type="email" value={sharingSettings.emailAddress || ""} onChange={(event) => setSharingSettings((previous) => ({ ...previous, emailAddress: event.target.value }))} placeholder="info@company.com" /><small>Email used for sharing invoices and reports</small></Field></div>
+            <div className="settings-inline-switches"><div><span>Business profile sharing</span><Switch checked={sharingSettings.businessProfile} onChange={(value) => setSharingSettings((previous) => ({ ...previous, businessProfile: value }))} /></div><div><span>Public report links</span><Switch checked={sharingSettings.publicReports} onChange={(value) => setSharingSettings((previous) => ({ ...previous, publicReports: value }))} /></div></div>
           </section>
         </div>
       ) : activeTab === "advanced-sync" ? (
         <div className="settings-stack">
+          <div className="sync-banner"><Shield size={15}/>Multi-device backup, intelligent merge, conflict resolution and audit-ready configuration.</div>
           <section className="settings-card">
-            <SectionTitle title="Advanced sync" description="Configure optional sync bridge settings." icon={Box} />
+            <SectionTitle title="One-time migration" description="Prepare legacy records with sync metadata. Safe to configure and re-run." icon={Box} />
+            <div className="advanced-sync-grid"><div className="sync-panel"><h3>Export backup</h3><p>Produce a portable backup file for another workstation.</p><button type="button" className="settings-save" onClick={exportData} disabled={appDataBusy}><Download size={15}/>Export full backup</button></div><div className="sync-panel"><h3>Import & restore</h3><p>Select a compatible JSON backup. Existing data is replaced only after confirmation.</p><label className="sync-dropzone"><Upload size={24}/><strong>Drop or browse backup file</strong><input hidden type="file" accept="application/json,.json" onChange={importData}/></label></div></div>
+            <h3 className="print-studio-group-title">Sync bridge</h3>
             <div className="settings-field-grid three">
               <div className="settings-toggle-field"><span>Enable sync</span><Switch checked={syncSettings.enabled} onChange={(value) => setSyncSettings((previous) => ({ ...previous, enabled: value }))} /></div>
               <Field label="Sync endpoint">
@@ -860,7 +912,8 @@ function Settings() {
       ) : activeTab === "security" ? (
         <div className="settings-stack">
           <section className="settings-card">
-            <SectionTitle title="Security" description="Protect startup access and sessions." icon={Shield} />
+            <SectionTitle title="Security Settings" description="Protect your system with password protection." icon={Shield} />
+            <div className="security-status"><Shield size={18}/><div><strong>Password Protection</strong><span>{current.securitySettings?.password ? "Password is configured" : "No password set"}</span></div></div>
             <div className="settings-field-grid three">
               <div className="settings-toggle-field"><span>Lock on startup</span><Switch checked={securitySettings.lockOnStart} onChange={(value) => setSecuritySettings((previous) => ({ ...previous, lockOnStart: value }))} /></div>
               <Field label="Session timeout (minutes)">
@@ -878,42 +931,25 @@ function Settings() {
       ) : activeTab === "users" ? (
         <div className="settings-stack">
           <section className="settings-card">
-            <SectionTitle title="Users" description="Create simple system users and roles." icon={Users} />
-            <div className="settings-field-grid three">
-              <Field label="Name"><input value={userDraft.name} onChange={(event) => setUserDraft((previous) => ({ ...previous, name: event.target.value }))} /></Field>
-              <Field label="Role">
-                <select value={userDraft.role} onChange={(event) => setUserDraft((previous) => ({ ...previous, role: event.target.value }))}>
-                  {["Administrator", "Manager", "Cashier", "Operator"].map((role) => <option key={role}>{role}</option>)}
-                </select>
-              </Field>
-              <Field label="Email"><input type="email" value={userDraft.email} onChange={(event) => setUserDraft((previous) => ({ ...previous, email: event.target.value }))} /></Field>
-            </div>
-            <button className="settings-light-button" type="button" onClick={addSystemUser}><Users size={15} /> Add User</button>
+            <div className="settings-section-actions"><SectionTitle title="User Management" description="Create users with specific module access and CRUD permissions." icon={Shield} /><button className="settings-save" type="button" onClick={() => setUserModalOpen(true)}><Plus size={15}/>Add User</button></div>
+            {!systemUsers.length && <div className="settings-empty-state"><UserRound size={38}/><p>No users created yet. Admin has full access by default.</p></div>}
             <SettingsTable
               empty="No users yet."
               rows={systemUsers}
-              columns={["name", "role", "email"]}
+              columns={["username", "name", "role", "email"]}
               onDelete={(id) => setSystemUsers((previous) => previous.filter((item) => item.id !== id))}
             />
           </section>
+          {userModalOpen && <SettingsModal title="Create New User" wide onClose={() => setUserModalOpen(false)}><div className="settings-field-grid two"><Field label="Username *"><input autoFocus value={userDraft.username} onChange={(e)=>setUserDraft((p)=>({...p,username:e.target.value}))}/></Field><Field label="Display Name *"><input value={userDraft.name} onChange={(e)=>setUserDraft((p)=>({...p,name:e.target.value}))}/></Field><Field label="Password *"><input type="password" value={userDraft.password} onChange={(e)=>setUserDraft((p)=>({...p,password:e.target.value}))}/></Field><Field label="Confirm Password"><input type="password" value={userDraft.confirmPassword} onChange={(e)=>setUserDraft((p)=>({...p,confirmPassword:e.target.value}))}/></Field></div><h3 className="permission-title">Module Permissions</h3><div className="permission-table"><div className="permission-row header"><span>Module Access</span>{["create","view","update","delete","print","all"].map((a)=><span key={a}>{a}</span>)}</div>{permissionModules.map((module)=><div className="permission-row" key={module}><strong>{module}</strong>{["create","view","update","delete","print","all"].map((action)=><input key={action} type="checkbox" checked={Boolean(userPermissions[module]?.[action])} onChange={(e)=>setUserPermissions((previous)=>{const moduleAccess={...(previous[module]||{})}; if(action==="all"){["create","view","update","delete","print","all"].forEach((key)=>moduleAccess[key]=e.target.checked);}else moduleAccess[action]=e.target.checked; return {...previous,[module]:moduleAccess};})}/>)}</div>)}</div><div className="settings-modal-actions"><button type="button" className="settings-light-button" onClick={()=>setUserModalOpen(false)}>Cancel</button><button type="button" className="settings-save" onClick={addSystemUser}>Create User</button></div></SettingsModal>}
         </div>
       ) : activeTab === "forms" ? (
         <div className="settings-stack">
           <section className="settings-card">
-            <SectionTitle title="Forms" description="Add custom fields to module forms." icon={FileText} />
+            <div className="settings-section-actions"><SectionTitle title="Custom Form Fields" description="Add custom fields to module forms." icon={FileText} /><button className="settings-save" type="button" onClick={() => setFieldModalOpen(true)}><Plus size={15}/>Add Field</button></div>
             <div className="settings-tabs small" role="tablist">
               {formModules.map((module) => <button type="button" key={module} className={activeFormModule === module ? "active" : ""} onClick={() => setActiveFormModule(module)}>{module}</button>)}
             </div>
-            <div className="settings-field-grid three">
-              <Field label="Field label"><input value={fieldDraft.label} onChange={(event) => setFieldDraft((previous) => ({ ...previous, label: event.target.value }))} /></Field>
-              <Field label="Type">
-                <select value={fieldDraft.type} onChange={(event) => setFieldDraft((previous) => ({ ...previous, type: event.target.value }))}>
-                  {["text", "number", "date", "dropdown"].map((type) => <option key={type}>{type}</option>)}
-                </select>
-              </Field>
-              <div className="settings-toggle-field"><span>Required</span><Switch checked={fieldDraft.required} onChange={(value) => setFieldDraft((previous) => ({ ...previous, required: value }))} /></div>
-            </div>
-            <button className="settings-light-button" type="button" onClick={addCustomField}><Plus size={15} /> Add Field</button>
+            {!(customFields[activeFormModule] || []).length && <div className="settings-empty-state"><FileText size={38}/><p>No custom fields for this module yet.</p></div>}
             <SettingsTable
               empty="No custom fields for this module."
               rows={customFields[activeFormModule] || []}
@@ -921,6 +957,7 @@ function Settings() {
               onDelete={(id) => setCustomFields((previous) => ({ ...previous, [activeFormModule]: (previous[activeFormModule] || []).filter((item) => item.id !== id) }))}
             />
           </section>
+          {fieldModalOpen && <SettingsModal title={`Add Field — ${activeFormModule}`} onClose={() => setFieldModalOpen(false)}><Field label="Field Label *"><input autoFocus value={fieldDraft.label} onChange={(e) => setFieldDraft((p) => ({...p,label:e.target.value}))} placeholder="e.g. Warranty Period"/></Field><Field label="Placeholder"><input value={fieldDraft.placeholder} onChange={(e) => setFieldDraft((p) => ({...p,placeholder:e.target.value}))}/></Field><Field label="Field Type"><select value={fieldDraft.type} onChange={(e) => setFieldDraft((p) => ({...p,type:e.target.value}))}>{["text","number","date","dropdown"].map((type)=><option key={type}>{type}</option>)}</select></Field><div className="settings-toggle-field"><span>Required</span><Switch checked={fieldDraft.required} onChange={(value)=>setFieldDraft((p)=>({...p,required:value}))}/></div><div className="settings-modal-actions"><button type="button" className="settings-light-button" onClick={()=>setFieldModalOpen(false)}>Cancel</button><button type="button" className="settings-save" onClick={addCustomField}>Add Field</button></div></SettingsModal>}
         </div>
       ) : activeTab === "license" ? (
         <div className="settings-stack">
@@ -948,6 +985,14 @@ function Field({ label, children }) {
       {children}
     </label>
   );
+}
+
+function SettingsModal({ title, onClose, children, wide = false }) {
+  return <div className="settings-modal-overlay" role="presentation" onMouseDown={(e)=>{if(e.target===e.currentTarget)onClose();}}><div className={`settings-modal ${wide ? "wide" : ""}`} role="dialog" aria-modal="true" aria-label={title}><div className="settings-modal-header"><h2>{title}</h2><button type="button" onClick={onClose} aria-label="Close"><X size={16}/></button></div><div className="settings-modal-body">{children}</div></div></div>;
+}
+
+function PrintRange({ label, value, min, max, unit, onChange }) {
+  return <label className="print-range"><span><strong>{label}</strong><small>{value}{unit}</small></span><input type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>;
 }
 
 function SectionTitle({ title, description, icon: Icon }) {

@@ -111,7 +111,45 @@ const getProductCode = (product) =>
 const getSupplierLabel = (supplier) =>
   supplier.supplierName || supplier.companyName || supplier.name || "Supplier";
 
-function Products() {
+const productPageText = {
+  en: {
+    title: "Products", description: "Manage product stock, pricing, suppliers, barcodes and expiry alerts.", add: "Add Product",
+    active: "Active Products", quantity: "Stock Quantity", value: "Stock Value", low: "Low Stock", expiryAlerts: "Expiry Alerts",
+    inventory: "Product Inventory", inventoryHint: "All registered products and their current stock status", search: "Search products...",
+    all: "All products", activeStock: "Active stock", lowOrOut: "Low or out", product: "Product", code: "Code", barcode: "Barcode",
+    category: "Category", stock: "Stock", purchase: "Purchase", selling: "Selling", expiry: "Expiry", status: "Status", actions: "Actions",
+    empty: "No product has been registered yet.", rows: "Rows per page", previous: "Previous", next: "Next",
+    showing: (a, b, c) => `Showing ${a} to ${b} of ${c} records`, page: (a, b) => `Page ${a} of ${b}`,
+  },
+  fa: {
+    title: "محصولات", description: "موجودی، قیمت‌ها، تأمین‌کنندگان، بارکدها و هشدارهای انقضای محصولات را مدیریت کنید.", add: "افزودن محصول",
+    active: "محصولات فعال", quantity: "تعداد موجودی", value: "ارزش موجودی", low: "موجودی کم", expiryAlerts: "هشدارهای انقضا",
+    inventory: "موجودی محصولات", inventoryHint: "تمام محصولات ثبت‌شده و وضعیت فعلی موجودی آن‌ها", search: "جستجوی محصولات...",
+    all: "تمام محصولات", activeStock: "موجودی فعال", lowOrOut: "کم یا تمام‌شده", product: "محصول", code: "کُد", barcode: "بارکد",
+    category: "دسته‌بندی", stock: "موجودی", purchase: "خرید", selling: "فروش", expiry: "انقضا", status: "وضعیت", actions: "عملیات",
+    empty: "هنوز محصولی ثبت نشده است.", rows: "ردیف در هر صفحه", previous: "قبلی", next: "بعدی",
+    showing: (a, b, c) => `نمایش ${a} تا ${b} از ${c} مورد`, page: (a, b) => `صفحه ${a} از ${b}`,
+  },
+  ps: {
+    title: "محصولات", description: "د محصولاتو موجودي، بیې، عرضه کوونکي، بارکوډونه او د ختمېدو خبرتیاوې اداره کړئ.", add: "محصول زیات کړئ",
+    active: "فعال محصولات", quantity: "د موجودۍ شمېر", value: "د موجودۍ ارزښت", low: "کمه موجودي", expiryAlerts: "د ختمېدو خبرتیاوې",
+    inventory: "د محصولاتو موجودي", inventoryHint: "ټول ثبت شوي محصولات او د هغوی اوسنۍ موجودي", search: "محصولات ولټوئ...",
+    all: "ټول محصولات", activeStock: "فعاله موجودي", lowOrOut: "کم یا ختم", product: "محصول", code: "کوډ", barcode: "بارکوډ",
+    category: "کټګوري", stock: "موجودي", purchase: "پېرود", selling: "پلور", expiry: "د ختمېدو نېټه", status: "حالت", actions: "کړنې",
+    empty: "تر اوسه کوم محصول نه دی ثبت شوی.", rows: "په هره پاڼه کې کتارونه", previous: "مخکینی", next: "بل",
+    showing: (a, b, c) => `له ${c} ریکارډونو څخه ${a} تر ${b} ښودل کېږي`, page: (a, b) => `پاڼه ${a} له ${b}`,
+  },
+};
+
+const productFormText = {
+  en: { addNew: "Add New Product", edit: "Edit Product", name: "Product Name *", enterName: "Enter product name", code: "Code", enterCode: "Enter unique code", barcode: "Barcode", enterBarcode: "Enter or generate barcode", category: "Category", searchCategory: "Search or select category", purchase: "Purchase Price", selling: "Selling Price", margin: "Margin % Helper", marginHint: "Calculate selling price based on purchase price", apply: "Apply %", result: "Result", expiry: "Expiry date", alert: "Alert me before", low: "Low Stock Threshold", lowPlaceholder: "e.g. 10 pcs", lowHint: "Alert fires when stock reaches this count. Leave blank to disable.", quantity: "Quantity", unit: "Unit", searchUnit: "Search or select unit", currency: "Currency", supplier: "Supplier", supplierHint: "Optional — automatically creates a Godown entry and supplier ledger", notes: "Notes", notesPlaceholder: "Optional notes", images: "Product Images", imagesHint: "Upload product photos for quick visual identification.", upload: "Upload Images", noImage: "No image uploaded", save: "Save Changes", add: "Add Product" },
+  fa: { addNew: "افزودن محصول جدید", edit: "ویرایش محصول", name: "نام محصول *", enterName: "نام محصول را وارد کنید", code: "کُد", enterCode: "کُد یکتا را وارد کنید", barcode: "بارکد", enterBarcode: "بارکد را وارد یا تولید کنید", category: "دسته‌بندی", searchCategory: "دسته‌بندی را جستجو یا انتخاب کنید", purchase: "قیمت خرید", selling: "قیمت فروش", margin: "محاسبه‌گر فیصدی سود", marginHint: "محاسبهٔ قیمت فروش بر اساس قیمت خرید", apply: "اعمال فیصدی", result: "نتیجه", expiry: "تاریخ انقضا", alert: "زمان هشدار پیش از انقضا", low: "حد هشدار موجودی کم", lowPlaceholder: "مثلاً ۱۰ عدد", lowHint: "در این تعداد موجودی هشدار داده می‌شود؛ برای غیرفعال‌کردن خالی بگذارید.", quantity: "تعداد", unit: "واحد", searchUnit: "واحد را جستجو یا انتخاب کنید", currency: "ارز", supplier: "تأمین‌کننده", supplierHint: "اختیاری — ورودی گدام و حساب تأمین‌کننده خودکار ایجاد می‌شود", notes: "یادداشت‌ها", notesPlaceholder: "یادداشت اختیاری", images: "تصاویر محصول", imagesHint: "برای شناسایی سریع، تصاویر محصول را بارگذاری کنید.", upload: "بارگذاری تصاویر", noImage: "تصویری بارگذاری نشده است", save: "ذخیرهٔ تغییرات", add: "افزودن محصول" },
+  ps: { addNew: "نوی محصول زیات کړئ", edit: "محصول سمول", name: "د محصول نوم *", enterName: "د محصول نوم ولیکئ", code: "کوډ", enterCode: "ځانګړی کوډ ولیکئ", barcode: "بارکوډ", enterBarcode: "بارکوډ ولیکئ یا جوړ یې کړئ", category: "کټګوري", searchCategory: "کټګوري ولټوئ یا وټاکئ", purchase: "د پېرود بیه", selling: "د پلور بیه", margin: "د ګټې سلنې محاسبه", marginHint: "د پېرود بیې پر بنسټ د پلور بیه محاسبه کړئ", apply: "سلنه تطبیق کړئ", result: "پایله", expiry: "د ختمېدو نېټه", alert: "مخکې خبرتیا", low: "د کمې موجودۍ حد", lowPlaceholder: "لکه ۱۰ دانې", lowHint: "په دې شمېر کې خبرتیا ورکول کېږي؛ د بندولو لپاره یې تش پرېږدئ.", quantity: "شمېر", unit: "واحد", searchUnit: "واحد ولټوئ یا وټاکئ", currency: "اسعار", supplier: "عرضه کوونکی", supplierHint: "اختیاري — د ګدام داخله او د عرضه کوونکي حساب پخپله جوړوي", notes: "یادښتونه", notesPlaceholder: "اختیاري یادښت", images: "د محصول انځورونه", imagesHint: "د ژر پېژندنې لپاره انځورونه پورته کړئ.", upload: "انځورونه پورته کړئ", noImage: "انځور نه دی پورته شوی", save: "بدلونونه خوندي کړئ", add: "محصول زیات کړئ" },
+};
+
+function Products({ language = "en" }) {
+  const tx = productPageText[language] || productPageText.en;
+  const formTx = productFormText[language] || productFormText.en;
   const [products, setProducts] = useJsonCollection("products");
   const [suppliers, setSuppliers] = useJsonCollection("suppliers");
   const [categories, setCategories] = useJsonCollection("productCategories");
@@ -536,39 +574,39 @@ const unitList = useMemo(() => {
   };
 
   const stockFilterOptions = [
-    { value: "all", label: "All products" },
-    { value: "active", label: "Active stock" },
-    { value: "low", label: "Low or out" },
-    { value: "expiry", label: "Expiry alerts" },
+    { value: "all", label: tx.all },
+    { value: "active", label: tx.activeStock },
+    { value: "low", label: tx.lowOrOut },
+    { value: "expiry", label: tx.expiryAlerts },
   ];
 
   return (
     <div className="products-page">
       <div className="products-header">
         <div>
-          <h1>Products</h1>
-          <p>Manage product stock, pricing, suppliers, barcodes and expiry alerts.</p>
+          <h1>{tx.title}</h1>
+          <p>{tx.description}</p>
         </div>
 
         <button type="button" className="products-add-btn" onClick={openAddModal}>
           <Plus size={17} />
-          Add Product
+          {tx.add}
         </button>
       </div>
 
       <section className="products-stats">
-        <StatCard icon={Package} label="Active Products" value={stats.totalProducts} />
-        <StatCard icon={Archive} label="Stock Quantity" value={stats.totalQuantity} />
-        <StatCard icon={Boxes} label="Stock Value" value={money(stats.stockValue)} />
-        <StatCard icon={AlertTriangle} label="Low Stock" value={stats.lowStock} tone="warning" />
-        <StatCard icon={AlertTriangle} label="Expiry Alerts" value={stats.expiring} tone="danger" />
+        <StatCard icon={Package} label={tx.active} value={stats.totalProducts} />
+        <StatCard icon={Archive} label={tx.quantity} value={stats.totalQuantity} />
+        <StatCard icon={Boxes} label={tx.value} value={money(stats.stockValue)} />
+        <StatCard icon={AlertTriangle} label={tx.low} value={stats.lowStock} tone="warning" />
+        <StatCard icon={AlertTriangle} label={tx.expiryAlerts} value={stats.expiring} tone="danger" />
       </section>
 
       <section className="products-table-card">
         <div className="products-table-header">
           <div>
-            <h3>Product Inventory</h3>
-            <p>All registered products and their current stock status</p>
+            <h3>{tx.inventory}</h3>
+            <p>{tx.inventoryHint}</p>
           </div>
 
           <div className="products-table-tools">
@@ -577,7 +615,7 @@ const unitList = useMemo(() => {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search products..."
+                placeholder={tx.search}
               />
             </label>
             <CustomSelect
@@ -594,16 +632,8 @@ const unitList = useMemo(() => {
           <table>
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Code</th>
-                <th>Barcode</th>
-                <th>Category</th>
-                <th>Stock</th>
-                <th>Purchase</th>
-                <th>Selling</th>
-                <th>Expiry</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{tx.product}</th><th>{tx.code}</th><th>{tx.barcode}</th><th>{tx.category}</th><th>{tx.stock}</th>
+                <th>{tx.purchase}</th><th>{tx.selling}</th><th>{tx.expiry}</th><th>{tx.status}</th><th>{tx.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -674,7 +704,7 @@ const unitList = useMemo(() => {
               {!filteredProducts.length && (
                 <tr>
                   <td colSpan="10" className="products-empty">
-                    No product has been registered yet.
+                    {tx.empty}
                   </td>
                 </tr>
               )}
@@ -689,6 +719,7 @@ const unitList = useMemo(() => {
           totalItems={filteredProducts.length}
           pageSize={pagination.pageSize}
           setPageSize={pagination.setPageSize}
+          labels={{ showing: tx.showing, page: tx.page, rowsPerPage: tx.rows, previous: tx.previous, next: tx.next }}
         />
       </section>
 
@@ -716,6 +747,8 @@ const unitList = useMemo(() => {
           unitOptions={unitList}
           addCustomUnit={addCustomUnit}
           unitQuery={unitQuery}
+          tx={formTx}
+          rtl={language === "fa" || language === "ps"}
         />
       )}
 
@@ -873,6 +906,8 @@ function ProductModal({
   supplierOptions,
   unitOptions,
   unitQuery,
+  tx,
+  rtl,
 }) {
   const imageList = normalizeProductImages(formData);
   const [marginPercent, setMarginPercent] = useState("");
@@ -897,10 +932,10 @@ function ProductModal({
 
   return (
     <div className="products-modal-backdrop">
-      <div className="products-modal products-product-modal">
+      <div className={`products-modal products-product-modal${rtl ? " products-modal-rtl" : ""}`} dir={rtl ? "rtl" : "ltr"}>
         <div className="products-modal-header">
           <div>
-            <h3>{editMode ? "Edit Product" : "Add New Product"}</h3>
+            <h3>{editMode ? tx.edit : tx.addNew}</h3>
           </div>
           <button type="button" className="products-icon-btn" onClick={onClose}>
             <X size={18} />
@@ -909,31 +944,31 @@ function ProductModal({
 
         <form onSubmit={onSubmit}>
           <div className="products-form-grid">
-            <Field label="Product Name *" className="full">
+            <Field label={tx.name} className="full">
               <input
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Enter product name"
+                placeholder={tx.enterName}
               />
             </Field>
 
-            <Field label="Code" className="full">
+            <Field label={tx.code} className="full">
               <input
                 name="code"
                 value={formData.code}
                 onChange={handleChange}
-                placeholder="Enter unique code"
+                placeholder={tx.enterCode}
               />
             </Field>
 
-            <Field label="Barcode" className="full label-with-icon" icon={<Barcode size={14} />}>
+            <Field label={tx.barcode} className="full label-with-icon" icon={<Barcode size={14} />}>
               <div className="products-input-action">
                 <input
                   name="barcode"
                   value={formData.barcode}
                   onChange={handleChange}
-                  placeholder="Enter or generate barcode"
+                  placeholder={tx.enterBarcode}
                 />
                 <button
                   type="button"
@@ -948,10 +983,10 @@ function ProductModal({
               </div>
             </Field>
 
-            <Field label="Category" className="full field-with-actions">
+            <Field label={tx.category} className="full field-with-actions">
   <SearchableTextInput
     options={categoryList}
-    placeholder="Search or select category"
+    placeholder={tx.searchCategory}
     value={formData.category}
     query={categoryQuery}
     setQuery={setCategoryQuery}
@@ -965,7 +1000,7 @@ function ProductModal({
   />
 </Field>
 
-            <Field label="Purchase Price" className="half">
+            <Field label={tx.purchase} className="half">
               <input
                 name="purchase"
                 value={formData.purchase}
@@ -975,7 +1010,7 @@ function ProductModal({
               />
             </Field>
 
-            <Field label="Selling Price" className="half">
+            <Field label={tx.selling} className="half">
               <input
                 name="selling"
                 value={formData.selling}
@@ -989,9 +1024,9 @@ function ProductModal({
     <span className="products-margin-icon">%</span>
 
     <div>
-      <strong>Margin % Helper</strong>
+      <strong>{tx.margin}</strong>
       <small>
-        Calculate selling price based on purchase price
+        {tx.marginHint}
       </small>
     </div>
   </div>
@@ -1021,7 +1056,7 @@ function ProductModal({
         !parseNumber(marginPercent)
       }
     >
-      Apply %
+      {tx.apply}
     </button>
   </div>
 
@@ -1033,7 +1068,7 @@ function ProductModal({
     {purchaseAmount > 0 &&
       parseNumber(marginPercent) > 0 && (
         <strong>
-          Result:{" "}
+          {tx.result}:{" "}
           {(
             purchaseAmount +
             purchaseAmount *
@@ -1044,7 +1079,7 @@ function ProductModal({
   </div>
 </div>
 
-            <Field label="Expiry date" className="half label-with-icon" icon={<AlertTriangle size={14} />}>
+            <Field label={tx.expiry} className="half label-with-icon" icon={<AlertTriangle size={14} />}>
               <input
                 type="date"
                 name="expiry"
@@ -1053,7 +1088,7 @@ function ProductModal({
               />
             </Field>
 
-            <Field label="Alert me before" className="half">
+            <Field label={tx.alert} className="half">
               <CustomSelect
                 ariaLabel="Alert before expiry"
                 options={alertBeforeOptions.map((option) => ({
@@ -1067,18 +1102,18 @@ function ProductModal({
               />
             </Field>
 
-            <Field label="Low Stock Threshold" className="full label-with-icon" icon={<Package size={14} />}>
+            <Field label={tx.low} className="full label-with-icon" icon={<Package size={14} />}>
               <input
                 name="lowStock"
                 value={formData.lowStock}
                 onChange={handleChange}
                 inputMode="decimal"
-                placeholder="e.g. 10 pcs"
+                placeholder={tx.lowPlaceholder}
               />
-              <small>Alert fires when stock reaches this count. Leave blank to disable.</small>
+              <small>{tx.lowHint}</small>
             </Field>
 
-            <Field label="Quantity" className="third">
+            <Field label={tx.quantity} className="third">
               <input
                 name="quantity"
                 value={formData.quantity}
@@ -1088,10 +1123,10 @@ function ProductModal({
               />
             </Field>
 
-            <Field label="Unit" className="third field-with-actions">
+            <Field label={tx.unit} className="third field-with-actions">
   <SearchableTextInput
                 options={unitOptions}
-    placeholder="Search or select unit"
+    placeholder={tx.searchUnit}
     value={formData.unit}
     query={unitQuery}
     setQuery={setUnitQuery}
@@ -1105,7 +1140,7 @@ function ProductModal({
   />
 </Field>
 
-            <Field label="Currency" className="third">
+            <Field label={tx.currency} className="third">
               <CustomSelect
                 ariaLabel="Currency"
                 options={currencyOptions.map((currency) => ({
@@ -1119,10 +1154,10 @@ function ProductModal({
               />
             </Field>
 
-            <Field label="Supplier" className="full">
+            <Field label={tx.supplier} className="full">
               <div className="products-supplier-box">
                 <span className="products-supplier-hint">
-                  optional - auto-creates Godown entry & supplier ledger
+                  {tx.supplierHint}
                 </span>
                 <div className="products-inline-select">
                   <CustomSelect
@@ -1198,19 +1233,19 @@ function ProductModal({
               </div>
             )}
 
-            <Field label="Notes" className="full products-optional-field">
+            <Field label={tx.notes} className="full products-optional-field">
               <textarea
                 name="notes"
                 value={formData.notes}
                 onChange={handleChange}
-                placeholder="Optional notes"
+                placeholder={tx.notesPlaceholder}
               />
             </Field>
 
             <div className="products-image-field full products-optional-field">
               <div>
-                <label>Product Images</label>
-                <p>Upload product photos for quick visual identification.</p>
+                <label>{tx.images}</label>
+                <p>{tx.imagesHint}</p>
               </div>
               <div className="products-image-actions">
                 <button
@@ -1219,7 +1254,7 @@ function ProductModal({
                   onClick={() => imageInputRef.current?.click()}
                 >
                   <Upload size={15} />
-                  Upload Images
+                  {tx.upload}
                 </button>
                 <input
                   ref={imageInputRef}
@@ -1243,7 +1278,7 @@ function ProductModal({
                 {!imageList.length && (
                   <div className="products-image-empty">
                     <ImagePlus size={22} />
-                    <span>No image uploaded</span>
+                    <span>{tx.noImage}</span>
                   </div>
                 )}
               </div>
@@ -1252,7 +1287,7 @@ function ProductModal({
 
           <div className="products-modal-actions">
             <button type="submit" className="products-save-btn">
-              {editMode ? "Save Changes" : "Add Product"}
+              {editMode ? tx.save : tx.add}
             </button>
           </div>
         </form>

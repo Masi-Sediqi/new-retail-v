@@ -47,6 +47,9 @@ import { translations } from "./data/translations";
 import { downloadBackup } from "./utils/backup";
 import { notify } from "./utils/notify";
 import { canViewModule } from "./utils/permissions";
+import { applyTheme } from "./utils/theme";
+import { installPrintStudio } from "./utils/printStudio";
+import { installRuntimeI18n } from "./utils/runtimeI18n";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardInsight = lazy(() => import("./pages/DashboardInsight"));
@@ -188,6 +191,9 @@ function App() {
   const [language, setLanguage] = useState(
     () => localStorage.getItem(languageStorageKey) || "en"
   );
+  const [displayCurrency, setDisplayCurrency] = useState(
+    () => localStorage.getItem("isp-primary-currency") || "AFN"
+  );
   const sidebarInfoRef = useRef(null);
 
   const [sessionId, setSessionId] = useState(() =>
@@ -214,12 +220,40 @@ function App() {
   }, [loadSettings]);
 
   useEffect(() => {
+    const updateCurrency = (event) => setDisplayCurrency(
+      event?.detail?.primaryCurrency || localStorage.getItem("isp-primary-currency") || company.baseCurrency || "AFN"
+    );
+    window.addEventListener("app-currency-changed", updateCurrency);
+    return () => window.removeEventListener("app-currency-changed", updateCurrency);
+  }, [company.baseCurrency]);
+
+  window.__retailCurrencyView = {
+    baseCurrency: company.baseCurrency || "AFN",
+    exchangeRates: company.exchangeRates || {},
+    displayCurrency,
+  };
+
+  useEffect(() => installPrintStudio(() => ({ settings: company.printSettings || {}, company })), [company]);
+
+  useEffect(() => {
+    applyTheme(company);
+    if (company.themeMode !== "System") return undefined;
+    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const update = () => applyTheme(company);
+    media?.addEventListener?.("change", update);
+    return () => media?.removeEventListener?.("change", update);
+  }, [company]);
+
+  useEffect(() => {
     document.documentElement.lang = language;
     document.documentElement.dir = direction;
     document.body.dir = direction;
     document.body.classList.toggle("rtl-language", direction === "rtl");
     document.body.classList.toggle("latin-language", direction !== "rtl");
     localStorage.setItem(languageStorageKey, language);
+    let disposeTranslation;
+    const frame = window.requestAnimationFrame(() => { disposeTranslation = installRuntimeI18n(language); });
+    return () => { window.cancelAnimationFrame(frame); disposeTranslation?.(); };
   }, [direction, language]);
 
   useEffect(() => {
@@ -623,12 +657,12 @@ const menuItems = [
 
             <Route
   path="/assets"
-  element={protect("assets", <Products />)}
+  element={protect("assets", <Products language={language} />)}
 />
 
 <Route
   path="/products"
-  element={protect("assets", <Products />)}
+  element={protect("assets", <Products language={language} />)}
 />
 
 <Route

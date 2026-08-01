@@ -292,6 +292,86 @@
   box-shadow: 0 22px 70px rgba(0, 0, 0, 0.32);
 }
 
+/* Product form: native, predictable RTL layout for Dari and Pashto. */
+.products-product-modal.products-modal-rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.products-modal-rtl .products-modal-header,
+.products-modal-rtl .products-form-grid,
+.products-modal-rtl .products-form-group,
+.products-modal-rtl .products-margin-helper,
+.products-modal-rtl .products-image-field,
+.products-modal-rtl .products-supplier-box,
+.products-modal-rtl .products-grand-total {
+  direction: rtl;
+  text-align: right;
+}
+
+.products-modal-rtl .products-modal-header {
+  flex-direction: row;
+}
+
+.products-modal-rtl .products-form-group > span,
+.products-modal-rtl .products-margin-title,
+.products-modal-rtl .products-margin-description,
+.products-modal-rtl .products-image-field > div,
+.products-modal-rtl .products-supplier-hint {
+  text-align: right;
+  justify-content: flex-start;
+}
+
+.products-modal-rtl input,
+.products-modal-rtl textarea,
+.products-modal-rtl .smooth-select-btn,
+.products-modal-rtl .products-searchable-menu button {
+  direction: rtl;
+  text-align: right;
+}
+
+.products-modal-rtl input[name="barcode"],
+.products-modal-rtl input[name="code"],
+.products-modal-rtl input[name="purchase"],
+.products-modal-rtl input[name="selling"],
+.products-modal-rtl input[name="quantity"],
+.products-modal-rtl input[name="lowStock"],
+.products-modal-rtl input[name="cashWalletPaid"],
+.products-modal-rtl input[name="supplierAdvanceUsed"],
+.products-modal-rtl input[type="date"],
+.products-modal-rtl .products-margin-input input {
+  direction: ltr;
+  text-align: right;
+  unicode-bidi: plaintext;
+}
+
+.products-modal-rtl .products-input-action,
+.products-modal-rtl .products-inline-select {
+  direction: rtl;
+}
+
+.products-modal-rtl .products-margin-row {
+  direction: rtl;
+  grid-template-columns: minmax(0, 1fr) 80px;
+}
+
+.products-modal-rtl .products-margin-input input {
+  padding: 0 11px 0 38px;
+}
+
+.products-modal-rtl .products-margin-input > span {
+  right: auto;
+  left: 1px;
+  border-right: 1px solid #e2e8f0;
+  border-left: 0;
+  border-radius: 6px 0 0 6px;
+}
+
+.products-modal-rtl .products-modal-actions {
+  direction: rtl;
+  text-align: right;
+}
+
 .products-detail-modal,
 .products-delete-modal {
   width: min(720px, 100%);
