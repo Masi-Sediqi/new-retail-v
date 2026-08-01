@@ -247,7 +247,7 @@ function Billing() {
 
     return availableProducts
       .filter((product) =>
-        [product.name, product.code, product.barcode, product.category]
+        [product.id, product.name, product.code, product.barcode, product.category]
           .join(" ")
           .toLowerCase()
           .includes(keyword)
@@ -261,12 +261,12 @@ function Billing() {
 
     return (
       availableProducts.find((product) =>
-        [product.barcode, product.code, product.name].some(
+        [product.id, product.barcode, product.code, product.name].some(
           (value) => String(value || "").toLowerCase() === keyword
         )
       ) ||
       availableProducts.find((product) =>
-        [product.barcode, product.code, product.name].some((value) =>
+        [product.id, product.barcode, product.code, product.name].some((value) =>
           String(value || "").toLowerCase().includes(keyword)
         )
       )
@@ -291,8 +291,13 @@ function Billing() {
       productCurrency === billCurrency
         ? product.selling
         : convertMoney(product.selling, productCurrency, billCurrency);
+    const purchasePrice = parseMoney(product.purchase || product.purchasePrice || product.cost);
+    const convertedPurchase =
+      productCurrency === billCurrency
+        ? purchasePrice
+        : convertMoney(purchasePrice, productCurrency, billCurrency);
 
-    if (convertedPrice === null) {
+    if (convertedPrice === null || convertedPurchase === null) {
       notify("Exchange rate for this currency has not been added.", "error");
       return;
     }
@@ -324,6 +329,8 @@ function Billing() {
           currency: billCurrency,
           originalCurrency: productCurrency,
           price: roundMoney(convertedPrice),
+          purchase: roundMoney(convertedPurchase),
+          cost: roundMoney(convertedPurchase),
           discount: 0,
           quantity: 1,
           stock: parseMoney(product.quantity),
@@ -382,6 +389,9 @@ function Billing() {
       current.map((item) => {
         if (item.productId !== productId) return item;
         const next = { ...item, ...patch };
+        if (parseMoney(next.quantity) > item.stock) {
+          notify(`Only ${item.stock} ${item.unit || "units"} are available.`, "error");
+        }
         next.quantity = Math.max(1, Math.min(parseMoney(next.quantity), item.stock));
         next.price = Math.max(0, parseMoney(next.price));
         next.discount = Math.max(0, parseMoney(next.discount));
@@ -411,8 +421,8 @@ function Billing() {
   const balance = Math.max(0, total - paidAmount);
   const paidTooHigh = paymentStatusMode === "loan" && paidAmount > total;
 
-  const createInvoice = () => {
-    const selectedCustomer = customers.find(
+  const createInvoice = (customerOverride = null) => {
+    const selectedCustomer = customerOverride || customers.find(
       (customer) => String(customer.id || customer.customerId) === String(customerId)
     );
     const invoiceNumber = `INV-${billDate.replaceAll("-", "").slice(2)}-${String(
@@ -421,9 +431,11 @@ function Billing() {
 
     return {
       id: `invoice-${Date.now()}`,
+      type: "sale",
+      recordType: "Sale",
       invoiceNumber,
       date: billDate,
-      customerId,
+      customerId: selectedCustomer ? String(selectedCustomer.id || selectedCustomer.customerId) : "",
       customerName: selectedCustomer ? getCustomerName(selectedCustomer) : walkInName || "Walk-in customer",
       currency,
       items: items.map((item) => ({
@@ -469,7 +481,38 @@ function Billing() {
       return;
     }
 
-    const invoice = createInvoice();
+    const insufficientItem = items.find((item) => {
+      const product = availableProducts.find((candidate) => String(candidate.id) === String(item.productId));
+      return !product || parseMoney(item.quantity) > parseMoney(product.quantity);
+    });
+    if (insufficientItem) {
+      notify(`Insufficient stock for ${insufficientItem.name}. Please correct the quantity.`, "error");
+      return;
+    }
+
+    const cleanWalkInName = walkInName.trim();
+    const walkInCustomer = !customerId && cleanWalkInName
+      ? {
+          id: `customer-${Date.now()}`,
+          customerId: `customer-${Date.now()}`,
+          name: cleanWalkInName,
+          customerName: cleanWalkInName,
+          phone: "",
+          email: "",
+          address: "",
+          notes: "Automatically created from Billing",
+          vip: false,
+          purchases: 0,
+          pending: 0,
+          status: "Active",
+          source: "billing-walk-in",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      : null;
+    if (walkInCustomer) walkInCustomer.customerId = walkInCustomer.id;
+
+    const invoice = createInvoice(walkInCustomer);
 
     const stockSaved = await setProducts((currentProducts) =>
       currentProducts.map((product) => {
@@ -487,23 +530,40 @@ function Billing() {
     const salesSaved = await setSales((currentSales) => [invoice, ...currentSales]);
     if (!salesSaved) return;
 
-    await setTransactions((currentTransactions) => [
+    const transactionSaved = await setTransactions((currentTransactions) => [
       {
         id: `billing-${invoice.id}`,
         type: "income",
+        transactionType: "deposit",
         title: `Invoice ${invoice.invoiceNumber}`,
         amount: invoice.paidAmount,
         date: invoice.date,
         description: invoice.customerName,
-        source: "billing",
-        category: "sales",
+        source: "cash-wallet",
+        referenceSource: "billing",
+        category: "Cash Wallet",
         referenceId: invoice.id,
         currency: invoice.currency,
+        createdAt: invoice.createdAt,
+        updatedAt: invoice.createdAt,
       },
       ...currentTransactions,
     ]);
+    if (!transactionSaved) return;
 
-    if (invoice.customerId) {
+    if (walkInCustomer) {
+      const customerSaved = await setCustomers((currentCustomers) => [
+        {
+          ...walkInCustomer,
+          purchases: invoice.total,
+          pending: invoice.balance,
+          lastSaleId: invoice.id,
+          updatedAt: new Date().toISOString(),
+        },
+        ...currentCustomers,
+      ]);
+      if (!customerSaved) return;
+    } else if (invoice.customerId) {
       await setCustomers((currentCustomers) =>
         currentCustomers.map((customer) =>
           String(customer.id || customer.customerId) === String(invoice.customerId)
@@ -511,6 +571,7 @@ function Billing() {
                 ...customer,
                 purchases: roundMoney(parseMoney(customer.purchases) + invoice.total),
                 pending: roundMoney(parseMoney(customer.pending) + invoice.balance),
+                lastSaleId: invoice.id,
                 updatedAt: new Date().toISOString(),
               }
             : customer
