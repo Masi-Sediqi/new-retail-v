@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Barcode,
   CalendarDays,
@@ -181,6 +182,9 @@ function ScannerModal({ onClose, onScan }) {
 }
 
 function Billing() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit") || "";
   const [products, setProducts] = useJsonCollection("products");
   const [customers, setCustomers] = useJsonCollection("customers");
   const [settings] = useJsonCollection("settings");
@@ -206,6 +210,11 @@ function Billing() {
   const [scannerEnabled, setScannerEnabled] = useState(true);
   const [scannerOpen, setScannerOpen] = useState(false);
   const searchInputRef = useRef(null);
+  const loadedEditRef = useRef("");
+  const editingSale = useMemo(
+    () => sales.find((sale) => String(sale.id) === String(editId)) || null,
+    [editId, sales]
+  );
 
   const currencyOptions = currencies.map((item) => ({
     value: item.code,
@@ -219,6 +228,34 @@ function Billing() {
       label: getCustomerName(customer),
     })),
   ];
+
+  useEffect(() => {
+    if (!editId || !editingSale || loadedEditRef.current === editId) return;
+    const loadedItems = (editingSale.items || []).map((item) => {
+      const product = products.find((row) => String(row.id) === String(item.productId));
+      return {
+        ...item,
+        quantity: parseMoney(item.quantity),
+        price: parseMoney(item.price),
+        purchase: parseMoney(item.purchase || item.cost),
+        cost: parseMoney(item.cost || item.purchase),
+        discount: parseMoney(item.discount),
+        currency: editingSale.currency || item.currency || baseCurrency,
+        stock: parseMoney(product?.quantity) + parseMoney(item.quantity),
+      };
+    });
+    setItems(loadedItems);
+    setCustomerId(String(editingSale.customerId || ""));
+    setWalkInName(editingSale.customerId ? "" : (editingSale.customerName || ""));
+    setCurrency(editingSale.currency || baseCurrency);
+    setDiscountMode(editingSale.discountMode || "flat");
+    setDiscount(String(parseMoney(editingSale.discount)));
+    setBillDate(editingSale.date || formatDateInput(new Date()));
+    setPaymentMethod(editingSale.paymentMethod || "cash");
+    setPaymentStatusMode(parseMoney(editingSale.balance) > 0 ? "loan" : "paid");
+    setPaidAmountInput(parseMoney(editingSale.balance) > 0 ? String(parseMoney(editingSale.paidAmount)) : "");
+    loadedEditRef.current = editId;
+  }, [baseCurrency, editId, editingSale, products]);
 
   const convertMoney = (value, fromCurrency, targetCurrency = currency) =>
     convertCurrencyAmount(value, {
@@ -425,12 +462,12 @@ function Billing() {
     const selectedCustomer = customerOverride || customers.find(
       (customer) => String(customer.id || customer.customerId) === String(customerId)
     );
-    const invoiceNumber = `INV-${billDate.replaceAll("-", "").slice(2)}-${String(
+    const invoiceNumber = editingSale?.invoiceNumber || `INV-${billDate.replaceAll("-", "").slice(2)}-${String(
       sales.length + 1
     ).padStart(3, "0")}`;
 
     return {
-      id: `invoice-${Date.now()}`,
+      id: editingSale?.id || `invoice-${Date.now()}`,
       type: "sale",
       recordType: "Sale",
       invoiceNumber,
@@ -452,7 +489,11 @@ function Billing() {
       balance: roundMoney(balance),
       paymentMethod,
       paymentStatus: balance <= 0 ? "paid" : "loan",
-      createdAt: new Date().toISOString(),
+      refundTotal: parseMoney(editingSale?.refundTotal),
+      refundHistory: editingSale?.refundHistory || [],
+      paymentHistory: editingSale?.paymentHistory || [],
+      createdAt: editingSale?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   };
 
@@ -483,7 +524,8 @@ function Billing() {
 
     const insufficientItem = items.find((item) => {
       const product = availableProducts.find((candidate) => String(candidate.id) === String(item.productId));
-      return !product || parseMoney(item.quantity) > parseMoney(product.quantity);
+      const originalQuantity = editingSale?.items?.find((oldItem) => String(oldItem.productId) === String(item.productId))?.quantity || 0;
+      return !product || parseMoney(item.quantity) > parseMoney(product.quantity) + parseMoney(originalQuantity);
     });
     if (insufficientItem) {
       notify(`Insufficient stock for ${insufficientItem.name}. Please correct the quantity.`, "error");
@@ -491,7 +533,7 @@ function Billing() {
     }
 
     const cleanWalkInName = walkInName.trim();
-    const walkInCustomer = !customerId && cleanWalkInName
+    const walkInCustomer = !editingSale && !customerId && cleanWalkInName
       ? {
           id: `customer-${Date.now()}`,
           customerId: `customer-${Date.now()}`,
@@ -513,6 +555,63 @@ function Billing() {
     if (walkInCustomer) walkInCustomer.customerId = walkInCustomer.id;
 
     const invoice = createInvoice(walkInCustomer);
+
+    if (editingSale) {
+      const stockSaved = await setProducts((currentProducts) => currentProducts.map((product) => {
+        const oldItem = (editingSale.items || []).find((item) => String(item.productId) === String(product.id));
+        const newItem = invoice.items.find((item) => String(item.productId) === String(product.id));
+        if (!oldItem && !newItem) return product;
+        return {
+          ...product,
+          quantity: Math.max(0, roundMoney(parseMoney(product.quantity) + parseMoney(oldItem?.quantity) - parseMoney(newItem?.quantity))),
+          updatedAt: new Date().toISOString(),
+        };
+      }));
+      if (!stockSaved) return;
+
+      const salesSaved = await setSales((currentSales) => currentSales.map((sale) =>
+        String(sale.id) === String(editingSale.id) ? invoice : sale
+      ));
+      if (!salesSaved) return;
+
+      const transactionSaved = await setTransactions((currentTransactions) => {
+        const existingIndex = currentTransactions.findIndex((transaction) =>
+          String(transaction.referenceId) === String(editingSale.id) && transaction.referenceSource === "billing"
+        );
+        const updatedTransaction = {
+          id: existingIndex >= 0 ? currentTransactions[existingIndex].id : `billing-${invoice.id}`,
+          type: "income", transactionType: "deposit", title: `Invoice ${invoice.invoiceNumber}`,
+          amount: invoice.paidAmount, date: invoice.date, description: invoice.customerName,
+          source: "cash-wallet", referenceSource: "billing", category: "Cash Wallet",
+          referenceId: invoice.id, currency: invoice.currency,
+          createdAt: existingIndex >= 0 ? currentTransactions[existingIndex].createdAt : invoice.createdAt,
+          updatedAt: new Date().toISOString(),
+        };
+        if (existingIndex < 0) return [updatedTransaction, ...currentTransactions];
+        return currentTransactions.map((transaction, index) => index === existingIndex ? updatedTransaction : transaction);
+      });
+      if (!transactionSaved) return;
+
+      await setCustomers((currentCustomers) => currentCustomers.map((customer) => {
+        const id = String(customer.id || customer.customerId);
+        const wasCustomer = id === String(editingSale.customerId || "");
+        const isCustomer = id === String(invoice.customerId || "");
+        if (!wasCustomer && !isCustomer) return customer;
+        return {
+          ...customer,
+          purchases: roundMoney(parseMoney(customer.purchases) - (wasCustomer ? parseMoney(editingSale.total) : 0) + (isCustomer ? parseMoney(invoice.total) : 0)),
+          pending: roundMoney(parseMoney(customer.pending) - (wasCustomer ? parseMoney(editingSale.balance) : 0) + (isCustomer ? parseMoney(invoice.balance) : 0)),
+          lastSaleId: isCustomer ? invoice.id : customer.lastSaleId,
+          updatedAt: new Date().toISOString(),
+        };
+      }));
+
+      notify("Bill updated successfully.");
+      if (shouldPrint) setPreviewInvoice(invoice);
+      loadedEditRef.current = "";
+      if (!shouldPrint) navigate("/sales-bills");
+      return;
+    }
 
     const stockSaved = await setProducts((currentProducts) =>
       currentProducts.map((product) => {
@@ -663,8 +762,8 @@ function Billing() {
     <div className="billing-page">
       <div className="billing-header">
         <div>
-          <h1>Billing</h1>
-          <p>Create invoices, scan barcodes, manage payments and update product stock.</p>
+          <h1>{editingSale ? "Edit Bill" : "Billing"}</h1>
+          <p>{editingSale ? `Modify existing invoice ${editingSale.invoiceNumber}` : "Create invoices, scan barcodes, manage payments and update product stock."}</p>
         </div>
         <div className="billing-header-actions">
           <button
@@ -685,13 +784,13 @@ function Billing() {
             <Camera size={16} />
             Scan
           </button>
-          <button type="button" className="billing-light-btn" onClick={resetBill}>
+          <button type="button" className="billing-light-btn" onClick={() => editingSale ? navigate("/sales-bills") : resetBill()}>
             <X size={16} />
-            Clear
+            {editingSale ? "Cancel" : "Clear"}
           </button>
           <button type="button" className="billing-primary-btn" onClick={() => saveInvoice(true)}>
             <Printer size={16} />
-            Save & Print
+            {editingSale ? "Update & Print" : "Save & Print"}
           </button>
         </div>
       </div>
@@ -981,7 +1080,7 @@ function Billing() {
             </button>
             <button type="button" className="billing-primary-btn" onClick={() => saveInvoice(false)}>
               <CreditCard size={16} />
-              Save Bill
+              {editingSale ? "Update Bill" : "Save Bill"}
             </button>
           </div>
         </aside>

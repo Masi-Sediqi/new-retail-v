@@ -3000,6 +3000,61 @@ body.dark-mode .record-type.expense {
   right: 0;
 }
 
+/* Account menu mirrors the compact workstation menu used by the reference app. */
+.profile-dropdown {
+  width: 220px;
+  min-width: 220px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  border-color: #dfe3ea;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.profile-dropdown-label {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  color: #202938;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.profile-dropdown-group {
+  padding: 3px 0;
+  border-top: 1px solid #e7e9ee;
+}
+
+.profile-dropdown .dropdown-action {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 0;
+  gap: 9px;
+  font-size: 12px;
+  color: #263244;
+}
+
+.profile-dropdown .dropdown-action:hover {
+  transform: none;
+  background: #f5f7fa;
+  color: #111827;
+}
+
+.profile-dropdown .dropdown-action:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.profile-dropdown-lock-group {
+  padding: 2px 0;
+}
+
+.profile-dropdown .profile-lock-action,
+.profile-dropdown .profile-lock-action:hover {
+  color: #ef4444;
+}
+
 th {
   text-align: left;
 }
@@ -6185,6 +6240,50 @@ body:not(.dark-mode) .top-actions .profile-btn.active {
   border-color: #252525 !important;
   background: #252525 !important;
   color: #ffffff !important;
+}
+
+/* Keep account-menu rows independent from the generic header button states above. */
+body:not(.dark-mode) .top-actions .profile-dropdown,
+body:not(.dark-mode) .top-actions .profile-dropdown-group {
+  background: #ffffff !important;
+}
+
+body:not(.dark-mode) .top-actions .profile-dropdown .dropdown-action,
+body:not(.dark-mode) .top-actions .profile-dropdown .dropdown-action:focus,
+body:not(.dark-mode) .top-actions .profile-dropdown .dropdown-action:active {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+  color: #263244 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body:not(.dark-mode) .top-actions .profile-dropdown .dropdown-action:hover {
+  background: #f5f7fa !important;
+  color: #111827 !important;
+  transform: none !important;
+}
+
+body:not(.dark-mode) .top-actions .profile-dropdown .profile-lock-action,
+body:not(.dark-mode) .top-actions .profile-dropdown .profile-lock-action:hover {
+  background: #ffffff !important;
+  color: #ef4444 !important;
+}
+
+body:not(.dark-mode) .top-actions .profile-dropdown .profile-lock-action:hover {
+  background: #fff5f5 !important;
+}
+
+body:not(.dark-mode) .top-actions .profile-dropdown .dropdown-action:disabled {
+  background: #ffffff !important;
+  color: #64748b !important;
+  opacity: .65;
 }
 
 .header-preference-btn svg,

@@ -69,6 +69,7 @@ const accentOptions = ["Preset", "Indigo", "Blue", "Emerald", "Amber", "Rose"];
 const printTemplateOptions = ["Standard", "Compact", "Thermal", "Detailed"];
 const formModules = ["products", "customers", "suppliers", "expenses", "staffMembers", "billing"];
 const permissionModules = ["Dashboard", "Products", "Billing", "Sales/Bills", "Staff", "Customers", "Godown", "Suppliers", "Expenses", "Loans", "Financials", "Reports", "Settings"];
+const permissionModuleKeys = { Dashboard:"dashboard", Products:"assets", Billing:"billing", "Sales/Bills":"salesBills", Staff:"staff", Customers:"customers", Godown:"mainStock", Suppliers:"suppliers", Expenses:"expenses", Loans:"loans", Financials:"financials", Reports:"reports", Settings:"settings" };
 
 const currencyCodeFromLabel = (value) => {
   const match = String(value || "").match(/\(([A-Z]{3})\)/);
@@ -111,6 +112,7 @@ const defaultKpiRouting = {
 
 function Settings() {
   const [settings, setSettings] = useJsonCollection("settings");
+  const [accounts, setAccounts] = useJsonCollection("accounts");
   const current = settings[0] || {};
   const logoInputRef = useRef(null);
   const printLogoInputRef = useRef(null);
@@ -163,6 +165,7 @@ function Settings() {
   const [securitySettings, setSecuritySettings] = useState({
     lockOnStart: false,
     sessionTimeout: "30",
+    currentPassword: "",
     password: "",
     confirmPassword: "",
   });
@@ -227,6 +230,7 @@ function Settings() {
     setSecuritySettings({
       lockOnStart: Boolean(current.securitySettings?.lockOnStart),
       sessionTimeout: String(current.securitySettings?.sessionTimeout || "30"),
+      currentPassword: "",
       password: "",
       confirmPassword: "",
     });
@@ -350,6 +354,10 @@ function Settings() {
 
     if (securitySettings.password && securitySettings.password !== securitySettings.confirmPassword) {
       notify("Security password confirmation does not match.", "error");
+      return;
+    }
+    if (current.securitySettings?.password && securitySettings.password && securitySettings.currentPassword !== current.securitySettings.password) {
+      notify("Current security password is incorrect.", "error");
       return;
     }
 
@@ -493,7 +501,7 @@ function Settings() {
     reader.readAsDataURL(file);
   };
 
-  const addSystemUser = () => {
+  const addSystemUser = async () => {
     if (!userDraft.name.trim()) {
       notify("Please enter the user name.", "error");
       return;
@@ -501,18 +509,25 @@ function Settings() {
     if (!userDraft.username.trim() || !userDraft.password || userDraft.password !== userDraft.confirmPassword) {
       notify("Enter a username and matching passwords.", "error"); return;
     }
-    setSystemUsers((previous) => [
-      ...previous,
-      {
+    if (accounts.some((account) => String(account.username || account.email).toLowerCase() === userDraft.username.trim().toLowerCase())) {
+      notify("This username already exists.", "error"); return;
+    }
+    const normalizedPermissions = permissionModules.reduce((result, label) => { const actions = userPermissions[label] || {}; const key = permissionModuleKeys[label] || label; const previous = result[key] || {}; result[key] = { create:Boolean(previous.create || actions.create || actions.all), view:Boolean(previous.view || actions.view || actions.all), edit:Boolean(previous.edit || actions.update || actions.edit || actions.all), update:Boolean(previous.update || actions.update || actions.all), delete:Boolean(previous.delete || actions.delete || actions.all), print:Boolean(previous.print || actions.print || actions.all) }; return result; }, {});
+    const nextUser = {
         id: `user-${Date.now()}`,
         name: userDraft.name.trim(),
+        fullName: userDraft.name.trim(),
         role: userDraft.role,
+        status: "Active",
         email: userDraft.email.trim(),
         username: userDraft.username.trim(),
-        permissions: userPermissions,
+        password: userDraft.password,
+        permissions: normalizedPermissions,
         createdAt: new Date().toISOString(),
-      },
-    ]);
+      };
+    const saved = await setAccounts((previous) => [...previous, nextUser]);
+    if (!saved) return;
+    setSystemUsers((previous) => [...previous, nextUser]);
     setUserDraft({ name: "", username: "", password: "", confirmPassword: "", role: "Operator", email: "" });
     setUserPermissions({}); setUserModalOpen(false);
   };
@@ -930,12 +945,13 @@ function Settings() {
         <div className="settings-stack">
           <section className="settings-card">
             <SectionTitle title="Security Settings" description="Protect your system with password protection." icon={Shield} />
-            <div className="security-status"><Shield size={18}/><div><strong>Password Protection</strong><span>{current.securitySettings?.password ? "Password is configured" : "No password set"}</span></div></div>
+            <div className="security-status"><Shield size={18}/><div><strong>Password Protection</strong><span>{current.securitySettings?.password ? "Password is set" : "No password set"}</span></div>{current.securitySettings?.password&&<button type="button" className="settings-light-button" onClick={async()=>{const saved=await setSettings([{...current,securitySettings:{...(current.securitySettings||{}),password:"",lockOnStart:false,passwordUpdatedAt:new Date().toISOString()}}]);if(saved){setSecuritySettings((value)=>({...value,currentPassword:"",password:"",confirmPassword:"",lockOnStart:false}));window.dispatchEvent(new Event("company-settings-updated"));notify("Password protection removed.");}}}>Remove</button>}</div>
             <div className="settings-field-grid three">
               <div className="settings-toggle-field"><span>Lock on startup</span><Switch checked={securitySettings.lockOnStart} onChange={(value) => setSecuritySettings((previous) => ({ ...previous, lockOnStart: value }))} /></div>
               <Field label="Session timeout (minutes)">
                 <input type="number" min="1" value={securitySettings.sessionTimeout} onChange={(event) => setSecuritySettings((previous) => ({ ...previous, sessionTimeout: event.target.value }))} />
               </Field>
+              {current.securitySettings?.password&&<Field label="Current Password"><input type="password" value={securitySettings.currentPassword} onChange={(event)=>setSecuritySettings((previous)=>({...previous,currentPassword:event.target.value}))}/></Field>}
               <Field label="New security password">
                 <input type="password" value={securitySettings.password} onChange={(event) => setSecuritySettings((previous) => ({ ...previous, password: event.target.value }))} />
               </Field>

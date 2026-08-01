@@ -10,25 +10,31 @@ import {
   ChevronDown,
   Coins,
   CreditCard,
+  Download,
   Globe2,
   LogOut,
+  LockKeyhole,
   Moon,
   Search,
   Settings,
   Sun,
   Trash2,
+  Upload,
   User,
   Users,
   WalletCards,
   Wrench,
   X,
 } from "lucide-react";
+import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { todayDateValue } from "../utils/afghanDate";
 import { buildSystemSearchResults, money } from "../utils/systemSearch";
 import { playNotificationSound } from "../utils/notificationSounds";
 import { setThemeModeOverride, themeModeStorageKey } from "../utils/theme";
+import { downloadBackup, loadBackupCollectionNames } from "../utils/backup";
+import { apiUrl } from "../utils/api";
 
 const NOTIFICATION_STATE_KEY = "isp-notification-state";
 const LOW_STOCK_SOUND_STATE_KEY = "isp-low-stock-sounded";
@@ -137,11 +143,21 @@ const writeNotificationState = (state) => {
   localStorage.setItem(NOTIFICATION_STATE_KEY, JSON.stringify(state));
 };
 
+const openAccountLockScreen = ({ logout = false } = {}) => {
+  if (logout) {
+    localStorage.removeItem("smart-office-system-session");
+    localStorage.removeItem("isp-system-session");
+  }
+  localStorage.setItem("smart-office-locked", "1");
+  window.location.reload();
+};
+
 function HeaderActions({
   currentUser,
   language = "en",
   onLanguageChange,
   onLogout,
+  onLock,
   compact = false,
   t = {},
 }) {
@@ -170,6 +186,51 @@ const [secondaryCurrency, setSecondaryCurrency] = useState(
 );
 
 const headerDropdownRef = useRef(null);
+const accountBackupInputRef = useRef(null);
+const [accountBackupBusy, setAccountBackupBusy] = useState(false);
+
+const exportAccountBackup = async () => {
+  if (accountBackupBusy) return;
+  try {
+    setAccountBackupBusy(true);
+    await downloadBackup("manual");
+    setOpenMenu(null);
+  } catch (error) {
+    console.error("Unable to export backup:", error);
+    window.alert("Unable to export backup.");
+  } finally {
+    setAccountBackupBusy(false);
+  }
+};
+
+const importAccountBackup = async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file || accountBackupBusy) return;
+
+  try {
+    setAccountBackupBusy(true);
+    const parsed = JSON.parse(await file.text());
+    const data = parsed.collections && typeof parsed.collections === "object"
+      ? parsed.collections
+      : parsed;
+    const collections = await loadBackupCollectionNames();
+    const importable = collections.filter((name) => Array.isArray(data[name]));
+
+    if (!importable.length) throw new Error("No compatible collections found");
+    if (!window.confirm(`Import will replace ${importable.length} data table(s). Continue?`)) return;
+
+    await Promise.all(importable.map((name) => axios.put(apiUrl(name), data[name])));
+    setOpenMenu(null);
+    window.alert("Backup imported successfully. The app will now refresh.");
+    window.location.reload();
+  } catch (error) {
+    console.error("Unable to import backup:", error);
+    window.alert("Unable to import backup. Please select a valid JSON backup file.");
+  } finally {
+    setAccountBackupBusy(false);
+  }
+};
 
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem(themeModeStorageKey) === "Dark" || document.body.classList.contains("dark-mode")
@@ -543,7 +604,7 @@ const saveCashWalletTransaction = async (event) => {
 
   if (compact) {
     return (
-      <div className="header-menu mobile-brand-actions">
+      <div className="header-menu mobile-brand-actions" ref={headerDropdownRef}>
         <button
           className="profile-btn mobile-actions-toggle"
           onClick={() => setOpenMenu(openMenu === "mobile" ? null : "mobile")}
@@ -570,6 +631,7 @@ const saveCashWalletTransaction = async (event) => {
               <Settings size={15} />
               Settings
             </Link>
+            <button className="dropdown-action" type="button" onClick={() => openAccountLockScreen()}><LockKeyhole size={15}/>Lock Screen</button>
             <button className="dropdown-action" type="button" onClick={toggleDarkMode}>
               {darkMode ? <Sun size={15} /> : <Moon size={15} />}
               {darkMode ? "Light mode" : "Dark mode"}
@@ -587,7 +649,7 @@ const saveCashWalletTransaction = async (event) => {
               <small>Outstanding deposits: {visibleNotificationGroups.find((group) => group.key === "deposit")?.count || 0}</small>
             </div>
 
-            <button className="dropdown-logout" onClick={onLogout} type="button">
+            <button className="dropdown-logout" onClick={() => openAccountLockScreen({ logout:true })} type="button">
               <LogOut size={15} />
               Logout
             </button>
@@ -599,10 +661,9 @@ const saveCashWalletTransaction = async (event) => {
 
   return (
     <>
-    <div className="top-actions">
+    <div className="top-actions" ref={headerDropdownRef}>
         <div
   className="header-preference-actions"
-  ref={headerDropdownRef}
 >
   <div className="header-menu header-preference-menu">
     <button
@@ -939,15 +1000,19 @@ const saveCashWalletTransaction = async (event) => {
 
           {openMenu === "profile" && (
             <div className="dropdown profile-dropdown">
-              <strong>
-                {currentUser?.fullName || currentUser?.email || currentUser?.username}
-              </strong>
-              <p>{currentUser?.email || t.noEmailConfigured || "No email configured"}</p>
-
-          <button className="dropdown-logout" onClick={onLogout}>
-                <LogOut size={15} />
-                {t.logout || "Logout"}
-              </button>
+              <div className="profile-dropdown-label">My Account</div>
+              <div className="profile-dropdown-group">
+                <Link to="/accounts" className="dropdown-action" onClick={() => setOpenMenu(null)}><User size={15}/>Profile</Link>
+                <Link to="/settings" className="dropdown-action" onClick={() => setOpenMenu(null)}><Settings size={15}/>Settings</Link>
+              </div>
+              <div className="profile-dropdown-group">
+                <button className="dropdown-action" type="button" disabled={accountBackupBusy} onClick={exportAccountBackup}><Download size={15}/>Export Backup</button>
+                <button className="dropdown-action" type="button" disabled={accountBackupBusy} onClick={() => accountBackupInputRef.current?.click()}><Upload size={15}/>Import / Restore Backup</button>
+                <input ref={accountBackupInputRef} hidden type="file" accept="application/json,.json" onChange={importAccountBackup}/>
+              </div>
+              <div className="profile-dropdown-group profile-dropdown-lock-group">
+                <button className="dropdown-action profile-lock-action" type="button" onClick={() => openAccountLockScreen()}><LockKeyhole size={15}/>Lock Screen</button>
+              </div>
             </div>
           )}
         </div>
@@ -1084,7 +1149,7 @@ function CashWalletModal({
   );
 }
 
-function Header({ currentUser, language = "en", onLanguageChange, onLogout, t = {} }) {
+function Header({ currentUser, language = "en", onLanguageChange, onLogout, onLock, t = {} }) {
   const navigate = useNavigate();
   const searchRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -1282,6 +1347,7 @@ function Header({ currentUser, language = "en", onLanguageChange, onLogout, t = 
         language={language}
         onLanguageChange={onLanguageChange}
         onLogout={onLogout}
+        onLock={onLock}
         t={t}
       />
     </header>

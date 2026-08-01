@@ -11,6 +11,12 @@ export const MODULE_KEYS = {
   userManagement: "userManagement",
   settings: "settings",
   agent: "agent",
+  billing: "billing",
+  salesBills: "salesBills",
+  staff: "staff",
+  expenses: "expenses",
+  loans: "loans",
+  financials: "financials",
 };
 
 export function isAdminUser(user) {
