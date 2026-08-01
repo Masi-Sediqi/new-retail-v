@@ -12,6 +12,7 @@ import {
   CreditCard,
   Globe2,
   LogOut,
+  LockKeyhole,
   Moon,
   Search,
   Settings,
@@ -137,11 +138,21 @@ const writeNotificationState = (state) => {
   localStorage.setItem(NOTIFICATION_STATE_KEY, JSON.stringify(state));
 };
 
+const openAccountLockScreen = ({ logout = false } = {}) => {
+  if (logout) {
+    localStorage.removeItem("smart-office-system-session");
+    localStorage.removeItem("isp-system-session");
+  }
+  localStorage.setItem("smart-office-locked", "1");
+  window.location.reload();
+};
+
 function HeaderActions({
   currentUser,
   language = "en",
   onLanguageChange,
   onLogout,
+  onLock,
   compact = false,
   t = {},
 }) {
@@ -543,7 +554,7 @@ const saveCashWalletTransaction = async (event) => {
 
   if (compact) {
     return (
-      <div className="header-menu mobile-brand-actions">
+      <div className="header-menu mobile-brand-actions" ref={headerDropdownRef}>
         <button
           className="profile-btn mobile-actions-toggle"
           onClick={() => setOpenMenu(openMenu === "mobile" ? null : "mobile")}
@@ -570,6 +581,7 @@ const saveCashWalletTransaction = async (event) => {
               <Settings size={15} />
               Settings
             </Link>
+            <button className="dropdown-action" type="button" onClick={() => openAccountLockScreen()}><LockKeyhole size={15}/>Lock Screen</button>
             <button className="dropdown-action" type="button" onClick={toggleDarkMode}>
               {darkMode ? <Sun size={15} /> : <Moon size={15} />}
               {darkMode ? "Light mode" : "Dark mode"}
@@ -587,7 +599,7 @@ const saveCashWalletTransaction = async (event) => {
               <small>Outstanding deposits: {visibleNotificationGroups.find((group) => group.key === "deposit")?.count || 0}</small>
             </div>
 
-            <button className="dropdown-logout" onClick={onLogout} type="button">
+            <button className="dropdown-logout" onClick={() => openAccountLockScreen({ logout:true })} type="button">
               <LogOut size={15} />
               Logout
             </button>
@@ -599,10 +611,9 @@ const saveCashWalletTransaction = async (event) => {
 
   return (
     <>
-    <div className="top-actions">
+    <div className="top-actions" ref={headerDropdownRef}>
         <div
   className="header-preference-actions"
-  ref={headerDropdownRef}
 >
   <div className="header-menu header-preference-menu">
     <button
@@ -948,12 +959,16 @@ const saveCashWalletTransaction = async (event) => {
 
           {openMenu === "profile" && (
             <div className="dropdown profile-dropdown">
-              <strong>
+              <small className="profile-dropdown-label">My Account</small><strong>
                 {currentUser?.fullName || currentUser?.email || currentUser?.username}
               </strong>
               <p>{currentUser?.email || t.noEmailConfigured || "No email configured"}</p>
 
-          <button className="dropdown-logout" onClick={onLogout}>
+              <Link to="/accounts" className="dropdown-action" onClick={() => setOpenMenu(null)}><User size={15}/>Profile</Link>
+              <Link to="/settings" className="dropdown-action" onClick={() => setOpenMenu(null)}><Settings size={15}/>Settings</Link>
+              <button className="dropdown-action profile-lock-action" type="button" onClick={() => openAccountLockScreen()}><LockKeyhole size={15}/>Lock Screen</button>
+
+          <button className="dropdown-logout" onClick={() => openAccountLockScreen({ logout:true })}>
                 <LogOut size={15} />
                 {t.logout || "Logout"}
               </button>
@@ -1093,7 +1108,7 @@ function CashWalletModal({
   );
 }
 
-function Header({ currentUser, language = "en", onLanguageChange, onLogout, t = {} }) {
+function Header({ currentUser, language = "en", onLanguageChange, onLogout, onLock, t = {} }) {
   const navigate = useNavigate();
   const searchRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -1291,6 +1306,7 @@ function Header({ currentUser, language = "en", onLanguageChange, onLogout, t = 
         language={language}
         onLanguageChange={onLanguageChange}
         onLogout={onLogout}
+        onLock={onLock}
         t={t}
       />
     </header>

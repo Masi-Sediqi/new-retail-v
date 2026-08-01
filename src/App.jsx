@@ -41,6 +41,7 @@ import Header from "./components/Header";
 import GlobalTableEnhancer from "./components/GlobalTableEnhancer";
 import ConfirmDialogHost from "./components/ConfirmDialogHost";
 import StartupSplash from "./components/StartupSplash";
+import LockScreen from "./components/LockScreen";
 import ToastHost from "./components/ToastHost";
 import { useJsonCollection } from "./hooks/useJsonCollection";
 import { translations } from "./data/translations";
@@ -203,6 +204,7 @@ function App() {
     localStorage.getItem("smart-office-system-session") ||
     localStorage.getItem("isp-system-session")
   );
+  const [locked, setLocked] = useState(() => localStorage.getItem("smart-office-locked") === "1");
 
 
   const company = settings[0] || {};
@@ -210,9 +212,11 @@ function App() {
   const t = translations[language] || translations.en;
   const systemName = company.companyName || "Smart Office";
   const systemSubtitle = company.systemSubtitle || "Business Management System";
-  const effectiveAccounts = accounts.some((account) => String(account.id) === "default-admin")
-    ? accounts
-    : [defaultAdminAccount, ...accounts];
+  const configuredUsers = (company.systemUsers || []).map((user) => ({ ...user, fullName: user.fullName || user.name, status: user.status || "Active" }));
+  const mergedAccounts = [...accounts, ...configuredUsers.filter((user) => !accounts.some((account) => String(account.id) === String(user.id)))];
+  const effectiveAccounts = mergedAccounts.some((account) => String(account.id) === "default-admin")
+    ? mergedAccounts
+    : [defaultAdminAccount, ...mergedAccounts];
   const currentUser = effectiveAccounts.find(
     (account) => String(account.id) === String(sessionId)
   );
@@ -348,8 +352,40 @@ function App() {
   const logout = () => {
     localStorage.removeItem("smart-office-system-session");
     localStorage.removeItem("isp-system-session");
+    localStorage.setItem("smart-office-locked", "1");
     setSessionId(null);
+    setLocked(true);
   };
+
+  const lockScreen = () => {
+    localStorage.setItem("smart-office-locked", "1");
+    setLocked(true);
+  };
+
+  useEffect(() => {
+    const handleLockScreen = () => {
+      localStorage.setItem("smart-office-locked", "1");
+      setLocked(true);
+    };
+    window.addEventListener("app-lock-screen", handleLockScreen);
+    return () => window.removeEventListener("app-lock-screen", handleLockScreen);
+  }, []);
+
+  const unlockScreen = (account) => {
+    login(account);
+    localStorage.removeItem("smart-office-locked");
+    sessionStorage.setItem("smart-office-start-lock-handled", "1");
+    setLocked(false);
+    const firstAllowed = menuItems.find((item) => canViewModule(account, item.moduleKey));
+    window.location.hash = firstAllowed?.to || "/";
+  };
+
+  useEffect(() => {
+    if (!currentUser || !company.securitySettings?.password || !company.securitySettings?.lockOnStart) return;
+    if (sessionStorage.getItem("smart-office-start-lock-handled") === "1") return;
+    localStorage.setItem("smart-office-locked", "1");
+    setLocked(true);
+  }, [company.securitySettings?.lockOnStart, company.securitySettings?.password, currentUser]);
 
 const menuItems = [
   {
@@ -370,21 +406,21 @@ const menuItems = [
     to: "/billing",
     label: "Billing",
     labelKey: "billing",
-    moduleKey: "dashboard",
+    moduleKey: "billing",
     icon: ReceiptText,
   },
   {
     to: "/sales-bills",
     label: "Sales / Bills",
     labelKey: "salesBills",
-    moduleKey: "dashboard",
+    moduleKey: "salesBills",
     icon: ShoppingCart,
   },
   {
     to: "/staff",
     label: "Staff",
     labelKey: "staff",
-    moduleKey: "userManagement",
+    moduleKey: "staff",
     icon: UserPlus,
   },
   {
@@ -419,21 +455,21 @@ const menuItems = [
     to: "/expenses",
     label: "Expenses",
     labelKey: "expenses",
-    moduleKey: "dashboard",
+    moduleKey: "expenses",
     icon: WalletCards,
   },
   {
     to: "/loans",
     label: "Loans",
     labelKey: "loans",
-    moduleKey: "dashboard",
+    moduleKey: "loans",
     icon: CreditCard,
   },
   {
     to: "/financials",
     label: "Financials",
     labelKey: "financials",
-    moduleKey: "userManagement",
+    moduleKey: "financials",
     icon: DollarSign,
   },
   {
@@ -554,6 +590,7 @@ const menuItems = [
             language={language}
             onLanguageChange={setLanguage}
             onLogout={logout}
+            onLock={lockScreen}
             t={t}
             compact
           />
@@ -635,6 +672,7 @@ const menuItems = [
           language={language}
           onLanguageChange={setLanguage}
           onLogout={logout}
+          onLock={lockScreen}
           t={t}
         />
         <GlobalTableEnhancer />
@@ -672,17 +710,17 @@ const menuItems = [
 
 <Route
   path="/billing"
-  element={protect("dashboard", <Billing />)}
+  element={protect("billing", <Billing />)}
 />
 
 <Route
   path="/sales-bills"
-  element={protect("dashboard", <SalesBills />)}
+  element={protect("salesBills", <SalesBills />)}
 />
 
 <Route
   path="/financials"
-  element={protect("userManagement", <Finance />)}
+  element={protect("financials", <Finance />)}
 />
 
 <Route
@@ -697,12 +735,12 @@ const menuItems = [
 
 <Route
   path="/staff"
-  element={protect("userManagement", <Staff />)}
+  element={protect("staff", <Staff />)}
 />
 
 <Route
   path="/user-management"
-  element={protect("userManagement", <Staff />)}
+  element={protect("staff", <Staff />)}
 />
 
 <Route
@@ -737,7 +775,7 @@ const menuItems = [
 
 <Route
   path="/expenses"
-  element={protect("dashboard", <Expenses />)}
+  element={protect("expenses", <Expenses />)}
 />
 
 <Route
@@ -752,7 +790,7 @@ const menuItems = [
 
       <Route
         path="/loans"
-        element={protect("dashboard", <Loans />)}
+        element={protect("loans", <Loans />)}
       />
 
 <Route
@@ -774,6 +812,7 @@ const menuItems = [
     <>
       <StartupSplash />
       {appContent}
+      {accountsLoaded && locked && <LockScreen accounts={effectiveAccounts} company={company} onUnlock={unlockScreen} />}
       {!currentUser && <ToastHost />}
       {!currentUser && <ConfirmDialogHost />}
     </>
