@@ -43,6 +43,7 @@ const common = {
     "Filtered Total": "مجموع فیلترشده", "This Month": "این ماه", "Expense Count": "تعداد مصارف", "Highest Expense": "بیشترین مصرف", "Search expenses...": "جستجوی مصارف...", "No expenses found.": "مصرفی یافت نشد.", "Add Expense": "افزودن مصرف", "Edit Expense": "ویرایش مصرف", "Expense description": "توضیح مصرف", "Additional notes": "یادداشت‌های اضافی",
     "Total Sales": "مجموع فروش", "Pure Profit": "سود خالص واقعی", "Staff Payable": "قابل پرداخت به کارمندان", "Upcoming Payroll": "پرداخت معاش آینده", "No upcoming": "مورد آینده‌ای نیست", "Revenue vs Expenses": "درآمد در برابر مصارف", "Weekly Trends": "روند هفتگی", "Category Breakdown": "تفکیک دسته‌بندی", "Paid vs Pending": "پرداخت‌شده در برابر معلق", "Top Customers": "مشتریان برتر", "Report Summary": "خلاصهٔ گزارش", "Search report rows...": "جستجوی ردیف‌های گزارش...",
     "Empty Bin": "خالی‌کردن سطل", "Search deleted records...": "جستجوی موارد حذف‌شده...", "Recycle bin is empty.": "سطل بازیافت خالی است.", "Restore": "بازیابی", "Delete Permanently": "حذف دائمی",
+    "Stock Alerts": "هشدارهای موجودی", "Low Stock Alert": "هشدار موجودی کم", "Product Low Stock Alert": "هشدار موجودی کم محصول",
   },
   ps: {
     "Add": "زیاتول", "Edit": "سمول", "Delete": "ړنګول", "View": "کتل", "Save": "خوندي کول", "Save Changes": "بدلونونه خوندي کړئ",
@@ -83,6 +84,7 @@ const common = {
     "Filtered Total": "فلټر شوی ټول", "This Month": "دا میاشت", "Expense Count": "د لګښتونو شمېر", "Highest Expense": "تر ټولو لوړ لګښت", "Search expenses...": "لګښتونه ولټوئ...", "No expenses found.": "لګښت ونه موندل شو.", "Add Expense": "لګښت زیات کړئ", "Edit Expense": "لګښت سم کړئ", "Expense description": "د لګښت تشریح", "Additional notes": "اضافي یادښتونه",
     "Total Sales": "ټول پلور", "Pure Profit": "سوچه ګټه", "Staff Payable": "کارکوونکو ته د ورکړې وړ", "Upcoming Payroll": "راتلونکی معاش", "No upcoming": "راتلونکی مورد نشته", "Revenue vs Expenses": "عواید د لګښتونو پر وړاندې", "Weekly Trends": "اونیز بهیر", "Category Breakdown": "د کټګوریو وېش", "Paid vs Pending": "ورکړل شوي او پاتې", "Top Customers": "غوره پېرودونکي", "Report Summary": "د راپور لنډیز", "Search report rows...": "د راپور کتارونه ولټوئ...",
     "Empty Bin": "صندوق تش کړئ", "Search deleted records...": "ړنګ شوي ریکارډونه ولټوئ...", "Recycle bin is empty.": "د بېرته راګرځولو صندوق تش دی.", "Restore": "بېرته راګرځول", "Delete Permanently": "تلپاتې ړنګول",
+    "Stock Alerts": "د موجودۍ خبرتیاوې", "Low Stock Alert": "د کمې موجودۍ خبرتیا", "Product Low Stock Alert": "د محصول د کمې موجودۍ خبرتیا",
   },
 };
 

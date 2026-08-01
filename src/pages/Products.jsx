@@ -1456,12 +1456,21 @@ function ProductPrintStudio({ company, language, products, onClose }) {
   const inStock = products.filter((product) => parseNumber(product.quantity) > 0).length;
   const reportRows = products.slice(0, Math.max(1, rowsPerPage));
   const marginSize = { narrow: 7, normal: 14, wide: 22 }[margin];
+  const basePaperSize = {
+    A4: [210, 297], A5: [148, 210], Letter: [216, 279], Legal: [216, 356],
+    T80: [80, 220], T58: [58, 190], Custom: [210, 297],
+  }[paper] || [210, 297];
+  const isThermal = paper === "T80" || paper === "T58";
+  const paperSize = orientation === "landscape" && !isThermal
+    ? [basePaperSize[1], basePaperSize[0]]
+    : basePaperSize;
   const businessName = rtl ? (language === "fa" ? saved.businessNameFa : saved.businessNamePs) || saved.businessNameEn : saved.businessNameEn;
   const subtitle = rtl ? (language === "fa" ? saved.subtitleFa : saved.subtitlePs) || saved.subtitleEn : saved.subtitleEn;
   const printNow = () => window.print();
 
   return (
     <div className="product-print-backdrop">
+      <style>{`@media print { @page { size: ${paperSize[0]}mm ${paperSize[1]}mm; margin: 0; } }`}</style>
       <section className="product-print-studio" dir={rtl ? "rtl" : "ltr"}>
         <header className="product-print-toolbar">
           <strong><Printer size={16} /> {labels.title}</strong>
@@ -1483,7 +1492,7 @@ function ProductPrintStudio({ company, language, products, onClose }) {
             <small>{paper} · {orientation} · {marginSize}mm</small>
           </aside>
           <main className="product-print-canvas">
-            <article className={`product-report-paper ${orientation}`} style={{ "--report-scale": scale / 100, "--report-margin": `${marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
+            <article className={`product-report-paper ${orientation}${isThermal ? " thermal" : ""}`} style={{ width: `${paperSize[0]}mm`, minHeight: `${paperSize[1]}mm`, "--report-scale": scale / 100, "--report-margin": `${isThermal ? Math.min(marginSize, 5) : marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
               <div className="product-report-header">{saved.showLogo && saved.logo ? <img src={saved.logo} alt="" /> : <div className="product-report-logo"><Package size={28} /></div>}<div><strong>{businessName}</strong><span>{subtitle}</span></div><p>{[saved.phone, saved.email, saved.address].filter(Boolean).join(" · ")}</p></div>
               {saved.watermark && <img className="product-report-watermark" src={saved.watermark} alt="" style={{ opacity: Number(saved.watermarkOpacity || 0) / 100 }} />}
               <div className="product-report-heading"><div><small>REPORT</small><h1>{labels.title}</h1><p>{labels.all}</p></div><div><b>{new Date().toLocaleString()}</b><span>{labels.records} {products.length}</span><span>{labels.page}</span></div></div>

@@ -27,8 +27,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { todayDateValue } from "../utils/afghanDate";
 import { buildSystemSearchResults, money } from "../utils/systemSearch";
+import { playNotificationSound } from "../utils/notificationSounds";
 
 const NOTIFICATION_STATE_KEY = "isp-notification-state";
+const LOW_STOCK_SOUND_STATE_KEY = "isp-low-stock-sounded";
 
 const LANGUAGE_STORAGE_KEY = "isp-selected-language";
 const PRIMARY_CURRENCY_STORAGE_KEY = "isp-primary-currency";
@@ -176,6 +178,8 @@ const headerDropdownRef = useRef(null);
   const [assets] = useJsonCollection("assets");
   const [towerAssets] = useJsonCollection("towerAssets");
   const [securityDeposits] = useJsonCollection("securityDeposits");
+  const [products, , , productsLoaded] = useJsonCollection("products");
+  const [appSettings] = useJsonCollection("settings");
 
   const [transactions, setTransactions] =
   useJsonCollection("transactions");
@@ -241,17 +245,32 @@ const headerDropdownRef = useRef(null);
     return alertQuantity > 0 && Number(asset.quantity || 0) <= alertQuantity;
   });
 
+  const lowStockProducts = products.filter((product) => {
+    const threshold = Number(product.lowStock ?? product.lowStockThreshold ?? 0);
+    const quantity = Number(product.quantity ?? product.stock ?? 0);
+    return threshold > 0 && quantity <= threshold;
+  });
+
+  const lowStockAlertItems = [
+    ...lowStockAssets.map((asset) => ({
+      id: `low-stock:asset:${asset.id || asset.assetId || asset.deviceName}`,
+      title: "Low Stock Alert",
+      description: `${asset.assetId || asset.deviceName || "Asset"} has only ${money(asset.quantity)} ${asset.purchaseUsageUnit || asset.purchaseUnit || "unit(s)"} left`,
+    })),
+    ...lowStockProducts.map((product) => ({
+      id: `low-stock:product:${product.id || product.code || product.barcode || product.name}`,
+      title: "Product Low Stock Alert",
+      description: `${product.name || product.code || "Product"} has ${money(product.quantity)} ${product.unit || "unit(s)"} left (alert level: ${money(product.lowStock ?? product.lowStockThreshold)})`,
+    })),
+  ];
+
   const notificationGroups = [
     {
       key: "stock",
       title: "Stock Alerts",
-      count: lowStockAssets.length,
+      count: lowStockAlertItems.length,
       icon: Box,
-      items: lowStockAssets.map((asset) => ({
-        id: `stock:${asset.id || asset.assetId || asset.deviceName}:${asset.quantity}:${asset.alertQuantity}`,
-        title: "Low Stock Alert",
-        description: `${asset.assetId || asset.deviceName || "Asset"} has only ${money(asset.quantity)} ${asset.purchaseUsageUnit || asset.purchaseUnit || "unit(s)"} left`,
-      })),
+      items: lowStockAlertItems,
     },
     {
       key: "asset-status",
@@ -291,6 +310,20 @@ const headerDropdownRef = useRef(null);
   const notificationItems = notificationGroups.flatMap((group) =>
     group.items.map((item) => ({ ...item, groupTitle: group.title, icon: group.icon }))
   );
+
+  useEffect(() => {
+    if (!productsLoaded) return;
+    const notificationSettings = appSettings[0]?.notificationSettings || {};
+    const currentIds = lowStockAlertItems.map((item) => item.id);
+    let previousIds = [];
+    try { previousIds = JSON.parse(localStorage.getItem(LOW_STOCK_SOUND_STATE_KEY) || "[]"); } catch { previousIds = []; }
+    const previous = new Set(Array.isArray(previousIds) ? previousIds : []);
+    const hasNewAlert = currentIds.some((id) => !previous.has(id));
+    localStorage.setItem(LOW_STOCK_SOUND_STATE_KEY, JSON.stringify(currentIds));
+    if (hasNewAlert && notificationSettings.enabled !== false && notificationSettings.lowStock !== false) {
+      playNotificationSound(notificationSettings.sound || "chime").catch(() => {});
+    }
+  }, [productsLoaded, lowStockAlertItems.map((item) => item.id).join("|"), appSettings]);
 
   const clearedNotificationIds = new Set(notificationState.clearedIds);
   const readNotificationIds = new Set(notificationState.readIds);
