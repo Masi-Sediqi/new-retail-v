@@ -32,6 +32,17 @@ export function useJsonCollection(name) {
     load();
   }, [load]);
 
+  useEffect(() => {
+    const syncCollection = (event) => {
+      if (event?.detail?.name !== name || !Array.isArray(event.detail.items)) return;
+      itemsRef.current = event.detail.items;
+      setItemsState(event.detail.items);
+      setLoaded(true);
+    };
+    window.addEventListener("json-collection-updated", syncCollection);
+    return () => window.removeEventListener("json-collection-updated", syncCollection);
+  }, [name]);
+
   const setItems = useCallback(
     async (nextValue) => {
       const previousItems = itemsRef.current;
@@ -46,6 +57,7 @@ export function useJsonCollection(name) {
 
       itemsRef.current = nextItems;
       setItemsState(nextItems);
+      window.dispatchEvent(new CustomEvent("json-collection-updated", { detail: { name, items: nextItems } }));
 
       try {
         const response = await axios.put(apiUrl(name), nextItems);
@@ -53,6 +65,7 @@ export function useJsonCollection(name) {
 
         itemsRef.current = savedData;
         setItemsState(savedData);
+        window.dispatchEvent(new CustomEvent("json-collection-updated", { detail: { name, items: savedData } }));
 
         return true;
       } catch (error) {
@@ -60,6 +73,7 @@ export function useJsonCollection(name) {
 
         itemsRef.current = previousItems;
         setItemsState(previousItems);
+        window.dispatchEvent(new CustomEvent("json-collection-updated", { detail: { name, items: previousItems } }));
 
         notify(`Unable to save ${name}. Please check the server.`, "error");
         return false;

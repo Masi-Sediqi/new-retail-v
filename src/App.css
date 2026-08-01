@@ -6338,6 +6338,17 @@ body.dark-mode
 }
 
 /* Keep this final override last: RTL uses a right-hand navigation rail. */
+.dashboard-wallet-currency-list {
+  display: grid;
+  gap: 2px;
+  line-height: 1.15;
+}
+
+.dashboard-wallet-currency-list > span {
+  display: block;
+  white-space: nowrap;
+}
+
 @media (min-width: 901px) {
   body.rtl-language .app.app-rtl {
     direction: ltr !important;

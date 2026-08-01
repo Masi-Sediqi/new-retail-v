@@ -311,7 +311,20 @@ const supplierReceivables = suppliers.reduce(
 
 const supplierNetBalance =
   supplierPayables - supplierReceivables;
-    const cashWallet = filteredTransactions.reduce((sum, transaction) => {
+    const cashWalletByCurrency = filteredTransactions.reduce((balances, transaction) => {
+      const source = normalize(transaction.source || transaction.category);
+      if (!/cash-wallet|cash wallet/.test(source)) return balances;
+      const currency = transaction.currency || baseCurrency;
+      const kind = normalize(transaction.transactionType || transaction.type);
+      const direction = /withdraw|expense|payment out/.test(kind) ? -1 : 1;
+      balances[currency] = (balances[currency] || 0) + direction * parseNumber(transaction.amount);
+      return balances;
+    }, {});
+    const cashWalletTotal = Object.entries(cashWalletByCurrency).reduce(
+      (sum, [currency, amount]) => sum + toBase(amount, currency),
+      0
+    );
+    const legacyCashWallet = filteredTransactions.reduce((sum, transaction) => {
       const type = normalize(transaction.type || transaction.kind || transaction.category);
       const amount = toBase(parseNumber(transaction.amount), transaction.currency);
       if (/expense|withdraw|payment out/.test(type)) return sum - amount;
@@ -328,7 +341,10 @@ const supplierNetBalance =
     (product) => !isInactive(product)
   ).length,
 
-  cashWallet,
+  cashWallet: Object.keys(cashWalletByCurrency).length ? cashWalletTotal : legacyCashWallet,
+  cashWalletByCurrency: Object.keys(cashWalletByCurrency).length
+    ? cashWalletByCurrency
+    : { [baseCurrency]: legacyCashWallet },
   expenseTotal,
   lowStock,
 
@@ -440,6 +456,11 @@ const trendData = useMemo(() => {
       .slice(0, 8);
   }, [filteredExpenses, filteredGodownEntries, filteredInvoices]);
 
+const walletLines = Object.entries(metrics.cashWalletByCurrency || {})
+  .filter(([, amount]) => Math.abs(Number(amount || 0)) > 0.000001)
+  .map(([currency, amount]) => ({ currency, amount }));
+if (!walletLines.length) walletLines.push({ currency: baseCurrency, amount: 0 });
+
 const statCards = [
   // Financial overview
   {
@@ -453,7 +474,13 @@ const statCards = [
   {
     group: "Financial overview",
     label: t.currentCashWallet || "Current cash wallet",
-    value: money(metrics.cashWallet, baseCurrency),
+    value: (
+      <span className="dashboard-wallet-currency-list">
+        {walletLines.map(({ currency, amount }) => (
+          <span key={currency}>{money(amount, currency)}</span>
+        ))}
+      </span>
+    ),
     icon: WalletCards,
     tone: "green",
     path: "/financials",

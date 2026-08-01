@@ -5,6 +5,7 @@ import {
   Barcode,
   Boxes,
   Eye,
+  FileDown,
   ImagePlus,
   Package,
   Pencil,
@@ -26,6 +27,7 @@ import {
 } from "../data/dashboardData";
 import { createRecycleEntry } from "../utils/recycleBin";
 import { notify } from "../utils/notify";
+import { normalizePrintSettings } from "../utils/printStudio";
 import "./Products.css";
 
 const emptyProduct = {
@@ -153,6 +155,7 @@ function Products({ language = "en" }) {
   const [products, setProducts] = useJsonCollection("products");
   const [suppliers, setSuppliers] = useJsonCollection("suppliers");
   const [categories, setCategories] = useJsonCollection("productCategories");
+  const [systemSettings] = useJsonCollection("settings");
   const [, setDeletedItems] = useJsonCollection("deletedItems");
 
 
@@ -164,6 +167,7 @@ function Products({ language = "en" }) {
     address: "",
   });
   const [showModal, setShowModal] = useState(false);
+  const [printReportOpen, setPrintReportOpen] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [viewProduct, setViewProduct] = useState(null);
   const [deleteProduct, setDeleteProduct] = useState(null);
@@ -588,10 +592,14 @@ const unitList = useMemo(() => {
           <p>{tx.description}</p>
         </div>
 
-        <button type="button" className="products-add-btn" onClick={openAddModal}>
-          <Plus size={17} />
-          {tx.add}
-        </button>
+        <div className="products-header-actions">
+          <button type="button" className="products-report-btn" onClick={() => setPrintReportOpen(true)}>
+            <Printer size={16} /> {language === "fa" ? "چاپ گزارش" : language === "ps" ? "راپور چاپ" : "Print Report"}
+          </button>
+          <button type="button" className="products-add-btn" onClick={openAddModal}>
+            <Plus size={17} /> {tx.add}
+          </button>
+        </div>
       </div>
 
       <section className="products-stats">
@@ -749,6 +757,15 @@ const unitList = useMemo(() => {
           unitQuery={unitQuery}
           tx={formTx}
           rtl={language === "fa" || language === "ps"}
+        />
+      )}
+
+      {printReportOpen && (
+        <ProductPrintStudio
+          company={systemSettings[0] || {}}
+          language={language}
+          products={filteredProducts}
+          onClose={() => setPrintReportOpen(false)}
         />
       )}
 
@@ -1421,5 +1438,68 @@ function DetailItem({ icon: Icon, label, value }) {
     </div>
   );
 }
+
+function ProductPrintStudio({ company, language, products, onClose }) {
+  const saved = normalizePrintSettings(company.printSettings || {}, company);
+  const [paper, setPaper] = useState(saved.paperSize || "A4");
+  const [orientation, setOrientation] = useState("portrait");
+  const [margin, setMargin] = useState("normal");
+  const [rowsPerPage, setRowsPerPage] = useState(Number(saved.rowsPerPage || 25));
+  const [scale, setScale] = useState(82);
+  const [sizes, setSizes] = useState({ title: saved.titleSize, subtitle: saved.subtitleSize, header: saved.headerTextSize, body: saved.bodyTextSize, footer: saved.footerTextSize });
+  const rtl = language === "fa" || language === "ps";
+  const labels = language === "fa"
+    ? { title: "گزارش موجودی محصولات", all: "تمام محصولات", total: "مجموع محصولات", stock: "موجود", out: "تمام‌شده", contents: "محتویات", records: "رکورد", page: "صفحه ۱ از ۱", paper: "کاغذ", orientation: "جهت", portrait: "عمودی", landscape: "افقی", margin: "حاشیه صفحه", narrow: "کم", normal: "عادی", wide: "زیاد", rows: "ردیف در صفحه", typography: "اندازه نوشته", print: "چاپ", pdf: "PDF", product: "محصول", code: "کُد", category: "دسته‌بندی", quantity: "تعداد", value: "ارزش موجودی" }
+    : language === "ps"
+      ? { title: "د محصولاتو موجودۍ راپور", all: "ټول محصولات", total: "ټول محصولات", stock: "موجود", out: "ختم", contents: "منځپانګه", records: "ریکارډونه", page: "پاڼه ۱ له ۱", paper: "کاغذ", orientation: "لوری", portrait: "عمودي", landscape: "افقي", margin: "د پاڼې حاشیه", narrow: "کمه", normal: "عادي", wide: "زیاته", rows: "په پاڼه کې کتارونه", typography: "د لیک اندازه", print: "چاپ", pdf: "PDF", product: "محصول", code: "کوډ", category: "کټګوري", quantity: "شمېر", value: "د موجودۍ ارزښت" }
+      : { title: "Product Inventory Report", all: "All Products", total: "Total Products", stock: "In Stock", out: "Out of Stock", contents: "Contents", records: "Records", page: "Page 1 of 1", paper: "Paper", orientation: "Orientation", portrait: "Portrait", landscape: "Landscape", margin: "Page Margin", narrow: "Narrow", normal: "Normal", wide: "Wide", rows: "Rows / Page", typography: "Live Typography", print: "Print", pdf: "PDF", product: "Product", code: "Code", category: "Category", quantity: "Quantity", value: "Stock Value" };
+  const inStock = products.filter((product) => parseNumber(product.quantity) > 0).length;
+  const reportRows = products.slice(0, Math.max(1, rowsPerPage));
+  const marginSize = { narrow: 7, normal: 14, wide: 22 }[margin];
+  const businessName = rtl ? (language === "fa" ? saved.businessNameFa : saved.businessNamePs) || saved.businessNameEn : saved.businessNameEn;
+  const subtitle = rtl ? (language === "fa" ? saved.subtitleFa : saved.subtitlePs) || saved.subtitleEn : saved.subtitleEn;
+  const printNow = () => window.print();
+
+  return (
+    <div className="product-print-backdrop">
+      <section className="product-print-studio" dir={rtl ? "rtl" : "ltr"}>
+        <header className="product-print-toolbar">
+          <strong><Printer size={16} /> {labels.title}</strong>
+          <div className="product-print-toolbar-actions">
+            <button type="button" onClick={() => setScale((value) => Math.max(55, value - 8))}>−</button><span>{scale}%</span><button type="button" onClick={() => setScale((value) => Math.min(110, value + 8))}>+</button>
+            <button type="button" onClick={printNow}><FileDown size={15} /> {labels.pdf}</button>
+            <button type="button" className="primary" onClick={printNow}><Printer size={15} /> {labels.print}</button>
+            <button type="button" className="close" onClick={onClose}><X size={17} /></button>
+          </div>
+        </header>
+        <div className="product-print-body">
+          <aside className="product-print-controls">
+            <ControlTitle>{labels.paper}</ControlTitle><ChoiceGrid values={["A4", "A5", "Letter", "Legal", "T80", "T58", "Custom"]} value={paper} onChange={setPaper} />
+            <ControlTitle>{labels.orientation}</ControlTitle><ChoiceGrid values={[labels.portrait, labels.landscape]} value={orientation === "portrait" ? labels.portrait : labels.landscape} onChange={(value) => setOrientation(value === labels.portrait ? "portrait" : "landscape")} />
+            <ControlTitle>{labels.margin}</ControlTitle><ChoiceGrid values={[labels.narrow, labels.normal, labels.wide]} value={labels[margin]} onChange={(value) => setMargin(value === labels.narrow ? "narrow" : value === labels.wide ? "wide" : "normal")} />
+            <ControlTitle>{labels.rows}</ControlTitle><input type="number" min="5" max="100" value={rowsPerPage} onChange={(event) => setRowsPerPage(Number(event.target.value) || 5)} />
+            <ControlTitle>{labels.typography}</ControlTitle>
+            {Object.entries(sizes).map(([key, value]) => <label className="product-print-range" key={key}><span>{key}<b>{value}px</b></span><input type="range" min="7" max={key === "title" ? 34 : 20} value={value} onChange={(event) => setSizes((current) => ({ ...current, [key]: Number(event.target.value) }))} /></label>)}
+            <small>{paper} · {orientation} · {marginSize}mm</small>
+          </aside>
+          <main className="product-print-canvas">
+            <article className={`product-report-paper ${orientation}`} style={{ "--report-scale": scale / 100, "--report-margin": `${marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
+              <div className="product-report-header">{saved.showLogo && saved.logo ? <img src={saved.logo} alt="" /> : <div className="product-report-logo"><Package size={28} /></div>}<div><strong>{businessName}</strong><span>{subtitle}</span></div><p>{[saved.phone, saved.email, saved.address].filter(Boolean).join(" · ")}</p></div>
+              {saved.watermark && <img className="product-report-watermark" src={saved.watermark} alt="" style={{ opacity: Number(saved.watermarkOpacity || 0) / 100 }} />}
+              <div className="product-report-heading"><div><small>REPORT</small><h1>{labels.title}</h1><p>{labels.all}</p></div><div><b>{new Date().toLocaleString()}</b><span>{labels.records} {products.length}</span><span>{labels.page}</span></div></div>
+              <div className="product-report-stats"><div><span>{labels.total}</span><b>{products.length}</b></div><div><span>{labels.stock}</span><b>{inStock}</b></div><div><span>{labels.out}</span><b>{products.length - inStock}</b></div></div>
+              <p className="product-report-contents">{labels.contents}: <span>1 — {Math.min(reportRows.length, products.length)} {labels.records}</span></p>
+              {!!reportRows.length && <table><thead><tr><th>{labels.product}</th><th>{labels.code}</th><th>{labels.category}</th><th>{labels.quantity}</th><th>{labels.value}</th></tr></thead><tbody>{reportRows.map((product, index) => <tr key={product.id || index}><td>{getProductName(product)}</td><td>{getProductCode(product) || "-"}</td><td>{product.category || "-"}</td><td>{parseNumber(product.quantity)} {product.unit || ""}</td><td>{money(parseNumber(product.purchase) * parseNumber(product.quantity), product.currency)}</td></tr>)}</tbody></table>}
+              <footer><span>{saved.footerText || "Powered by Smart Office"}</span>{saved.showTimestamp && <span>{new Date().toLocaleString()}</span>}</footer>
+            </article>
+          </main>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ControlTitle({ children }) { return <h4 className="product-print-control-title">{children}</h4>; }
+function ChoiceGrid({ values, value, onChange }) { return <div className="product-print-choice-grid">{values.map((item) => <button type="button" className={value === item ? "active" : ""} key={item} onClick={() => onChange(item)}>{item}</button>)}</div>; }
 
 export default Products;
