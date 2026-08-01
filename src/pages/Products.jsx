@@ -156,6 +156,10 @@ function Products({ language = "en" }) {
   const [suppliers, setSuppliers] = useJsonCollection("suppliers");
   const [categories, setCategories] = useJsonCollection("productCategories");
   const [systemSettings] = useJsonCollection("settings");
+  const [, setGodownEntries] = useJsonCollection("godownEntries");
+  const [, setSupplierPurchases] = useJsonCollection("supplierPurchases");
+  const [, setExpenses] = useJsonCollection("expenses");
+  const [, setTransactions] = useJsonCollection("transactions");
   const [, setDeletedItems] = useJsonCollection("deletedItems");
 
 
@@ -521,6 +525,140 @@ const unitList = useMemo(() => {
 
     const saved = await setProducts(nextProducts);
     if (!saved) return;
+
+    if (editIndex === null) {
+      const now = new Date().toISOString();
+      const date = now.slice(0, 10);
+      const quantity = parseNumber(nextProduct.quantity);
+      const unitPrice = parseNumber(nextProduct.purchase);
+      const total = quantity * unitPrice;
+      const walletPaid = parseNumber(nextProduct.cashWalletPaid);
+      const supplierAdvance = parseNumber(nextProduct.supplierAdvanceUsed);
+      const paid = Math.min(total, walletPaid + supplierAdvance);
+      const remaining = Math.max(0, total - paid);
+      const supplierIndex = suppliers.findIndex((supplier) =>
+        String(supplier.id || supplier.supplierId || getSupplierLabel(supplier)) === String(nextProduct.supplierId)
+      );
+      const supplier = supplierIndex >= 0 ? suppliers[supplierIndex] : null;
+      const supplierName = supplier ? getSupplierLabel(supplier) : "";
+      const referenceId = `product-purchase-${nextProduct.id}`;
+
+      if (quantity > 0) {
+        const godownEntry = {
+          id: `godown-${nextProduct.id}`,
+          entryId: `godown-${nextProduct.id}`,
+          billNumber: `PRD-${String(nextProduct.code || nextProduct.id).replace(/^PRD-/i, "")}`,
+          type: "import",
+          movementType: "Purchase",
+          date,
+          currency: nextProduct.currency || "AFN",
+          supplierId: nextProduct.supplierId || "",
+          supplierName,
+          total,
+          paid,
+          remaining,
+          source: "product-registration",
+          referenceId,
+          rows: [{
+            id: `godown-row-${nextProduct.id}`,
+            productId: nextProduct.id,
+            name: nextProduct.name,
+            code: nextProduct.code,
+            category: nextProduct.category,
+            quantity,
+            unit: nextProduct.unit,
+            purchase: unitPrice,
+            selling: parseNumber(nextProduct.selling),
+            currency: nextProduct.currency || "AFN",
+            supplierId: nextProduct.supplierId || "",
+          }],
+          createdAt: now,
+          updatedAt: now,
+        };
+        const godownSaved = await setGodownEntries((current) => [
+          godownEntry,
+          ...current.filter((entry) => String(entry.referenceId) !== referenceId),
+        ]);
+        if (!godownSaved) notify("Product saved, but the Godown entry could not be created.", "error");
+      }
+
+      if (supplier) {
+        const supplierPurchase = {
+          id: referenceId,
+          supplierIndex,
+          supplierId: supplier.id || supplier.supplierId || nextProduct.supplierId,
+          supplierName,
+          referenceNumber: nextProduct.code,
+          invoiceNumber: nextProduct.code,
+          purchaseDate: date,
+          date,
+          deviceName: nextProduct.name,
+          productId: nextProduct.id,
+          category: nextProduct.category,
+          quantity,
+          unit: nextProduct.unit,
+          unitPrice,
+          currency: nextProduct.currency || "AFN",
+          totalPurchaseValue: total,
+          paidAmount: paid,
+          remainAmount: remaining,
+          status: remaining <= 0 ? "Paid" : paid > 0 ? "Partial" : "Unpaid",
+          notes: nextProduct.notes || "Product registration purchase",
+          source: "product-registration",
+          createdAt: now,
+          updatedAt: now,
+        };
+        const ledgerSaved = await setSupplierPurchases((current) => [
+          supplierPurchase,
+          ...current.filter((purchase) => String(purchase.id) !== referenceId),
+        ]);
+        if (!ledgerSaved) notify("Product saved, but the supplier Purchase ledger could not be created.", "error");
+      }
+
+      if (walletPaid > 0) {
+        const expense = {
+          id: `expense-${referenceId}`,
+          category: "Purchases",
+          description: `Product purchase - ${nextProduct.name}`,
+          amount: walletPaid,
+          currency: nextProduct.currency || "AFN",
+          method: "Cash Wallet",
+          notes: nextProduct.notes || `Payment for ${nextProduct.code}`,
+          date,
+          source: "product-purchase",
+          referenceId,
+          createdAt: now,
+          updatedAt: now,
+        };
+        const expenseSaved = await setExpenses((current) => [
+          expense,
+          ...current.filter((item) => String(item.id) !== String(expense.id)),
+        ]);
+        if (!expenseSaved) notify("Product saved, but its expense record could not be created.", "error");
+
+        const walletTransaction = {
+          id: `wallet-${referenceId}`,
+          transactionType: "withdraw",
+          type: "expense",
+          category: "Cash Wallet",
+          title: `Product purchase - ${nextProduct.name}`,
+          amount: walletPaid,
+          currency: nextProduct.currency || "AFN",
+          note: nextProduct.notes || `Payment for ${nextProduct.code}`,
+          date,
+          source: "cash-wallet",
+          referenceSource: "product-purchase",
+          referenceId,
+          createdAt: now,
+          updatedAt: now,
+        };
+        const walletSaved = await setTransactions((current) => [
+          walletTransaction,
+          ...current.filter((transaction) => String(transaction.id) !== String(walletTransaction.id)),
+        ]);
+        if (!walletSaved) notify("Product saved, but the Cash Wallet withdrawal could not be recorded.", "error");
+      }
+    }
 
     notify(editIndex === null ? "Product added successfully." : "Product updated successfully.");
     resetModal();

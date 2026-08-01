@@ -28,6 +28,7 @@ import { useJsonCollection } from "../hooks/useJsonCollection";
 import { todayDateValue } from "../utils/afghanDate";
 import { buildSystemSearchResults, money } from "../utils/systemSearch";
 import { playNotificationSound } from "../utils/notificationSounds";
+import { setThemeModeOverride, themeModeStorageKey } from "../utils/theme";
 
 const NOTIFICATION_STATE_KEY = "isp-notification-state";
 const LOW_STOCK_SOUND_STATE_KEY = "isp-low-stock-sounded";
@@ -171,7 +172,7 @@ const [secondaryCurrency, setSecondaryCurrency] = useState(
 const headerDropdownRef = useRef(null);
 
   const [darkMode, setDarkMode] = useState(
-    document.body.classList.contains("dark-mode")
+    () => localStorage.getItem(themeModeStorageKey) === "Dark" || document.body.classList.contains("dark-mode")
   );
   const [notificationState, setNotificationState] = useState(readNotificationState);
 
@@ -454,8 +455,11 @@ const changeSecondaryCurrency = (currencyCode) => {
 };
 
   function toggleDarkMode() {
-    setDarkMode((value) => !value);
-    document.body.classList.toggle("dark-mode");
+    setDarkMode((value) => {
+      const nextDarkMode = !value;
+      setThemeModeOverride(nextDarkMode ? "Dark" : "Light");
+      return nextDarkMode;
+    });
   }
 
   const openCashWallet = () => {
@@ -521,9 +525,9 @@ const saveCashWalletTransaction = async (event) => {
     source: "cash-wallet",
   };
 
-  const saved = await setTransactions([
+  const saved = await setTransactions((current) => [
     nextTransaction,
-    ...transactions,
+    ...current,
   ]);
 
   if (!saved) return;

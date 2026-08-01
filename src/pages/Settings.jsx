@@ -19,9 +19,6 @@ import {
   Upload,
   Users,
   Check,
-  Monitor,
-  Moon,
-  Sun,
   Eye,
   RotateCcw,
   Play,
@@ -787,7 +784,7 @@ function Settings() {
             <SectionTitle title="Theme Selection" description="Choose a visual style — changes apply instantly." icon={Palette} />
             <div className="theme-preset-grid">
               {themePresets.map((preset) => (
-                <button type="button" key={preset.id} className={`theme-preset ${themePreset === preset.id ? "active" : ""}`} onClick={() => setThemePreset(preset.id)} aria-pressed={themePreset === preset.id}>
+                <button type="button" key={preset.id} className={`theme-preset ${themePreset === preset.id ? "active" : ""}`} onClick={() => { setThemePreset(preset.id); setAccentColor("Preset"); }} aria-pressed={themePreset === preset.id}>
                   <span className="theme-swatch" style={{ background: `linear-gradient(90deg, ${preset.colors[0]}, ${preset.colors[1]})` }} />
                   <span className="theme-preset-copy"><strong>{preset.name}</strong><small>{preset.description}</small></span>
                   {themePreset === preset.id && <span className="theme-active-mark"><Check size={13} /> Active</span>}
@@ -796,20 +793,6 @@ function Settings() {
             </div>
           </section>
 
-          <section className="settings-card settings-theme-card">
-            <SectionTitle title="Appearance" description="Fine-tune the selected theme for your workspace." icon={Monitor} />
-            <div className="theme-mode-picker" role="radiogroup" aria-label="Color mode">
-              {[{ name: "System", Icon: Monitor }, { name: "Light", Icon: Sun }, { name: "Dark", Icon: Moon }].map(({ name, Icon }) => (
-                <button type="button" key={name} className={themeMode === name ? "active" : ""} onClick={() => setThemeMode(name)} role="radio" aria-checked={themeMode === name}><Icon size={17} /><span>{name}</span>{themeMode === name && <Check size={14} />}</button>
-              ))}
-            </div>
-            <div className="settings-field-grid three theme-advanced-grid">
-              <Field label="Accent color"><select value={accentColor} onChange={(event) => setAccentColor(event.target.value)}>{accentOptions.map((option) => <option key={option}>{option}</option>)}</select></Field>
-              <Field label="Interface density"><select value={interfaceDensity} onChange={(event) => setInterfaceDensity(event.target.value)}>{["Comfortable", "Compact"].map((option) => <option key={option}>{option}</option>)}</select></Field>
-              <Field label="Corner style"><select value={cornerStyle} onChange={(event) => setCornerStyle(event.target.value)}>{["Rounded", "Soft", "Square"].map((option) => <option key={option}>{option}</option>)}</select></Field>
-            </div>
-            <div className="theme-sidebar-setting"><div><strong>Compact sidebar</strong><p>Use a narrower navigation panel to create more workspace.</p></div><Switch checked={sidebarCompact} onChange={setSidebarCompact} /></div>
-          </section>
         </div>
       ) : activeTab === "currency" ? (
         <div className="settings-stack">

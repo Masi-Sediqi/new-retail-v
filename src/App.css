@@ -30,6 +30,10 @@ body {
   --app-accent: #f59e0b;
   --app-accent-soft: rgba(245, 158, 11, .1);
   --app-gradient: linear-gradient(90deg, #252525, #f59e0b);
+  --theme-deep: #252525;
+  --theme-canvas: #f7f5f1;
+  --theme-soft: #fff7e6;
+  --theme-border: #f2d6a2;
   --app-radius: 20px;
 }
 
@@ -37,18 +41,34 @@ body[data-corners="soft"] { --app-radius: 10px; }
 body[data-corners="square"] { --app-radius: 3px; }
 .app, .sidebar, .main { transition: background-color .2s ease, border-color .2s ease, color .2s ease; }
 .sidebar, .main { border-radius: var(--app-radius); }
-.menu a.active, .settings-save, .brand-logo { background-color: var(--app-accent); }
+.menu a.active, .settings-save, .brand-logo { background: var(--app-gradient); }
 .menu a.active { color: #fff; }
 .header-search:focus-within { border-color: var(--app-accent); box-shadow: 0 12px 32px var(--app-accent-soft); color: var(--app-accent); }
 body.compact-sidebar .sidebar { width: 190px; min-width: 190px; }
 body[data-density="compact"] .menu a { height: 34px; }
 body[data-density="compact"] .settings-page { padding-top: 18px; }
 
-body[data-theme="ocean"] #root, body[data-theme="ocean"] .app { background: #ecfeff; }
-body[data-theme="forest"] #root, body[data-theme="forest"] .app { background: #f0fdf4; }
-body[data-theme="sunset"] #root, body[data-theme="sunset"] .app { background: #fff7ed; }
-body[data-theme="royal"] #root, body[data-theme="royal"] .app { background: #faf5ff; }
+body[data-theme] #root, body[data-theme] .app { background: var(--theme-canvas); }
 body.dark-mode[data-theme] #root, body.dark-mode[data-theme] .app { background: #0f172a; }
+
+/* A preset controls the complete product palette, not only one accent button. */
+body[data-theme] .sidebar,
+body[data-theme] .main,
+body[data-theme] .settings-card,
+body[data-theme] [class$="-card"] { border-color: var(--theme-border); }
+body[data-theme] .sidebar { box-shadow: 0 16px 42px var(--app-accent-soft); }
+body[data-theme] .brand { border-color: var(--theme-border); }
+body[data-theme] .menu a:hover { background: var(--theme-soft); color: var(--theme-deep); }
+body[data-theme] .menu a.active { background: var(--app-gradient); color: #fff; }
+body[data-theme] button[class*="add"],
+body[data-theme] button[class*="primary"],
+body[data-theme] .settings-save { border-color: var(--app-accent); }
+body[data-theme] input:focus,
+body[data-theme] select:focus,
+body[data-theme] textarea:focus { border-color: var(--app-accent) !important; box-shadow: 0 0 0 3px var(--app-accent-soft); outline: none; }
+body[data-theme] input[type="checkbox"],
+body[data-theme] input[type="radio"],
+body[data-theme] input[type="range"] { accent-color: var(--app-accent); }
 
 .app {
   height: 100vh;
