@@ -6385,3 +6385,79 @@ body.dark-mode
 .page-content {
   scroll-behavior: smooth;
 }
+
+/* Global form direction for Dari/Pashto. Legacy page styles often declare
+   left alignment explicitly, so these rules intentionally win at app level. */
+body.rtl-language .main form,
+body.rtl-language .main [role="dialog"],
+body.rtl-language .main [class*="modal"],
+body.rtl-language .main [class*="drawer"],
+body.rtl-language .main [class*="form-grid"],
+body.rtl-language .main [class*="field-grid"] {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+body.rtl-language .main form label,
+body.rtl-language .main form label > span,
+body.rtl-language .main form .field-label,
+body.rtl-language .main [class*="modal"] label,
+body.rtl-language .main [class*="modal"] label > span,
+body.rtl-language .main [class*="modal"] [class*="form-group"] > span,
+body.rtl-language .main [class*="modal"] [class*="field"] > span,
+body.rtl-language .main [class*="modal"] h1,
+body.rtl-language .main [class*="modal"] h2,
+body.rtl-language .main [class*="modal"] h3,
+body.rtl-language .main [class*="modal"] p,
+body.rtl-language .main [class*="modal"] small {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+body.rtl-language .main form input,
+body.rtl-language .main form textarea,
+body.rtl-language .main form select,
+body.rtl-language .main form [contenteditable="true"],
+body.rtl-language .main [class*="modal"] input,
+body.rtl-language .main [class*="modal"] textarea,
+body.rtl-language .main [class*="modal"] select,
+body.rtl-language .main [class*="modal"] .smooth-select-btn,
+body.rtl-language .main [class*="modal"] [role="combobox"],
+body.rtl-language .main [class*="modal"] [class*="select"] button {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+body.rtl-language .main form input::placeholder,
+body.rtl-language .main form textarea::placeholder,
+body.rtl-language .main [class*="modal"] input::placeholder,
+body.rtl-language .main [class*="modal"] textarea::placeholder {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+body.rtl-language .main [class*="modal-header"],
+body.rtl-language .main [class*="modal-actions"],
+body.rtl-language .main form [class*="actions"] {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Machine-readable values must not be visually reversed. */
+body.rtl-language .main input[type="number"],
+body.rtl-language .main input[type="date"],
+body.rtl-language .main input[type="time"],
+body.rtl-language .main input[type="datetime-local"],
+body.rtl-language .main input[type="email"],
+body.rtl-language .main input[type="tel"],
+body.rtl-language .main input[inputmode="numeric"],
+body.rtl-language .main input[inputmode="decimal"],
+body.rtl-language .main input[name*="code" i],
+body.rtl-language .main input[name*="barcode" i],
+body.rtl-language .main input[name*="amount" i],
+body.rtl-language .main input[name*="salary" i],
+body.rtl-language .main input[name*="price" i] {
+  direction: ltr !important;
+  text-align: right !important;
+  unicode-bidi: plaintext;
+}
