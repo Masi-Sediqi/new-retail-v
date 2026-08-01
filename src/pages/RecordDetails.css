@@ -1,0 +1,74 @@
+.record-details-page { padding: 26px 28px 32px; }
+.record-header, .record-card-header, .record-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.record-header { margin-bottom: 22px; }
+.record-header h1 { font-size: 26px; margin-bottom: 6px; }
+.record-header p, .record-card-header p, .record-modal-header p { color: #777; font-size: 13px; }
+.record-actions, .record-filters { display: flex; gap: 10px; flex-wrap: wrap; }
+.record-btn, .record-save { height: 42px; border: 0; border-radius: 12px; padding: 0 18px; background: #252525; color: white; font-family: inherit; cursor: pointer; }
+.repair-action, .expense-action { background: #b45309; }
+.record-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+.travel-detail-stats { grid-template-columns: repeat(5, 1fr); }
+.record-stat { background: #faf9f6; border: 1px solid #eeeae2; border-radius: 16px; padding: 18px; }
+.record-stat span, .record-stat p { color: #777; font-size: 12px; }
+.record-stat strong { display: block; font-size: 28px; margin: 8px 0 4px; }
+.record-stat.income strong, .record-income { color: #15803d; font-weight: 800; }
+.record-stat.expense strong, .record-expense { color: #dc2626; font-weight: 800; }
+.record-status-text { font-size: 20px !important; }
+.record-card { background: white; border: 1px solid #eeeae2; border-radius: 18px; overflow: hidden; margin-bottom: 22px; }
+.record-card-header { padding: 18px; border-bottom: 1px solid #eeeae2; }
+.record-card-header h3 { margin-bottom: 5px; }
+.seat-management-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 10px;
+  padding: 18px;
+}
+.seat-card {
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.seat-card strong { font-size: 13px; }
+.seat-card span { font-size: 12px; line-height: 1.5; }
+.seat-card small { color: #64748b; font-size: 11px; }
+.seat-card.occupied { background: #dbeafe; border-color: #bfdbfe; }
+.seat-card.free { background: #ecfdf5; border-color: #bbf7d0; }
+.seat-management-empty {
+  grid-column: 1 / -1;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+}
+.record-filters input, .record-filters select { height: 40px; border: 1px solid #e4e0d7; border-radius: 11px; padding: 0 12px; background: #faf9f6; font-family: inherit; }
+.record-filters input { width: 250px; }
+.record-table-wrap { overflow-x: auto; }
+.record-table-wrap table { min-width: 900px; }
+.record-table-wrap th { white-space: nowrap; }
+.record-table-wrap td { white-space: nowrap; }
+.record-type { display: inline-flex; height: 25px; align-items: center; padding: 0 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+.record-type.travel { background: #dbeafe; color: #1d4ed8; }
+.record-type.repair { background: #fef3c7; color: #b45309; }
+.record-type.expense { background: #fee2e2; color: #b91c1c; }
+.record-empty { text-align: center; padding: 28px !important; color: #777; }
+.record-modal-backdrop { position: fixed; inset: 0; z-index: 99999; background: rgba(15,23,42,.45); display: grid; place-items: center; padding: 20px; }
+.record-modal { width: min(760px, 100%); max-height: 92vh; overflow-y: auto; background: white; border-radius: 20px; padding: 22px; }
+.record-modal-header { margin-bottom: 18px; }
+.record-modal-header button { width: 38px; height: 38px; border: 0; border-radius: 11px; font-size: 24px; cursor: pointer; }
+.record-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.record-form-group { display: flex; flex-direction: column; gap: 6px; }
+.record-form-group label { font-size: 13px; font-weight: 600; }
+.record-form-group input, .record-form-group select, .record-form-group textarea { min-height: 44px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0 12px; background: #faf9f6; font-family: inherit; }
+.record-form-group textarea { height: 90px; padding-top: 10px; }
+.record-form-full { grid-column: 1 / -1; }
+.record-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.record-cancel { height: 42px; border: 0; border-radius: 11px; padding: 0 18px; font-family: inherit; cursor: pointer; }
+@media (max-width: 1100px) { .travel-detail-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) { .record-header, .record-card-header { flex-direction: column; align-items: stretch; } .record-stats, .record-form-grid, .travel-detail-stats { grid-template-columns: 1fr 1fr; } .record-filters input { width: 100%; } }
+@media (max-width: 560px) { .record-stats, .record-form-grid { grid-template-columns: 1fr; } }

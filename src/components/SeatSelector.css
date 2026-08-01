@@ -1,0 +1,71 @@
+.seat-selector {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.seat-selector-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.seat-selector-status strong {
+  color: #1e293b;
+}
+
+.seat-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+  gap: 8px;
+}
+
+.seat-selector-grid button {
+  height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  color: #334155;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.seat-selector-grid button.selected {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.seat-selector-grid button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.seat-selector small {
+  display: block;
+  margin-top: 10px;
+  color: #b45309;
+}
+
+.seat-selector-empty {
+  padding: 13px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #64748b;
+  text-align: center;
+}
+
+body.dark-mode .seat-selector {
+  border-color: #334155;
+  background: #0f172a;
+}
+
+body.dark-mode .seat-selector-grid button {
+  border-color: #475569;
+  background: #1e293b;
+  color: #f8fafc;
+}

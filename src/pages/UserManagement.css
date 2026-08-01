@@ -1,0 +1,1197 @@
+.user-management-page {
+  padding: 26px 28px 34px;
+  color: #111827;
+}
+
+.user-management-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.user-management-header span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 11px;
+}
+
+.user-management-header h1 {
+  margin: 10px 0 6px;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.user-management-header p,
+.user-management-card-header p,
+.permission-panel-title p {
+  margin: 0;
+  color: #52627a;
+  font-size: 13px;
+}
+
+.user-management-header button,
+.user-role-add button {
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: #252525;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.user-management-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.user-management-stats div,
+.user-management-card {
+  background: #fff;
+  border: 1px solid #eeeae2;
+  border-radius: 18px;
+}
+
+.user-management-stats div {
+  padding: 18px;
+}
+
+.user-management-stats span {
+  display: block;
+  color: #52627a;
+  font-size: 13px;
+}
+
+.user-management-stats strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.user-management-card {
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.user-management-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.user-management-card-header h2,
+.permission-panel-title h3 {
+  margin: 0 0 5px;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.user-management-card-header input,
+.user-role-add input,
+.user-form-grid input,
+.user-form-grid select,
+.user-form-grid textarea {
+  border: 1px solid #e5e7eb;
+  border-radius: 11px;
+  background: #faf9f6;
+  font-family: inherit;
+  font-size: 14px;
+  color: #111827;
+}
+
+.user-management-card-header input {
+  min-width: 260px;
+  height: 40px;
+  padding: 0 12px;
+}
+
+.user-table-wrap,
+.permission-table-wrap {
+  overflow-x: auto;
+}
+
+.user-table-wrap table,
+.permission-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.user-table-wrap table {
+  min-width: 980px;
+}
+
+.permission-table-wrap table {
+  min-width: 760px;
+  background: #fff;
+}
+
+.user-table-wrap th,
+.user-table-wrap td,
+.permission-table-wrap th,
+.permission-table-wrap td {
+  padding: 14px 16px;
+  border-top: 1px solid #eeeae2;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.user-table-wrap th,
+.permission-table-wrap th {
+  color: #52627a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.permission-table-wrap th,
+.permission-table-wrap td {
+  text-align: center;
+}
+
+.permission-table-wrap th:first-child,
+.permission-table-wrap td:first-child {
+  text-align: left;
+  font-weight: 900;
+}
+
+.permission-table-wrap input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.user-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 900;
+}
+
+.user-name-cell span {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4338ca;
+  display: grid;
+  place-items: center;
+}
+
+.user-muted {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.user-role-pill,
+.user-status-pill,
+.user-permission-count,
+.user-role-list span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 10px;
+}
+
+.user-role-pill {
+  background: #ecfeff;
+  color: #0e7490;
+}
+
+.user-status-pill {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.user-status-pill.inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.user-permission-count {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.user-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.user-row-actions button {
+  min-width: 76px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4338ca;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.user-row-actions button svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+.user-row-actions button:hover {
+  border-color: #818cf8;
+  background: #e0e7ff;
+  box-shadow: 0 7px 16px rgba(79, 70, 229, 0.12);
+  transform: translateY(-1px);
+}
+
+.user-row-actions button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.user-row-actions .danger {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.user-row-actions .danger:hover {
+  border-color: #fca5a5;
+  background: #fee2e2;
+  box-shadow: 0 7px 16px rgba(220, 38, 38, 0.1);
+}
+
+.user-row-actions button:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.2);
+  outline-offset: 2px;
+}
+
+.user-row-actions .danger:focus-visible {
+  outline-color: rgba(220, 38, 38, 0.18);
+}
+
+.user-role-add {
+  display: flex;
+  gap: 8px;
+}
+
+.user-role-add input {
+  height: 40px;
+  min-width: 260px;
+  padding: 0 12px;
+}
+
+.user-role-list {
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-role-list span {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.user-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.55);
+}
+
+.user-modal {
+  width: min(1050px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+.user-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.user-modal-header h2 {
+  margin: 0 0 5px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.user-modal-header button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 11px;
+  background: #f3f2ef;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.user-modal form {
+  padding: 18px 22px 22px;
+}
+
+.user-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.user-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #263449;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.user-form-grid input,
+.user-form-grid select {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.user-form-grid textarea {
+  min-height: 82px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.user-form-full {
+  grid-column: 1 / -1;
+}
+
+.permission-panel {
+  margin-top: 18px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.permission-panel-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #dbeafe;
+}
+
+.permission-panel-title svg {
+  color: #2563eb;
+  margin-top: 2px;
+}
+
+.user-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #eeeae2;
+  margin-top: 16px;
+}
+
+.user-modal-actions button {
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 18px;
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.user-modal-actions button[type="button"] {
+  background: #f3f2ef;
+  color: #263449;
+}
+
+.user-modal-actions button[type="submit"] {
+  background: #252525;
+  color: #fff;
+}
+
+.user-empty-state {
+  padding: 28px;
+  text-align: center;
+  color: #52627a;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .user-management-header,
+  .user-management-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .user-management-stats,
+  .user-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-management-card-header input,
+  .user-role-add input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .user-role-add {
+    flex-direction: column;
+  }
+}
+/* =========================================================
+   USER MANAGEMENT — LIGHT / DARK MODE SUPPORT
+   Add this code at the END of UserManagement.css
+========================================================= */
+
+.user-management-page {
+  --um-text: #111827;
+  --um-heading: #111827;
+  --um-muted: #52627a;
+  --um-soft-muted: #6b7280;
+
+  --um-card-bg: #ffffff;
+  --um-card-border: #eeeae2;
+  --um-card-header-bg: #ffffff;
+
+  --um-table-head-bg: #faf9f6;
+  --um-table-border: #eeeae2;
+  --um-row-hover: #fafafa;
+
+  --um-input-bg: #faf9f6;
+  --um-input-border: #e5e7eb;
+  --um-input-text: #111827;
+  --um-placeholder: #94a3b8;
+
+  --um-modal-bg: #ffffff;
+  --um-close-bg: #f3f2ef;
+
+  color: var(--um-text);
+}
+
+
+/* =========================================================
+   DARK MODE VARIABLES
+========================================================= */
+
+html[data-theme="dark"] .user-management-page,
+body[data-theme="dark"] .user-management-page,
+html.dark .user-management-page,
+body.dark .user-management-page,
+body.dark-mode .user-management-page,
+.dark-theme .user-management-page {
+  --um-text: #e5e7eb;
+  --um-heading: #f8fafc;
+  --um-muted: #94a3b8;
+  --um-soft-muted: #7f8da3;
+
+  --um-card-bg: #111827;
+  --um-card-border: #29364d;
+  --um-card-header-bg: #101827;
+
+  --um-table-head-bg: #0d1728;
+  --um-table-border: #29364d;
+  --um-row-hover: #182338;
+
+  --um-input-bg: #0c1422;
+  --um-input-border: #34435a;
+  --um-input-text: #f1f5f9;
+  --um-placeholder: #718096;
+
+  --um-modal-bg: #111827;
+  --um-close-bg: #1e293b;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.user-management-header h1 {
+  color: var(--um-heading);
+}
+
+.user-management-header p,
+.user-management-card-header p,
+.permission-panel-title p {
+  color: var(--um-muted);
+}
+
+.user-management-header span {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+html[data-theme="dark"] .user-management-header span,
+body[data-theme="dark"] .user-management-header span,
+html.dark .user-management-header span,
+body.dark .user-management-header span,
+body.dark-mode .user-management-header span,
+.dark-theme .user-management-header span {
+  border: 1px solid #4c5d87;
+  background: #26334e;
+  color: #c7d2fe;
+}
+
+
+/* =========================================================
+   MAIN BUTTONS
+========================================================= */
+
+.user-management-header button,
+.user-role-add button {
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+html[data-theme="dark"] .user-management-header button,
+body[data-theme="dark"] .user-management-header button,
+html.dark .user-management-header button,
+body.dark .user-management-header button,
+body.dark-mode .user-management-header button,
+.dark-theme .user-management-header button,
+html[data-theme="dark"] .user-role-add button,
+body[data-theme="dark"] .user-role-add button,
+html.dark .user-role-add button,
+body.dark .user-role-add button,
+body.dark-mode .user-role-add button,
+.dark-theme .user-role-add button {
+  border: 1px solid #3f4b61;
+  background: #252525;
+  color: #ffffff;
+}
+
+.user-management-header button:hover,
+.user-role-add button:hover {
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .user-management-header button:hover,
+body[data-theme="dark"] .user-management-header button:hover,
+html.dark .user-management-header button:hover,
+body.dark .user-management-header button:hover,
+body.dark-mode .user-management-header button:hover,
+.dark-theme .user-management-header button:hover,
+html[data-theme="dark"] .user-role-add button:hover,
+body[data-theme="dark"] .user-role-add button:hover,
+html.dark .user-role-add button:hover,
+body.dark .user-role-add button:hover,
+body.dark-mode .user-role-add button:hover,
+.dark-theme .user-role-add button:hover {
+  border-color: #5c6980;
+  background: #333333;
+}
+
+
+/* =========================================================
+   STAT CARDS AND MAIN CARDS
+========================================================= */
+
+.user-management-stats div,
+.user-management-card {
+  border-color: var(--um-card-border);
+  background: var(--um-card-bg);
+}
+
+.user-management-stats span {
+  color: var(--um-muted);
+}
+
+.user-management-stats strong {
+  color: var(--um-heading);
+}
+
+html[data-theme="dark"] .user-management-stats div,
+body[data-theme="dark"] .user-management-stats div,
+html.dark .user-management-stats div,
+body.dark .user-management-stats div,
+body.dark-mode .user-management-stats div,
+.dark-theme .user-management-stats div {
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+
+/* =========================================================
+   CARD HEADERS
+========================================================= */
+
+.user-management-card-header {
+  border-bottom-color: var(--um-card-border);
+  background: var(--um-card-header-bg);
+}
+
+.user-management-card-header h2,
+.user-management-card-header h3,
+.permission-panel-title h3,
+.permission-panel-title h4 {
+  color: var(--um-heading);
+}
+
+
+/* =========================================================
+   INPUTS
+========================================================= */
+
+.user-management-card-header input,
+.user-role-add input,
+.user-form-grid input,
+.user-form-grid select,
+.user-form-grid textarea {
+  border-color: var(--um-input-border);
+  background: var(--um-input-bg);
+  color: var(--um-input-text);
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.user-management-card-header input::placeholder,
+.user-role-add input::placeholder,
+.user-form-grid input::placeholder,
+.user-form-grid textarea::placeholder {
+  color: var(--um-placeholder);
+}
+
+.user-management-card-header input:focus,
+.user-role-add input:focus,
+.user-form-grid input:focus,
+.user-form-grid select:focus,
+.user-form-grid textarea:focus {
+  border-color: #818cf8;
+  background: var(--um-card-bg);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+html[data-theme="dark"] .user-management-card-header input,
+body[data-theme="dark"] .user-management-card-header input,
+html.dark .user-management-card-header input,
+body.dark .user-management-card-header input,
+body.dark-mode .user-management-card-header input,
+.dark-theme .user-management-card-header input,
+html[data-theme="dark"] .user-role-add input,
+body[data-theme="dark"] .user-role-add input,
+html.dark .user-role-add input,
+body.dark .user-role-add input,
+body.dark-mode .user-role-add input,
+.dark-theme .user-role-add input,
+html[data-theme="dark"] .user-form-grid input,
+body[data-theme="dark"] .user-form-grid input,
+html.dark .user-form-grid input,
+body.dark .user-form-grid input,
+body.dark-mode .user-form-grid input,
+.dark-theme .user-form-grid input,
+html[data-theme="dark"] .user-form-grid select,
+body[data-theme="dark"] .user-form-grid select,
+html.dark .user-form-grid select,
+body.dark .user-form-grid select,
+body.dark-mode .user-form-grid select,
+.dark-theme .user-form-grid select,
+html[data-theme="dark"] .user-form-grid textarea,
+body[data-theme="dark"] .user-form-grid textarea,
+html.dark .user-form-grid textarea,
+body.dark .user-form-grid textarea,
+body.dark-mode .user-form-grid textarea,
+.dark-theme .user-form-grid textarea {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .user-form-grid option,
+body[data-theme="dark"] .user-form-grid option,
+html.dark .user-form-grid option,
+body.dark .user-form-grid option,
+body.dark-mode .user-form-grid option,
+.dark-theme .user-form-grid option {
+  background: #111827;
+  color: #f1f5f9;
+}
+
+
+/* =========================================================
+   TABLES
+========================================================= */
+
+.user-table-wrap th,
+.user-table-wrap td,
+.permission-table-wrap th,
+.permission-table-wrap td {
+  border-top-color: var(--um-table-border);
+}
+
+.user-table-wrap th,
+.permission-table-wrap th {
+  background: var(--um-table-head-bg);
+  color: var(--um-muted);
+}
+
+.user-table-wrap td,
+.permission-table-wrap td {
+  color: var(--um-text);
+}
+
+.user-table-wrap tbody tr,
+.permission-table-wrap tbody tr {
+  transition: background 0.18s ease;
+}
+
+.user-table-wrap tbody tr:hover,
+.permission-table-wrap tbody tr:hover {
+  background: var(--um-row-hover);
+}
+
+.permission-table-wrap table {
+  background: var(--um-card-bg);
+}
+
+
+/* =========================================================
+   USER AVATAR
+========================================================= */
+
+.user-name-cell {
+  color: var(--um-heading);
+}
+
+.user-name-cell span {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+html[data-theme="dark"] .user-name-cell span,
+body[data-theme="dark"] .user-name-cell span,
+html.dark .user-name-cell span,
+body.dark .user-name-cell span,
+body.dark-mode .user-name-cell span,
+.dark-theme .user-name-cell span {
+  border: 1px solid #4c5d87;
+  background: #26334e;
+  color: #c7d2fe;
+}
+
+.user-muted {
+  color: var(--um-soft-muted);
+}
+
+
+/* =========================================================
+   ROLE, STATUS AND PERMISSION BADGES
+========================================================= */
+
+html[data-theme="dark"] .user-role-pill,
+body[data-theme="dark"] .user-role-pill,
+html.dark .user-role-pill,
+body.dark .user-role-pill,
+body.dark-mode .user-role-pill,
+.dark-theme .user-role-pill {
+  border: 1px solid #155e75;
+  background: rgba(8, 145, 178, 0.18);
+  color: #67e8f9;
+}
+
+html[data-theme="dark"] .user-status-pill,
+body[data-theme="dark"] .user-status-pill,
+html.dark .user-status-pill,
+body.dark .user-status-pill,
+body.dark-mode .user-status-pill,
+.dark-theme .user-status-pill {
+  border: 1px solid #166534;
+  background: rgba(22, 163, 74, 0.18);
+  color: #86efac;
+}
+
+html[data-theme="dark"] .user-status-pill.inactive,
+body[data-theme="dark"] .user-status-pill.inactive,
+html.dark .user-status-pill.inactive,
+body.dark .user-status-pill.inactive,
+body.dark-mode .user-status-pill.inactive,
+.dark-theme .user-status-pill.inactive {
+  border: 1px solid #991b1b;
+  background: rgba(220, 38, 38, 0.18);
+  color: #fca5a5;
+}
+
+html[data-theme="dark"] .user-permission-count,
+body[data-theme="dark"] .user-permission-count,
+html.dark .user-permission-count,
+body.dark .user-permission-count,
+body.dark-mode .user-permission-count,
+.dark-theme .user-permission-count {
+  border: 1px solid #3f4b61;
+  background: #1e293b;
+  color: #cbd5e1;
+}
+
+
+/* =========================================================
+   EDIT AND DELETE BUTTONS
+========================================================= */
+
+html[data-theme="dark"] .user-row-actions button,
+body[data-theme="dark"] .user-row-actions button,
+html.dark .user-row-actions button,
+body.dark .user-row-actions button,
+body.dark-mode .user-row-actions button,
+.dark-theme .user-row-actions button {
+  border-color: #4c5d87;
+  background: #26334e;
+  color: #c7d2fe;
+}
+
+html[data-theme="dark"] .user-row-actions button:hover,
+body[data-theme="dark"] .user-row-actions button:hover,
+html.dark .user-row-actions button:hover,
+body.dark .user-row-actions button:hover,
+body.dark-mode .user-row-actions button:hover,
+.dark-theme .user-row-actions button:hover {
+  border-color: #6879a8;
+  background: #31405e;
+}
+
+html[data-theme="dark"] .user-row-actions .danger,
+body[data-theme="dark"] .user-row-actions .danger,
+html.dark .user-row-actions .danger,
+body.dark .user-row-actions .danger,
+body.dark-mode .user-row-actions .danger,
+.dark-theme .user-row-actions .danger {
+  border-color: #7f1d1d;
+  background: rgba(127, 29, 29, 0.22);
+  color: #fca5a5;
+}
+
+html[data-theme="dark"] .user-row-actions .danger:hover,
+body[data-theme="dark"] .user-row-actions .danger:hover,
+html.dark .user-row-actions .danger:hover,
+body.dark .user-row-actions .danger:hover,
+body.dark-mode .user-row-actions .danger:hover,
+.dark-theme .user-row-actions .danger:hover {
+  border-color: #b91c1c;
+  background: rgba(185, 28, 28, 0.3);
+}
+
+
+/* =========================================================
+   USER ROLE LIST
+========================================================= */
+
+.user-role-list span {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+html[data-theme="dark"] .user-role-list span,
+body[data-theme="dark"] .user-role-list span,
+html.dark .user-role-list span,
+body.dark .user-role-list span,
+body.dark-mode .user-role-list span,
+.dark-theme .user-role-list span {
+  border: 1px solid #3f4b61;
+  background: #1e293b;
+  color: #cbd5e1;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.user-modal {
+  border: 1px solid var(--um-card-border);
+  background: var(--um-modal-bg);
+}
+
+.user-modal-header {
+  border-bottom-color: var(--um-card-border);
+}
+
+.user-modal-header h2,
+.user-modal-header h3 {
+  color: var(--um-heading);
+}
+
+.user-modal-header p {
+  color: var(--um-muted);
+}
+
+.user-modal-header button {
+  background: var(--um-close-bg);
+  color: var(--um-heading);
+}
+
+html[data-theme="dark"] .user-modal,
+body[data-theme="dark"] .user-modal,
+html.dark .user-modal,
+body.dark .user-modal,
+body.dark-mode .user-modal,
+.dark-theme .user-modal {
+  box-shadow:
+    0 28px 75px rgba(0, 0, 0, 0.55),
+    0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .user-modal-backdrop,
+body[data-theme="dark"] .user-modal-backdrop,
+html.dark .user-modal-backdrop,
+body.dark .user-modal-backdrop,
+body.dark-mode .user-modal-backdrop,
+.dark-theme .user-modal-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+
+/* =========================================================
+   FORM LABELS
+========================================================= */
+
+.user-form-grid label {
+  color: var(--um-text);
+}
+
+
+/* =========================================================
+   PERMISSION PANEL
+========================================================= */
+
+.permission-panel {
+  border-color: #dbeafe;
+  background: #eff6ff;
+}
+
+html[data-theme="dark"] .permission-panel,
+body[data-theme="dark"] .permission-panel,
+html.dark .permission-panel,
+body.dark .permission-panel,
+body.dark-mode .permission-panel,
+.dark-theme .permission-panel {
+  border-color: #30415d;
+  background: #0d1728;
+}
+
+.permission-panel-title {
+  border-bottom-color: #dbeafe;
+}
+
+html[data-theme="dark"] .permission-panel-title,
+body[data-theme="dark"] .permission-panel-title,
+html.dark .permission-panel-title,
+body.dark .permission-panel-title,
+body.dark-mode .permission-panel-title,
+.dark-theme .permission-panel-title {
+  border-bottom-color: #30415d;
+  background: #101b2d;
+}
+
+html[data-theme="dark"] .permission-panel-title svg,
+body[data-theme="dark"] .permission-panel-title svg,
+html.dark .permission-panel-title svg,
+body.dark .permission-panel-title svg,
+body.dark-mode .permission-panel-title svg,
+.dark-theme .permission-panel-title svg {
+  color: #818cf8;
+}
+
+
+/* =========================================================
+   CHECKBOXES
+========================================================= */
+
+.permission-table-wrap input[type="checkbox"] {
+  accent-color: #4f46e5;
+}
+
+html[data-theme="dark"] .permission-table-wrap input[type="checkbox"],
+body[data-theme="dark"] .permission-table-wrap input[type="checkbox"],
+html.dark .permission-table-wrap input[type="checkbox"],
+body.dark .permission-table-wrap input[type="checkbox"],
+body.dark-mode .permission-table-wrap input[type="checkbox"],
+.dark-theme .permission-table-wrap input[type="checkbox"] {
+  accent-color: #818cf8;
+}
+
+
+/* =========================================================
+   MODAL ACTION BUTTONS
+========================================================= */
+
+.user-modal-actions {
+  border-top-color: var(--um-card-border);
+}
+
+.user-modal-actions button[type="button"] {
+  background: #f3f2ef;
+  color: #263449;
+}
+
+.user-modal-actions button[type="submit"] {
+  background: #252525;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .user-modal-actions button[type="button"],
+body[data-theme="dark"] .user-modal-actions button[type="button"],
+html.dark .user-modal-actions button[type="button"],
+body.dark .user-modal-actions button[type="button"],
+body.dark-mode .user-modal-actions button[type="button"],
+.dark-theme .user-modal-actions button[type="button"] {
+  border: 1px solid #3f4b61;
+  background: #1e293b;
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .user-modal-actions button[type="submit"],
+body[data-theme="dark"] .user-modal-actions button[type="submit"],
+html.dark .user-modal-actions button[type="submit"],
+body.dark .user-modal-actions button[type="submit"],
+body.dark-mode .user-modal-actions button[type="submit"],
+.dark-theme .user-modal-actions button[type="submit"] {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .user-modal-actions button[type="button"]:hover,
+body[data-theme="dark"] .user-modal-actions button[type="button"]:hover,
+html.dark .user-modal-actions button[type="button"]:hover,
+body.dark .user-modal-actions button[type="button"]:hover,
+body.dark-mode .user-modal-actions button[type="button"]:hover,
+.dark-theme .user-modal-actions button[type="button"]:hover {
+  background: #273449;
+}
+
+html[data-theme="dark"] .user-modal-actions button[type="submit"]:hover,
+body[data-theme="dark"] .user-modal-actions button[type="submit"]:hover,
+html.dark .user-modal-actions button[type="submit"]:hover,
+body.dark .user-modal-actions button[type="submit"]:hover,
+body.dark-mode .user-modal-actions button[type="submit"]:hover,
+.dark-theme .user-modal-actions button[type="submit"]:hover {
+  background: #4338ca;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.user-empty-state,
+.user-empty {
+  color: var(--um-muted) !important;
+}
+
+
+/* =========================================================
+   SCROLLBARS
+========================================================= */
+
+.user-table-wrap,
+.permission-table-wrap,
+.user-modal {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.user-table-wrap::-webkit-scrollbar,
+.permission-table-wrap::-webkit-scrollbar,
+.user-modal::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.user-table-wrap::-webkit-scrollbar-track,
+.permission-table-wrap::-webkit-scrollbar-track,
+.user-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.user-table-wrap::-webkit-scrollbar-thumb,
+.permission-table-wrap::-webkit-scrollbar-thumb,
+.user-modal::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+html[data-theme="dark"] .user-table-wrap,
+body[data-theme="dark"] .user-table-wrap,
+html.dark .user-table-wrap,
+body.dark .user-table-wrap,
+body.dark-mode .user-table-wrap,
+.dark-theme .user-table-wrap,
+html[data-theme="dark"] .permission-table-wrap,
+body[data-theme="dark"] .permission-table-wrap,
+html.dark .permission-table-wrap,
+body.dark .permission-table-wrap,
+body.dark-mode .permission-table-wrap,
+.dark-theme .permission-table-wrap,
+html[data-theme="dark"] .user-modal,
+body[data-theme="dark"] .user-modal,
+html.dark .user-modal,
+body.dark .user-modal,
+body.dark-mode .user-modal,
+.dark-theme .user-modal {
+  scrollbar-color: #475569 transparent;
+}
+
+html[data-theme="dark"] .user-table-wrap::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .user-table-wrap::-webkit-scrollbar-thumb,
+html.dark .user-table-wrap::-webkit-scrollbar-thumb,
+body.dark .user-table-wrap::-webkit-scrollbar-thumb,
+body.dark-mode .user-table-wrap::-webkit-scrollbar-thumb,
+.dark-theme .user-table-wrap::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .permission-table-wrap::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .permission-table-wrap::-webkit-scrollbar-thumb,
+html.dark .permission-table-wrap::-webkit-scrollbar-thumb,
+body.dark .permission-table-wrap::-webkit-scrollbar-thumb,
+body.dark-mode .permission-table-wrap::-webkit-scrollbar-thumb,
+.dark-theme .permission-table-wrap::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .user-modal::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .user-modal::-webkit-scrollbar-thumb,
+html.dark .user-modal::-webkit-scrollbar-thumb,
+body.dark .user-modal::-webkit-scrollbar-thumb,
+body.dark-mode .user-modal::-webkit-scrollbar-thumb,
+.dark-theme .user-modal::-webkit-scrollbar-thumb {
+  background: #475569;
+}

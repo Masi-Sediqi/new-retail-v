@@ -1,0 +1,515 @@
+.staff-page {
+  padding: 26px 28px 32px;
+  direction: ltr;
+  text-align: left;
+}
+
+.staff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.staff-header h1 {
+  margin: 0 0 6px;
+  color: #111827;
+  font-size: 26px;
+  font-weight: 850;
+}
+
+.staff-header p,
+.staff-stat-card span,
+.staff-name-cell span,
+.staff-modal-title p,
+.staff-profile-box span,
+.staff-history-row span,
+.staff-empty-note {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.staff-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.staff-primary-btn,
+.staff-light-btn,
+.staff-danger-btn {
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.staff-primary-btn {
+  background: #252525;
+  color: #ffffff;
+}
+
+.staff-primary-btn:hover {
+  background: #4338ca;
+}
+
+.staff-light-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #334155;
+}
+
+.staff-danger-btn {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.staff-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.staff-stat-card,
+.staff-card,
+.staff-modal,
+.payroll-modal,
+.staff-profile-modal,
+.staff-confirm-modal {
+  border: 1px solid #eeeae2;
+  background: #ffffff;
+}
+
+.staff-stat-card {
+  min-width: 0;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.staff-stat-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #111827;
+  font-size: 21px;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.staff-stat-card svg {
+  flex: 0 0 auto;
+  color: #4338ca;
+}
+
+.staff-stat-card.warning strong,
+.staff-stat-card.warning svg,
+.staff-warning-text {
+  color: #b45309 !important;
+  font-weight: 900;
+}
+
+.staff-card {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.staff-toolbar {
+  min-height: 74px;
+  border-bottom: 1px solid #eeeae2;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 180px;
+  gap: 10px;
+  align-items: center;
+}
+
+.staff-search {
+  min-height: 42px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #faf9f6;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+}
+
+.staff-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #111827;
+  font-family: inherit;
+}
+
+.staff-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.staff-table-wrap table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+}
+
+.staff-table-wrap th,
+.staff-table-wrap td {
+  border-bottom: 1px solid #eeeae2;
+  padding: 12px 14px;
+  color: #334155;
+  font-size: 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.staff-table-wrap th {
+  background: #faf9f6;
+  color: #64748b;
+  font-weight: 900;
+}
+
+.staff-table-wrap tbody tr:hover td {
+  background: #f8fafc;
+}
+
+.staff-name-cell strong,
+.staff-profile-box strong,
+.staff-history-row strong {
+  display: block;
+  color: #111827;
+  font-weight: 900;
+}
+
+.staff-name-cell strong,
+.staff-name-cell span {
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-status {
+  min-height: 26px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.staff-status.active {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.staff-empty {
+  height: 110px;
+  color: #64748b !important;
+  text-align: center !important;
+}
+
+.staff-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.42);
+  padding: 22px;
+  display: grid;
+  place-items: center;
+}
+
+.staff-modal,
+.payroll-modal,
+.staff-profile-modal,
+.staff-confirm-modal {
+  width: min(840px, 100%);
+  max-height: calc(100vh - 44px);
+  border-radius: 18px;
+  overflow: auto;
+}
+
+.payroll-modal,
+.staff-confirm-modal {
+  width: min(600px, 100%);
+}
+
+.staff-modal-title {
+  min-height: 70px;
+  border-bottom: 1px solid #eeeae2;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.staff-modal-title h2,
+.staff-confirm-modal h2,
+.staff-history h3 {
+  margin: 0 0 5px;
+  color: #111827;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.staff-modal-title button,
+.staff-history-row button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.staff-form-grid {
+  padding: 16px 18px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.staff-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.staff-form-field.full {
+  grid-column: 1 / -1;
+}
+
+.staff-form-field span {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.staff-form-field em {
+  color: #dc2626;
+  font-style: normal;
+}
+
+.staff-form-field input,
+.staff-form-field textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  padding: 0 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+.staff-form-field textarea {
+  min-height: 92px;
+  padding-block: 10px;
+  resize: vertical;
+}
+
+.staff-form-field.invalid input,
+.staff-form-field.invalid textarea {
+  border-color: #dc2626;
+}
+
+.staff-form-field small {
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.payroll-summary,
+.staff-profile-grid {
+  padding: 16px 18px 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.payroll-summary div,
+.staff-profile-box {
+  border: 1px solid #eeeae2;
+  border-radius: 12px;
+  background: #faf9f6;
+  padding: 12px;
+}
+
+.payroll-summary span {
+  display: block;
+  margin-bottom: 7px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.payroll-summary strong {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.staff-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 18px;
+}
+
+.staff-profile-modal {
+  width: min(780px, 100%);
+}
+
+.staff-history {
+  margin: 16px 18px 18px;
+}
+
+.staff-history-row {
+  border: 1px solid #eeeae2;
+  border-radius: 12px;
+  background: #faf9f6;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.staff-history-row + .staff-history-row {
+  margin-top: 10px;
+}
+
+.staff-history-row p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.staff-confirm-modal {
+  padding: 20px;
+}
+
+.staff-confirm-modal p {
+  margin: 8px 0 18px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+body.dark-mode .staff-header h1,
+body.dark-mode .staff-stat-card strong,
+body.dark-mode .staff-name-cell strong,
+body.dark-mode .staff-modal-title h2,
+body.dark-mode .staff-confirm-modal h2,
+body.dark-mode .staff-history h3,
+body.dark-mode .staff-profile-box strong,
+body.dark-mode .staff-history-row strong,
+body.dark-mode .payroll-summary strong {
+  color: #f8fafc !important;
+}
+
+body.dark-mode .staff-header p,
+body.dark-mode .staff-stat-card span,
+body.dark-mode .staff-name-cell span,
+body.dark-mode .staff-modal-title p,
+body.dark-mode .staff-profile-box span,
+body.dark-mode .staff-history-row span,
+body.dark-mode .staff-history-row p,
+body.dark-mode .staff-confirm-modal p,
+body.dark-mode .payroll-summary span,
+body.dark-mode .staff-empty-note {
+  color: #cbd5e1 !important;
+}
+
+body.dark-mode .staff-stat-card,
+body.dark-mode .staff-card,
+body.dark-mode .staff-search,
+body.dark-mode .staff-modal,
+body.dark-mode .payroll-modal,
+body.dark-mode .staff-profile-modal,
+body.dark-mode .staff-confirm-modal,
+body.dark-mode .staff-light-btn,
+body.dark-mode .staff-modal-title button,
+body.dark-mode .staff-history-row button,
+body.dark-mode .staff-form-field input,
+body.dark-mode .staff-form-field textarea,
+body.dark-mode .payroll-summary div,
+body.dark-mode .staff-profile-box,
+body.dark-mode .staff-history-row {
+  border-color: #334155;
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+body.dark-mode .staff-table-wrap th {
+  background: #0f172a;
+  color: #cbd5e1;
+}
+
+body.dark-mode .staff-table-wrap td {
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+@media (max-width: 1180px) {
+  .staff-page {
+    padding: 16px;
+  }
+
+  .staff-stats,
+  .payroll-summary,
+  .staff-profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .staff-header,
+  .staff-header-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .staff-stats,
+  .staff-toolbar,
+  .staff-form-grid,
+  .payroll-summary,
+  .staff-profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .staff-modal-actions {
+    display: grid;
+  }
+
+  .staff-modal-actions button,
+  .staff-header-actions button,
+  .staff-filter-select {
+    width: 100%;
+  }
+}

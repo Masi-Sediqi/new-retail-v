@@ -1,0 +1,87 @@
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dots-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #334155;
+  display: grid;
+  place-items: center;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dots-btn:hover {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.floating-row-action-menu {
+  position: fixed;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+  padding: 6px;
+  z-index: 2147483001;
+}
+
+.floating-row-action-menu button {
+  width: 100%;
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #334155;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.floating-row-action-menu button:hover {
+  background: #f8fafc;
+}
+
+.floating-row-action-menu button.danger {
+  color: #dc2626;
+}
+
+.floating-row-action-menu button.danger:hover {
+  background: #fff1f2;
+}
+
+body.dark-mode .dots-btn,
+body.dark-mode .floating-row-action-menu {
+  border-color: #334155;
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+body.dark-mode .floating-row-action-menu button {
+  color: #cbd5e1;
+}
+
+body.dark-mode .floating-row-action-menu button:hover {
+  background: #334155;
+  color: #ffffff;
+}
+
+body.dark-mode .floating-row-action-menu button.danger {
+  color: #fca5a5;
+}

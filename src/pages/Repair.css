@@ -1,0 +1,935 @@
+.repair-page {
+  padding: 26px 28px 32px;
+  direction: ltr;
+  text-align: left;
+}
+
+.repair-header {
+  margin-bottom: 20px;
+}
+
+.repair-header span {
+  display: inline-flex;
+  height: 26px;
+  align-items: center;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.repair-header h1 {
+  margin: 10px 0 6px;
+  color: #111827;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.repair-header p,
+.repair-card-header p {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.repair-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.repair-stats > div,
+.repair-card {
+  background: #ffffff;
+  border: 1px solid #eeeae2;
+  border-radius: 18px;
+}
+
+.repair-stats > div {
+  padding: 18px;
+}
+
+.repair-clickable-stat {
+  cursor: pointer;
+}
+
+.repair-clickable-stat:hover {
+  border-color: #c7d2fe;
+  background: #f8fafc;
+}
+
+.repair-clickable-stat:focus-visible {
+  outline: 3px solid rgba(79, 70, 229, 0.25);
+  outline-offset: 3px;
+}
+
+.repair-stats span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.repair-stats strong {
+  display: block;
+  margin: 8px 0 4px;
+  color: #111827;
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.repair-stats p {
+  color: #888;
+  font-size: 12px;
+}
+
+.repair-thin-lines {
+  display: grid;
+  gap: 3px;
+}
+
+.repair-thin-lines small {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.repair-detail-card {
+  margin-bottom: 20px;
+}
+
+.repair-card {
+  overflow: hidden;
+}
+
+.repair-card-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.repair-card-header h3 {
+  margin-bottom: 4px;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.repair-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.repair-controls input,
+.repair-controls select {
+  height: 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #faf9f6;
+  padding: 0 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+.repair-controls input {
+  width: 280px;
+}
+
+.repair-table-wrap {
+  overflow-x: auto;
+}
+
+.repair-card table {
+  width: 100%;
+  min-width: 1380px;
+  border-collapse: collapse;
+}
+
+.repair-card th,
+.repair-card td {
+  height: 56px;
+  padding: 0 14px;
+  border-top: 1px solid #eeeae2;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.repair-card th {
+  background: #faf9f6;
+  color: #52627a;
+  font-weight: 900;
+}
+
+.repair-card td {
+  color: #111827;
+}
+
+.repair-pill,
+.repair-status {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.repair-pill {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.repair-status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.repair-status.fixed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.repair-status.not-fixed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.repair-result-btn {
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.repair-empty {
+  text-align: center !important;
+  color: #64748b !important;
+  font-weight: 800;
+}
+
+.repair-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.58);
+}
+
+.repair-modal {
+  width: min(860px, calc(100vw - 34px));
+  max-height: 92vh;
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+.repair-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.repair-modal-header h3 {
+  margin-bottom: 5px;
+  color: #111827;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.repair-modal-header p {
+  color: #52627a;
+  font-size: 13px;
+}
+
+.repair-modal-header button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 11px;
+  background: #f3f2ef;
+  color: #111827;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.repair-modal form {
+  padding: 18px;
+}
+
+.repair-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.repair-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.repair-form-grid input,
+.repair-form-grid select,
+.repair-form-grid textarea {
+  min-height: 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #faf9f6;
+  padding: 0 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+.repair-form-grid textarea {
+  height: 92px;
+  padding-top: 10px;
+  resize: vertical;
+}
+
+.repair-form-grid input:focus,
+.repair-form-grid select:focus,
+.repair-form-grid textarea:focus {
+  border-color: #4f46e5;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.repair-form-full {
+  grid-column: 1 / -1;
+}
+
+.repair-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #eeeae2;
+}
+
+.repair-modal-actions button {
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 18px;
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.repair-modal-actions button:first-child {
+  background: #f3f2ef;
+  color: #111827;
+}
+
+.repair-modal-actions button:last-child {
+  background: #252525;
+  color: #ffffff;
+}
+
+@media (max-width: 1100px) {
+  .repair-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .repair-card-header,
+  .repair-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .repair-controls input,
+  .repair-controls select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .repair-stats,
+  .repair-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* =========================================================
+   REPAIR PAGE — LIGHT/DARK MODE SUPPORT
+   Add at the end of Repair.css
+========================================================= */
+
+.repair-page {
+  --repair-text: #111827;
+  --repair-heading: #111827;
+  --repair-muted: #64748b;
+  --repair-soft-muted: #888888;
+
+  --repair-card-bg: #ffffff;
+  --repair-border: #eeeae2;
+  --repair-header-bg: #ffffff;
+
+  --repair-input-bg: #faf9f6;
+  --repair-input-text: #111827;
+  --repair-input-border: #e5e7eb;
+
+  --repair-table-head-bg: #faf9f6;
+  --repair-table-head-text: #52627a;
+  --repair-row-hover: #fafafa;
+
+  --repair-modal-bg: #ffffff;
+  --repair-close-bg: #f3f2ef;
+
+  color: var(--repair-text);
+}
+
+
+/* =========================================================
+   DARK MODE VARIABLES
+========================================================= */
+
+html[data-theme="dark"] .repair-page,
+body[data-theme="dark"] .repair-page,
+html.dark .repair-page,
+body.dark .repair-page,
+body.dark-mode .repair-page,
+.dark-theme .repair-page {
+  --repair-text: #e5e7eb;
+  --repair-heading: #f8fafc;
+  --repair-muted: #94a3b8;
+  --repair-soft-muted: #7f8da3;
+
+  --repair-card-bg: #111827;
+  --repair-border: #29364d;
+  --repair-header-bg: #101827;
+
+  --repair-input-bg: #0c1422;
+  --repair-input-text: #f1f5f9;
+  --repair-input-border: #34435a;
+
+  --repair-table-head-bg: #0d1728;
+  --repair-table-head-text: #b9c8dc;
+  --repair-row-hover: #182338;
+
+  --repair-modal-bg: #111827;
+  --repair-close-bg: #1e293b;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.repair-header h1 {
+  color: var(--repair-heading);
+}
+
+.repair-header p,
+.repair-card-header p {
+  color: var(--repair-muted);
+}
+
+.repair-header span {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+html[data-theme="dark"] .repair-header span,
+body[data-theme="dark"] .repair-header span,
+html.dark .repair-header span,
+body.dark .repair-header span,
+body.dark-mode .repair-header span,
+.dark-theme .repair-header span {
+  border: 1px solid #415174;
+  background: #26334e;
+  color: #c7d2fe;
+}
+
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.repair-stats > div,
+.repair-card {
+  border-color: var(--repair-border);
+  background: var(--repair-card-bg);
+}
+
+.repair-stats span {
+  color: var(--repair-muted);
+}
+
+.repair-stats strong {
+  color: var(--repair-heading);
+}
+
+.repair-stats p {
+  color: var(--repair-soft-muted);
+}
+
+html[data-theme="dark"] .repair-stats > div,
+body[data-theme="dark"] .repair-stats > div,
+html.dark .repair-stats > div,
+body.dark .repair-stats > div,
+body.dark-mode .repair-stats > div,
+.dark-theme .repair-stats > div {
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+
+/* =========================================================
+   TABLE CARD HEADER
+========================================================= */
+
+.repair-card-header {
+  border-bottom-color: var(--repair-border);
+  background: var(--repair-header-bg);
+}
+
+.repair-card-header h3 {
+  color: var(--repair-heading);
+}
+
+
+/* =========================================================
+   FILTER CONTROLS
+========================================================= */
+
+.repair-controls input,
+.repair-controls select {
+  border-color: var(--repair-input-border);
+  background: var(--repair-input-bg);
+  color: var(--repair-input-text);
+}
+
+.repair-controls input::placeholder {
+  color: var(--repair-muted);
+}
+
+.repair-controls input:focus,
+.repair-controls select:focus {
+  border-color: #818cf8;
+  background: var(--repair-card-bg);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+html[data-theme="dark"] .repair-controls input,
+body[data-theme="dark"] .repair-controls input,
+html.dark .repair-controls input,
+body.dark .repair-controls input,
+body.dark-mode .repair-controls input,
+.dark-theme .repair-controls input,
+html[data-theme="dark"] .repair-controls select,
+body[data-theme="dark"] .repair-controls select,
+html.dark .repair-controls select,
+body.dark .repair-controls select,
+body.dark-mode .repair-controls select,
+.dark-theme .repair-controls select {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .repair-controls option,
+body[data-theme="dark"] .repair-controls option,
+html.dark .repair-controls option,
+body.dark .repair-controls option,
+body.dark-mode .repair-controls option,
+.dark-theme .repair-controls option {
+  background: #111827;
+  color: #f1f5f9;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.repair-card th,
+.repair-card td {
+  border-top-color: var(--repair-border);
+}
+
+.repair-card th {
+  background: var(--repair-table-head-bg);
+  color: var(--repair-table-head-text);
+}
+
+.repair-card td {
+  color: var(--repair-text);
+}
+
+.repair-card tbody tr {
+  transition: background 0.18s ease;
+}
+
+.repair-card tbody tr:hover {
+  background: var(--repair-row-hover);
+}
+
+.repair-empty {
+  color: var(--repair-muted) !important;
+}
+
+
+/* =========================================================
+   TRACKING PILL
+========================================================= */
+
+.repair-pill {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+html[data-theme="dark"] .repair-pill,
+body[data-theme="dark"] .repair-pill,
+html.dark .repair-pill,
+body.dark .repair-pill,
+body.dark-mode .repair-pill,
+.dark-theme .repair-pill {
+  border: 1px solid #4c5d87;
+  background: rgba(99, 102, 241, 0.18);
+  color: #c7d2fe;
+}
+
+
+/* =========================================================
+   REPAIR STATUS BADGES
+========================================================= */
+
+html[data-theme="dark"] .repair-status.pending,
+body[data-theme="dark"] .repair-status.pending,
+html.dark .repair-status.pending,
+body.dark .repair-status.pending,
+body.dark-mode .repair-status.pending,
+.dark-theme .repair-status.pending {
+  border: 1px solid #854d0e;
+  background: rgba(217, 119, 6, 0.18);
+  color: #fcd34d;
+}
+
+html[data-theme="dark"] .repair-status.fixed,
+body[data-theme="dark"] .repair-status.fixed,
+html.dark .repair-status.fixed,
+body.dark .repair-status.fixed,
+body.dark-mode .repair-status.fixed,
+.dark-theme .repair-status.fixed {
+  border: 1px solid #166534;
+  background: rgba(22, 163, 74, 0.18);
+  color: #86efac;
+}
+
+html[data-theme="dark"] .repair-status.not-fixed,
+body[data-theme="dark"] .repair-status.not-fixed,
+html.dark .repair-status.not-fixed,
+body.dark .repair-status.not-fixed,
+body.dark-mode .repair-status.not-fixed,
+.dark-theme .repair-status.not-fixed {
+  border: 1px solid #991b1b;
+  background: rgba(220, 38, 38, 0.18);
+  color: #fca5a5;
+}
+
+
+/* =========================================================
+   REPAIR RESULT BUTTON
+========================================================= */
+
+.repair-result-btn {
+  border: 1px solid transparent;
+}
+
+html[data-theme="dark"] .repair-result-btn,
+body[data-theme="dark"] .repair-result-btn,
+html.dark .repair-result-btn,
+body.dark .repair-result-btn,
+body.dark-mode .repair-result-btn,
+.dark-theme .repair-result-btn {
+  border-color: #4c5d87;
+  background: #26334e;
+  color: #c7d2fe;
+}
+
+.repair-result-btn:hover {
+  filter: brightness(0.97);
+}
+
+html[data-theme="dark"] .repair-result-btn:hover,
+body[data-theme="dark"] .repair-result-btn:hover,
+html.dark .repair-result-btn:hover,
+body.dark .repair-result-btn:hover,
+body.dark-mode .repair-result-btn:hover,
+.dark-theme .repair-result-btn:hover {
+  border-color: #6879a8;
+  background: #31405e;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.repair-modal {
+  border: 1px solid var(--repair-border);
+  background: var(--repair-modal-bg);
+}
+
+.repair-modal-header {
+  border-bottom-color: var(--repair-border);
+}
+
+.repair-modal-header h3 {
+  color: var(--repair-heading);
+}
+
+.repair-modal-header p {
+  color: var(--repair-muted);
+}
+
+.repair-modal-header button {
+  background: var(--repair-close-bg);
+  color: var(--repair-heading);
+}
+
+html[data-theme="dark"] .repair-modal,
+body[data-theme="dark"] .repair-modal,
+html.dark .repair-modal,
+body.dark .repair-modal,
+body.dark-mode .repair-modal,
+.dark-theme .repair-modal {
+  box-shadow:
+    0 28px 75px rgba(0, 0, 0, 0.55),
+    0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .repair-modal-backdrop,
+body[data-theme="dark"] .repair-modal-backdrop,
+html.dark .repair-modal-backdrop,
+body.dark .repair-modal-backdrop,
+body.dark-mode .repair-modal-backdrop,
+.dark-theme .repair-modal-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+
+/* =========================================================
+   MODAL FORM LABELS
+========================================================= */
+
+.repair-form-grid label {
+  color: var(--repair-text);
+}
+
+
+/* =========================================================
+   MODAL INPUTS
+========================================================= */
+
+.repair-form-grid input,
+.repair-form-grid select,
+.repair-form-grid textarea {
+  border-color: var(--repair-input-border);
+  background: var(--repair-input-bg);
+  color: var(--repair-input-text);
+}
+
+.repair-form-grid input::placeholder,
+.repair-form-grid textarea::placeholder {
+  color: var(--repair-muted);
+}
+
+.repair-form-grid input:focus,
+.repair-form-grid select:focus,
+.repair-form-grid textarea:focus {
+  border-color: #818cf8;
+  background: var(--repair-card-bg);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.repair-form-grid input[readonly] {
+  cursor: default;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+html[data-theme="dark"] .repair-form-grid input,
+body[data-theme="dark"] .repair-form-grid input,
+html.dark .repair-form-grid input,
+body.dark .repair-form-grid input,
+body.dark-mode .repair-form-grid input,
+.dark-theme .repair-form-grid input,
+html[data-theme="dark"] .repair-form-grid select,
+body[data-theme="dark"] .repair-form-grid select,
+html.dark .repair-form-grid select,
+body.dark .repair-form-grid select,
+body.dark-mode .repair-form-grid select,
+.dark-theme .repair-form-grid select,
+html[data-theme="dark"] .repair-form-grid textarea,
+body[data-theme="dark"] .repair-form-grid textarea,
+html.dark .repair-form-grid textarea,
+body.dark .repair-form-grid textarea,
+body.dark-mode .repair-form-grid textarea,
+.dark-theme .repair-form-grid textarea {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .repair-form-grid option,
+body[data-theme="dark"] .repair-form-grid option,
+html.dark .repair-form-grid option,
+body.dark .repair-form-grid option,
+body.dark-mode .repair-form-grid option,
+.dark-theme .repair-form-grid option {
+  background: #111827;
+  color: #f1f5f9;
+}
+
+html[data-theme="dark"] .repair-form-grid input[readonly],
+body[data-theme="dark"] .repair-form-grid input[readonly],
+html.dark .repair-form-grid input[readonly],
+body.dark .repair-form-grid input[readonly],
+body.dark-mode .repair-form-grid input[readonly],
+.dark-theme .repair-form-grid input[readonly] {
+  border-color: #334155;
+  background: #172033;
+  color: #94a3b8;
+}
+
+
+/* Fix browser date icon in dark mode */
+html[data-theme="dark"]
+  .repair-form-grid
+  input[type="date"]::-webkit-calendar-picker-indicator,
+body[data-theme="dark"]
+  .repair-form-grid
+  input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark
+  .repair-form-grid
+  input[type="date"]::-webkit-calendar-picker-indicator,
+body.dark
+  .repair-form-grid
+  input[type="date"]::-webkit-calendar-picker-indicator,
+body.dark-mode
+  .repair-form-grid
+  input[type="date"]::-webkit-calendar-picker-indicator,
+.dark-theme
+  .repair-form-grid
+  input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+
+/* =========================================================
+   MODAL ACTIONS
+========================================================= */
+
+.repair-modal-actions {
+  border-top-color: var(--repair-border);
+}
+
+.repair-modal-actions button:first-child {
+  background: #f3f2ef;
+  color: #111827;
+}
+
+.repair-modal-actions button:last-child {
+  background: #252525;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .repair-modal-actions button:first-child,
+body[data-theme="dark"] .repair-modal-actions button:first-child,
+html.dark .repair-modal-actions button:first-child,
+body.dark .repair-modal-actions button:first-child,
+body.dark-mode .repair-modal-actions button:first-child,
+.dark-theme .repair-modal-actions button:first-child {
+  border: 1px solid #3b475d;
+  background: #1e293b;
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .repair-modal-actions button:last-child,
+body[data-theme="dark"] .repair-modal-actions button:last-child,
+html.dark .repair-modal-actions button:last-child,
+body.dark .repair-modal-actions button:last-child,
+body.dark-mode .repair-modal-actions button:last-child,
+.dark-theme .repair-modal-actions button:last-child {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .repair-modal-actions button:first-child:hover,
+body[data-theme="dark"] .repair-modal-actions button:first-child:hover,
+html.dark .repair-modal-actions button:first-child:hover,
+body.dark .repair-modal-actions button:first-child:hover,
+body.dark-mode .repair-modal-actions button:first-child:hover,
+.dark-theme .repair-modal-actions button:first-child:hover {
+  background: #273449;
+}
+
+html[data-theme="dark"] .repair-modal-actions button:last-child:hover,
+body[data-theme="dark"] .repair-modal-actions button:last-child:hover,
+html.dark .repair-modal-actions button:last-child:hover,
+body.dark .repair-modal-actions button:last-child:hover,
+body.dark-mode .repair-modal-actions button:last-child:hover,
+.dark-theme .repair-modal-actions button:last-child:hover {
+  background: #4338ca;
+}
+
+
+/* =========================================================
+   TABLE SCROLLBAR
+========================================================= */
+
+.repair-table-wrap {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.repair-table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.repair-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.repair-table-wrap::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+html[data-theme="dark"] .repair-table-wrap,
+body[data-theme="dark"] .repair-table-wrap,
+html.dark .repair-table-wrap,
+body.dark .repair-table-wrap,
+body.dark-mode .repair-table-wrap,
+.dark-theme .repair-table-wrap {
+  scrollbar-color: #475569 transparent;
+}
+
+html[data-theme="dark"] .repair-table-wrap::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .repair-table-wrap::-webkit-scrollbar-thumb,
+html.dark .repair-table-wrap::-webkit-scrollbar-thumb,
+body.dark .repair-table-wrap::-webkit-scrollbar-thumb,
+body.dark-mode .repair-table-wrap::-webkit-scrollbar-thumb,
+.dark-theme .repair-table-wrap::-webkit-scrollbar-thumb {
+  background: #475569;
+}

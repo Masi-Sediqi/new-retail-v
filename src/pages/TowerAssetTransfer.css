@@ -1,0 +1,1782 @@
+.tower-transfer-page {
+  padding: 26px 28px 32px;
+  direction: ltr;
+  text-align: left;
+  color: #111827;
+}
+
+.tower-transfer-back {
+  display: inline-flex;
+  margin-bottom: 14px;
+  color: #4f46e5;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tower-transfer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.tower-transfer-open-btn {
+  flex: 0 0 auto;
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: #4f46e5;
+  color: #ffffff;
+  padding: 0 18px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tower-transfer-open-btn:hover {
+  background: #3730a3;
+}
+
+.tower-transfer-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.tower-transfer-stats > div {
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #eeeae2;
+  border-radius: 17px;
+}
+
+.tower-transfer-stats span {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.tower-transfer-stats strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #111827;
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.tower-transfer-stats p {
+  color: #888888;
+  font-size: 12px;
+}
+
+.tower-transfer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.tower-transfer-modal {
+  width: min(1180px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #eeeae2;
+  border-radius: 22px;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
+}
+
+.tower-transfer-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.tower-transfer-modal-header h3 {
+  margin: 0 0 4px;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.tower-transfer-modal-header p {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.tower-transfer-modal-header > button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 11px;
+  background: #f1f0eb;
+  color: #111827;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.tower-transfer-history-card {
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #eeeae2;
+  border-radius: 18px;
+}
+
+.tower-transfer-history-header {
+  padding: 18px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.tower-transfer-history-header h3 {
+  margin: 0 0 4px;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.tower-transfer-history-header p {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.tower-transfer-table-wrap {
+  overflow-x: auto;
+}
+
+.tower-transfer-history-card table {
+  width: 100%;
+  min-width: 1280px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.tower-transfer-history-card th,
+.tower-transfer-history-card td {
+  height: 56px;
+  padding: 0 15px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tower-transfer-history-card th {
+  background: #faf9f6;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tower-transfer-history-card td {
+  color: #111827;
+  font-size: 13px;
+  border-top: 1px solid #eeeae2;
+}
+
+.tower-transfer-status,
+.tower-transfer-direction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.tower-transfer-status.completed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tower-transfer-status.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.tower-transfer-status.in-transit {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.tower-transfer-direction.incoming {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tower-transfer-direction.outgoing {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.tower-transfer-history-empty {
+  height: 80px !important;
+  color: #64748b !important;
+  text-align: center !important;
+}
+
+body.dark-mode .tower-transfer-modal,
+body.dark-mode .tower-transfer-history-card,
+body.dark-mode .tower-transfer-stats > div {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark-mode .tower-transfer-modal-header h3,
+body.dark-mode .tower-transfer-history-header h3,
+body.dark-mode .tower-transfer-stats strong,
+body.dark-mode .tower-transfer-history-card td {
+  color: #f8fafc;
+}
+
+body.dark-mode .tower-transfer-history-card th {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+body.dark-mode .tower-transfer-history-card td,
+body.dark-mode .tower-transfer-history-header,
+body.dark-mode .tower-transfer-modal {
+  border-color: #334155;
+}
+
+body.dark-mode .tower-transfer-modal-header > button {
+  background: #334155;
+  color: #f8fafc;
+}
+
+@media (max-width: 1050px) {
+  .tower-transfer-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tower-transfer-modal .tower-transfer-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .tower-transfer-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tower-transfer-open-btn {
+    width: 100%;
+  }
+
+  .tower-transfer-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tower-transfer-header span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.tower-transfer-header h1 {
+  margin: 0 0 5px;
+  color: #111827;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.tower-transfer-header p {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.tower-transfer-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+}
+
+.tower-transfer-card {
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #eeeae2;
+  border-radius: 18px;
+}
+
+.tower-transfer-card-header {
+  padding: 18px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.tower-transfer-card-header h3 {
+  margin: 0 0 4px;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.tower-transfer-card-header p {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.tower-transfer-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px;
+}
+
+.tower-transfer-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tower-transfer-full {
+  grid-column: 1 / -1;
+}
+
+.tower-transfer-form-group label {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tower-transfer-form-group input,
+.tower-transfer-form-group select,
+.tower-transfer-form-group textarea {
+  min-height: 44px;
+  padding: 0 12px;
+  background: #faf9f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 11px;
+  color: #111827;
+  font-family: inherit;
+  outline: none;
+}
+
+.tower-transfer-form-group textarea {
+  height: 92px;
+  padding-top: 11px;
+  resize: none;
+}
+
+.tower-transfer-form-group input:focus,
+.tower-transfer-form-group select:focus,
+.tower-transfer-form-group textarea:focus,
+.tower-transfer-search input:focus {
+  background: #ffffff;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.tower-transfer-picker-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tower-transfer-picker-header > div:last-child {
+  display: flex;
+  gap: 7px;
+}
+
+.tower-transfer-picker-header button {
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 0 11px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tower-transfer-search {
+  padding: 18px 18px 10px;
+}
+
+.tower-transfer-search input {
+  width: 100%;
+  height: 42px;
+  padding: 0 13px;
+  background: #faf9f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 11px;
+  font-family: inherit;
+  outline: none;
+}
+
+.tower-transfer-assets {
+  display: grid;
+  gap: 9px;
+  max-height: 490px;
+  overflow-y: auto;
+  padding: 0 18px 18px;
+}
+
+.tower-transfer-asset {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  padding: 12px;
+  background: #faf9f6;
+  border: 1px solid #eeeae2;
+  border-radius: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tower-transfer-asset.selected {
+  background: #eef2ff;
+  border-color: #4f46e5;
+}
+
+.tower-transfer-check {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.tower-transfer-asset.selected .tower-transfer-check {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.tower-transfer-asset strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #111827;
+  font-size: 13px;
+}
+
+.tower-transfer-asset small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.tower-transfer-empty {
+  padding: 30px;
+  color: #64748b;
+  text-align: center;
+}
+
+.tower-transfer-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.tower-transfer-actions button {
+  height: 42px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 18px;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tower-transfer-actions button:first-child {
+  background: #f1f0eb;
+  color: #333333;
+}
+
+.tower-transfer-actions button:last-child {
+  background: #252525;
+  color: #ffffff;
+}
+
+.tower-transfer-actions button:last-child:hover {
+  background: #4f46e5;
+}
+
+.tower-transfer-not-found {
+  padding: 28px;
+  background: #ffffff;
+  border: 1px solid #eeeae2;
+  border-radius: 18px;
+}
+
+.tower-transfer-not-found p {
+  margin: 8px 0 18px;
+  color: #64748b;
+}
+
+.tower-transfer-not-found button {
+  height: 40px;
+  border: 0;
+  border-radius: 11px;
+  background: #252525;
+  color: #ffffff;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+body.dark-mode .tower-transfer-card,
+body.dark-mode .tower-transfer-not-found {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark-mode .tower-transfer-header h1,
+body.dark-mode .tower-transfer-card-header h3,
+body.dark-mode .tower-transfer-asset strong {
+  color: #f8fafc;
+}
+
+body.dark-mode .tower-transfer-form-group input,
+body.dark-mode .tower-transfer-form-group select,
+body.dark-mode .tower-transfer-form-group textarea,
+body.dark-mode .tower-transfer-search input,
+body.dark-mode .tower-transfer-asset {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+body.dark-mode .tower-transfer-asset.selected {
+  background: rgba(79, 70, 229, 0.22);
+  border-color: #6366f1;
+}
+
+@media (max-width: 1000px) {
+  .tower-transfer-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .tower-transfer-page {
+    padding: 20px 16px 28px;
+  }
+
+  .tower-transfer-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tower-transfer-full {
+    grid-column: auto;
+  }
+
+  .tower-transfer-picker-header {
+    flex-direction: column;
+  }
+
+  .tower-transfer-actions {
+    flex-direction: column;
+  }
+
+  .tower-transfer-actions button {
+    width: 100%;
+  }
+}.tower-transfer-selected-card {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #eeeae2;
+  border-radius: 18px;
+}
+
+.tower-transfer-selected-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.tower-transfer-selected-header h3 {
+  margin: 0 0 4px;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.tower-transfer-selected-header p {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.tower-transfer-selected-header > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.tower-transfer-selected-table-wrap {
+  overflow-x: auto;
+}
+
+.tower-transfer-selected-table {
+  width: 100%;
+  min-width: 1250px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.tower-transfer-selected-table th,
+.tower-transfer-selected-table td {
+  height: 54px;
+  padding: 0 13px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tower-transfer-selected-table th {
+  background: #faf9f6;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.tower-transfer-selected-table td {
+  color: #111827;
+  font-size: 12px;
+  border-top: 1px solid #eeeae2;
+}
+
+.tower-transfer-selected-table td strong {
+  color: #111827;
+  font-weight: 900;
+}
+
+.tower-transfer-selected-table th:last-child,
+.tower-transfer-selected-table td:last-child {
+  width: 190px;
+  overflow: visible;
+}
+
+.tower-transfer-selected-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tower-transfer-selected-actions button {
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 11px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tower-transfer-full-detail-btn {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.tower-transfer-full-detail-btn:hover {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+.tower-transfer-remove-btn {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.tower-transfer-remove-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+}.tower-transfer-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.tower-transfer-detail-modal {
+  width: min(920px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #eeeae2;
+  border-radius: 22px;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.32);
+}
+
+.tower-transfer-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.tower-transfer-detail-header > div > span {
+  display: inline-flex;
+  margin-bottom: 7px;
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tower-transfer-detail-header h3 {
+  margin: 0 0 5px;
+  color: #111827;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.tower-transfer-detail-header p {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.tower-transfer-detail-header > button {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 11px;
+  background: #f1f0eb;
+  color: #111827;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.tower-transfer-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tower-transfer-detail-grid > div {
+  min-width: 0;
+  padding: 13px;
+  background: #faf9f6;
+  border: 1px solid #eeeae2;
+  border-radius: 13px;
+}
+
+.tower-transfer-detail-grid span {
+  display: block;
+  margin-bottom: 7px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.tower-transfer-detail-grid strong {
+  display: block;
+  color: #111827;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.tower-transfer-detail-full {
+  grid-column: 1 / -1;
+}
+
+.tower-transfer-detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.tower-transfer-detail-footer button {
+  height: 40px;
+  border: 0;
+  border-radius: 11px;
+  background: #252525;
+  color: #ffffff;
+  padding: 0 20px;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tower-transfer-detail-footer button:hover {
+  background: #4f46e5;
+}
+/* =========================================
+   Tower Transfer History Action Menu
+========================================= */
+
+.tower-transfer-history-card th:last-child,
+.tower-transfer-history-card td:last-child {
+  width: 76px;
+  text-align: center;
+  overflow: visible;
+}
+
+.tower-transfer-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tower-transfer-action-toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.tower-transfer-action-toggle:hover {
+  background: #f1f0eb;
+  color: #111827;
+}
+
+.tower-transfer-action-menu {
+  position: fixed;
+  z-index: 3000000;
+  width: 160px;
+  padding: 8px 6px;
+  background: #ffffff;
+  border: 1px solid #e8e4dc;
+  border-radius: 15px;
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.13),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+  animation: towerTransferMenuOpen 0.16s ease;
+}
+
+@keyframes towerTransferMenuOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tower-transfer-action-menu button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #111827;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.tower-transfer-action-menu button svg {
+  flex: 0 0 auto;
+  color: #111827;
+}
+
+.tower-transfer-action-menu button:hover {
+  background: #f7f6f2;
+}
+
+.tower-transfer-action-menu button.danger,
+.tower-transfer-action-menu button.danger svg {
+  color: #ef1b1b;
+}
+
+.tower-transfer-action-menu button.danger:hover {
+  background: #fff1f2;
+}
+
+/* Dark Mode */
+
+body.dark-mode .tower-transfer-action-toggle {
+  color: #cbd5e1;
+}
+
+body.dark-mode .tower-transfer-action-toggle:hover {
+  background: #334155;
+  color: #ffffff;
+}
+
+body.dark-mode .tower-transfer-action-menu {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.22);
+}
+
+body.dark-mode .tower-transfer-action-menu button,
+body.dark-mode .tower-transfer-action-menu button svg {
+  color: #f8fafc;
+}
+
+body.dark-mode .tower-transfer-action-menu button:hover {
+  background: #334155;
+}
+
+body.dark-mode .tower-transfer-action-menu button.danger,
+body.dark-mode .tower-transfer-action-menu button.danger svg {
+  color: #f87171;
+}
+
+body.dark-mode .tower-transfer-action-menu button.danger:hover {
+  background: rgba(220, 38, 38, 0.16);
+}
+/* =========================================
+   Transfer Full Detail Modal
+========================================= */
+
+.tower-transfer-record-modal {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e8e4dc;
+  border-radius: 22px;
+  box-shadow:
+    0 30px 90px rgba(15, 23, 42, 0.3),
+    0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 18px;
+  margin-top: 20px;
+  border-top: 1px solid #eeeae2;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button {
+  min-width: 105px;
+  height: 42px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 17px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button:first-child {
+  background: #f1f0eb;
+  color: #334155;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button:first-child:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button:last-child {
+  background: #252525;
+  color: #ffffff;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button:last-child:hover {
+  background: #4f46e5;
+}
+
+
+/* =========================================
+   Transfer Edit Modal
+========================================= */
+
+.tower-transfer-edit-modal {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e8e4dc;
+  border-radius: 22px;
+  box-shadow:
+    0 30px 90px rgba(15, 23, 42, 0.3),
+    0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+.tower-transfer-edit-modal form {
+  width: 100%;
+}
+
+.tower-transfer-edit-modal
+  .tower-transfer-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0;
+}
+
+.tower-transfer-edit-modal
+  .tower-transfer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 18px;
+  margin-top: 20px;
+  border-top: 1px solid #eeeae2;
+}
+
+.tower-transfer-edit-modal
+  .tower-transfer-actions button {
+  width: auto;
+  min-width: 110px;
+  height: 42px;
+}
+
+
+/* =========================================
+   Transfer Delete Modal
+========================================= */
+
+.tower-transfer-delete-modal {
+  width: min(460px, 100%);
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid #e8e4dc;
+  border-radius: 20px;
+  box-shadow:
+    0 30px 90px rgba(15, 23, 42, 0.3),
+    0 8px 24px rgba(15, 23, 42, 0.1);
+  text-align: left;
+}
+
+.tower-transfer-delete-modal::before {
+  content: "!";
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 17px;
+  border-radius: 14px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.tower-transfer-delete-modal h3 {
+  margin: 0 0 10px;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.tower-transfer-delete-modal p {
+  margin: 0 0 10px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.tower-transfer-delete-modal p strong {
+  color: #111827;
+  font-weight: 900;
+}
+
+.tower-transfer-delete-modal small {
+  display: block;
+  padding: 11px 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 11px;
+  color: #9a3412;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.tower-transfer-delete-modal > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.tower-transfer-delete-modal > div button {
+  height: 41px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tower-transfer-delete-modal
+  > div
+  button:first-child {
+  background: #f1f0eb;
+  color: #334155;
+}
+
+.tower-transfer-delete-modal
+  > div
+  button:first-child:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.tower-transfer-delete-modal
+  > div
+  button.danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.tower-transfer-delete-modal
+  > div
+  button.danger:hover {
+  background: #b91c1c;
+}
+
+
+/* =========================================
+   Better Backdrop Alignment
+========================================= */
+
+.tower-transfer-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4000000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+
+/* =========================================
+   Dark Mode
+========================================= */
+
+body.dark-mode .tower-transfer-record-modal,
+body.dark-mode .tower-transfer-edit-modal,
+body.dark-mode .tower-transfer-delete-modal {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark-mode
+  .tower-transfer-record-modal
+  .tower-transfer-detail-footer,
+body.dark-mode
+  .tower-transfer-edit-modal
+  .tower-transfer-actions {
+  border-color: #334155;
+}
+
+body.dark-mode .tower-transfer-delete-modal h3,
+body.dark-mode .tower-transfer-delete-modal p strong {
+  color: #f8fafc;
+}
+
+body.dark-mode .tower-transfer-delete-modal p {
+  color: #cbd5e1;
+}
+
+body.dark-mode .tower-transfer-delete-modal small {
+  background: rgba(234, 88, 12, 0.12);
+  border-color: rgba(251, 146, 60, 0.28);
+  color: #fdba74;
+}
+
+body.dark-mode
+  .tower-transfer-record-modal
+  .tower-transfer-detail-footer
+  button:first-child,
+body.dark-mode
+  .tower-transfer-delete-modal
+  > div
+  button:first-child {
+  background: #334155;
+  color: #f8fafc;
+}
+
+
+/* =========================================
+   Responsive
+========================================= */
+
+@media (max-width: 850px) {
+  .tower-transfer-record-modal
+    .tower-transfer-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .tower-transfer-detail-backdrop {
+    place-items: start center;
+    padding: 14px;
+  }
+
+  .tower-transfer-record-modal,
+  .tower-transfer-edit-modal,
+  .tower-transfer-delete-modal {
+    width: 100%;
+    padding: 18px;
+    border-radius: 17px;
+  }
+
+  .tower-transfer-record-modal
+    .tower-transfer-detail-grid,
+  .tower-transfer-edit-modal
+    .tower-transfer-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tower-transfer-record-modal
+    .tower-transfer-detail-footer,
+  .tower-transfer-edit-modal
+    .tower-transfer-actions,
+  .tower-transfer-delete-modal > div {
+    flex-direction: column-reverse;
+  }
+
+  .tower-transfer-record-modal
+    .tower-transfer-detail-footer
+    button,
+  .tower-transfer-edit-modal
+    .tower-transfer-actions
+    button,
+  .tower-transfer-delete-modal
+    > div
+    button {
+    width: 100%;
+  }
+}
+/* =========================================
+   Transfer Full Detail Modal
+========================================= */
+
+.tower-transfer-record-modal {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e8e4dc;
+  border-radius: 22px;
+  box-shadow:
+    0 30px 90px rgba(15, 23, 42, 0.3),
+    0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 18px;
+  margin-top: 20px;
+  border-top: 1px solid #eeeae2;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button {
+  min-width: 105px;
+  height: 42px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 17px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button:first-child {
+  background: #f1f0eb;
+  color: #334155;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button:first-child:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button:last-child {
+  background: #252525;
+  color: #ffffff;
+}
+
+.tower-transfer-record-modal
+  .tower-transfer-detail-footer button:last-child:hover {
+  background: #4f46e5;
+}
+
+
+/* =========================================
+   Transfer Edit Modal
+========================================= */
+
+.tower-transfer-edit-modal {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e8e4dc;
+  border-radius: 22px;
+  box-shadow:
+    0 30px 90px rgba(15, 23, 42, 0.3),
+    0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+.tower-transfer-edit-modal form {
+  width: 100%;
+}
+
+.tower-transfer-edit-modal
+  .tower-transfer-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0;
+}
+
+.tower-transfer-edit-modal
+  .tower-transfer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 18px;
+  margin-top: 20px;
+  border-top: 1px solid #eeeae2;
+}
+
+.tower-transfer-edit-modal
+  .tower-transfer-actions button {
+  width: auto;
+  min-width: 110px;
+  height: 42px;
+}
+
+
+/* =========================================
+   Transfer Delete Modal
+========================================= */
+
+.tower-transfer-delete-modal {
+  width: min(460px, 100%);
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid #e8e4dc;
+  border-radius: 20px;
+  box-shadow:
+    0 30px 90px rgba(15, 23, 42, 0.3),
+    0 8px 24px rgba(15, 23, 42, 0.1);
+  text-align: left;
+}
+
+.tower-transfer-delete-modal::before {
+  content: "!";
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 17px;
+  border-radius: 14px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.tower-transfer-delete-modal h3 {
+  margin: 0 0 10px;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.tower-transfer-delete-modal p {
+  margin: 0 0 10px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.tower-transfer-delete-modal p strong {
+  color: #111827;
+  font-weight: 900;
+}
+
+.tower-transfer-delete-modal small {
+  display: block;
+  padding: 11px 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 11px;
+  color: #9a3412;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.tower-transfer-delete-modal > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.tower-transfer-delete-modal > div button {
+  height: 41px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tower-transfer-delete-modal
+  > div
+  button:first-child {
+  background: #f1f0eb;
+  color: #334155;
+}
+
+.tower-transfer-delete-modal
+  > div
+  button:first-child:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.tower-transfer-delete-modal
+  > div
+  button.danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.tower-transfer-delete-modal
+  > div
+  button.danger:hover {
+  background: #b91c1c;
+}
+
+
+/* =========================================
+   Better Backdrop Alignment
+========================================= */
+
+.tower-transfer-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4000000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+
+/* =========================================
+   Dark Mode
+========================================= */
+
+body.dark-mode .tower-transfer-record-modal,
+body.dark-mode .tower-transfer-edit-modal,
+body.dark-mode .tower-transfer-delete-modal {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark-mode
+  .tower-transfer-record-modal
+  .tower-transfer-detail-footer,
+body.dark-mode
+  .tower-transfer-edit-modal
+  .tower-transfer-actions {
+  border-color: #334155;
+}
+
+body.dark-mode .tower-transfer-delete-modal h3,
+body.dark-mode .tower-transfer-delete-modal p strong {
+  color: #f8fafc;
+}
+
+body.dark-mode .tower-transfer-delete-modal p {
+  color: #cbd5e1;
+}
+
+body.dark-mode .tower-transfer-delete-modal small {
+  background: rgba(234, 88, 12, 0.12);
+  border-color: rgba(251, 146, 60, 0.28);
+  color: #fdba74;
+}
+
+body.dark-mode
+  .tower-transfer-record-modal
+  .tower-transfer-detail-footer
+  button:first-child,
+body.dark-mode
+  .tower-transfer-delete-modal
+  > div
+  button:first-child {
+  background: #334155;
+  color: #f8fafc;
+}
+
+
+/* =========================================
+   Responsive
+========================================= */
+
+@media (max-width: 850px) {
+  .tower-transfer-record-modal
+    .tower-transfer-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .tower-transfer-detail-backdrop {
+    place-items: start center;
+    padding: 14px;
+  }
+
+  .tower-transfer-record-modal,
+  .tower-transfer-edit-modal,
+  .tower-transfer-delete-modal {
+    width: 100%;
+    padding: 18px;
+    border-radius: 17px;
+  }
+
+  .tower-transfer-record-modal
+    .tower-transfer-detail-grid,
+  .tower-transfer-edit-modal
+    .tower-transfer-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tower-transfer-record-modal
+    .tower-transfer-detail-footer,
+  .tower-transfer-edit-modal
+    .tower-transfer-actions,
+  .tower-transfer-delete-modal > div {
+    flex-direction: column-reverse;
+  }
+
+  .tower-transfer-record-modal
+    .tower-transfer-detail-footer
+    button,
+  .tower-transfer-edit-modal
+    .tower-transfer-actions
+    button,
+  .tower-transfer-delete-modal
+    > div
+    button {
+    width: 100%;
+  }
+}/* =========================================
+   Tower Transfer History Row Colors + Legend
+========================================= */
+
+.tower-transfer-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.tower-transfer-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tower-transfer-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #eeeae2;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.tower-transfer-legend-item i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.tower-transfer-legend-item.incoming i {
+  background: #3b82f6;
+}
+
+.tower-transfer-legend-item.outgoing i {
+  background: #f59e0b;
+}
+
+/* Asset received by this tower */
+.tower-transfer-history-card tbody tr.tower-transfer-row-incoming td {
+  background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%) !important;
+  border-top-color: #bfdbfe !important;
+  color: #0f172a;
+}
+
+.tower-transfer-history-card tbody tr.tower-transfer-row-incoming td:first-child {
+  border-left: 4px solid #3b82f6;
+}
+
+/* Asset sent from this tower */
+.tower-transfer-history-card tbody tr.tower-transfer-row-outgoing td {
+  background: linear-gradient(90deg, #fffbeb 0%, #fff7ed 100%) !important;
+  border-top-color: #fde68a !important;
+  color: #0f172a;
+}
+
+.tower-transfer-history-card tbody tr.tower-transfer-row-outgoing td:first-child {
+  border-left: 4px solid #f59e0b;
+}
+
+
+/* Dark mode */
+body.dark-mode .tower-transfer-legend-item {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+body.dark-mode
+  .tower-transfer-history-card
+  tbody
+  tr.tower-transfer-row-incoming
+  td {
+  background: linear-gradient(
+    90deg,
+    rgba(59, 130, 246, 0.18),
+    rgba(15, 23, 42, 0.88)
+  ) !important;
+  border-top-color: rgba(59, 130, 246, 0.32) !important;
+  color: #f8fafc;
+}
+
+body.dark-mode
+  .tower-transfer-history-card
+  tbody
+  tr.tower-transfer-row-outgoing
+  td {
+  background: linear-gradient(
+    90deg,
+    rgba(245, 158, 11, 0.18),
+    rgba(15, 23, 42, 0.88)
+  ) !important;
+  border-top-color: rgba(245, 158, 11, 0.32) !important;
+  color: #f8fafc;
+}
+
+@media (max-width: 900px) {
+  .tower-transfer-history-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tower-transfer-legend {
+    justify-content: flex-start;
+  }
+}

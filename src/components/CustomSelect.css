@@ -1,0 +1,97 @@
+.smooth-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.smooth-select-btn {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.smooth-select-btn.active,
+.smooth-select-btn:focus-visible {
+  border-color: #c7d2fe;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  outline: none;
+}
+
+.smooth-select-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smooth-select-btn svg {
+  flex: 0 0 auto;
+  color: #64748b;
+  transition: transform 0.18s ease;
+}
+
+.smooth-select-btn svg.rotate {
+  transform: rotate(180deg);
+}
+
+.floating-select-menu {
+  position: fixed;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+  padding: 6px;
+  overflow: auto;
+}
+
+.floating-select-menu button {
+  width: 100%;
+  min-height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #334155;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+.floating-select-menu button:hover,
+.floating-select-menu button.selected {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+body.dark-mode .smooth-select-btn,
+body.dark-mode .floating-select-menu {
+  border-color: #334155;
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+body.dark-mode .floating-select-menu button {
+  color: #cbd5e1;
+}
+
+body.dark-mode .floating-select-menu button:hover,
+body.dark-mode .floating-select-menu button.selected {
+  background: #334155;
+  color: #ffffff;
+}

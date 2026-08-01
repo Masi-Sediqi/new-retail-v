@@ -1,0 +1,109 @@
+.global-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.global-table-scroll table {
+  min-width: 760px;
+}
+
+.global-table-pagination,
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  border-top: 1px solid #eeeae2;
+  color: #5b6b86;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .global-table-pagination,
+  .table-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .global-table-pagination > div,
+  .table-pagination > div {
+    flex-wrap: wrap;
+  }
+
+  .global-table-pagination button,
+  .global-table-pagination select,
+  .table-pagination button,
+  .table-pagination select {
+    flex: 1 1 auto;
+  }
+}
+
+.global-table-pagination > div,
+.table-pagination > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-table-pagination button,
+.global-table-pagination select,
+.table-pagination button,
+.table-pagination select {
+  height: 34px;
+  border: 1px solid #ded8cc;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.global-table-pagination label,
+.table-pagination label {
+  color: #5b6b86;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.global-table-pagination button:disabled,
+.table-pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.global-table-pagination strong,
+.table-pagination strong {
+  color: #111827;
+  font-size: 12px;
+}
+
+body.dark-mode .global-table-pagination button,
+body.dark-mode .global-table-pagination select,
+body.dark-mode .table-pagination button,
+body.dark-mode .table-pagination select {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #e5e7eb;
+}
+
+body.dark-mode .global-table-pagination,
+body.dark-mode .table-pagination {
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+body.dark-mode .global-table-pagination label,
+body.dark-mode .table-pagination label {
+  color: #94a3b8;
+}
+
+body.dark-mode .global-table-pagination strong,
+body.dark-mode .table-pagination strong {
+  color: #e5e7eb;
+}

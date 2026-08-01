@@ -1,0 +1,240 @@
+.recycle-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  color: #0f172a;
+}
+
+.recycle-header,
+.recycle-toolbar,
+.recycle-search,
+.recycle-actions {
+  display: flex;
+  align-items: center;
+}
+
+.recycle-header {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.recycle-header h1 {
+  margin: 0 0 6px;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.recycle-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.empty-bin-btn {
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.empty-bin-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.recycle-toolbar {
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.recycle-toolbar .smooth-select {
+  min-width: 180px;
+}
+
+.recycle-toolbar > span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.recycle-search {
+  flex: 1;
+  min-width: min(360px, 100%);
+  gap: 8px;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 12px;
+}
+
+.recycle-search input {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  outline: none;
+}
+
+.recycle-table-card {
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.recycle-table-wrap {
+  overflow-x: auto;
+}
+
+.recycle-table-wrap table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+}
+
+.recycle-table-wrap th,
+.recycle-table-wrap td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #edf2f7;
+  text-align: left;
+  font-size: 13px;
+}
+
+.recycle-table-wrap th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 900;
+}
+
+.recycle-table-wrap td strong {
+  display: block;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.recycle-table-wrap td small {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-weight: 650;
+}
+
+.recycle-module-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.recycle-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recycle-actions button {
+  min-height: 34px;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.recycle-actions button:hover {
+  background: #f8fafc;
+}
+
+.recycle-actions button.danger {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+.recycle-empty {
+  padding: 28px !important;
+  text-align: center !important;
+  color: #64748b;
+  font-weight: 750;
+}
+
+body.dark-mode .recycle-page {
+  color: #e5e7eb;
+}
+
+body.dark-mode .recycle-header p,
+body.dark-mode .recycle-toolbar > span,
+body.dark-mode .recycle-table-wrap td small,
+body.dark-mode .recycle-empty {
+  color: #94a3b8;
+}
+
+body.dark-mode .recycle-search,
+body.dark-mode .recycle-table-card,
+body.dark-mode .recycle-actions button {
+  background: #0f172a;
+  border-color: #263244;
+  color: #f8fafc;
+}
+
+body.dark-mode .recycle-search input,
+body.dark-mode .recycle-table-wrap td strong {
+  color: #f8fafc;
+}
+
+body.dark-mode .recycle-table-wrap th {
+  background: #111827;
+  color: #cbd5e1;
+}
+
+body.dark-mode .recycle-table-wrap td {
+  border-color: #263244;
+}
+
+body.dark-mode .recycle-actions button.danger {
+  border-color: #7f1d1d;
+  background: rgba(127, 29, 29, 0.25);
+  color: #fecaca;
+}
+
+@media (max-width: 720px) {
+  .recycle-page {
+    padding: 14px;
+  }
+
+  .recycle-header,
+  .recycle-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .empty-bin-btn,
+  .recycle-toolbar .smooth-select,
+  .recycle-search {
+    width: 100%;
+  }
+}
