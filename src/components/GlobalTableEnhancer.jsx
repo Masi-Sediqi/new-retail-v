@@ -16,7 +16,10 @@ function getDataRows(table) {
 }
 
 function shouldSkipTable(table) {
-  return table.closest("form") || table.closest(".receipt-page");
+  return table.closest("form") ||
+    table.closest(".receipt-page") ||
+    table.closest(".invoice-report-paper") ||
+    table.matches("[data-table-enhancer='off']");
 }
 
 function findGlobalPagination(table) {
