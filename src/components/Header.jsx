@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Coins,
   CreditCard,
+  Download,
   Globe2,
   LogOut,
   LockKeyhole,
@@ -18,18 +19,22 @@ import {
   Settings,
   Sun,
   Trash2,
+  Upload,
   User,
   Users,
   WalletCards,
   Wrench,
   X,
 } from "lucide-react";
+import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { todayDateValue } from "../utils/afghanDate";
 import { buildSystemSearchResults, money } from "../utils/systemSearch";
 import { playNotificationSound } from "../utils/notificationSounds";
 import { setThemeModeOverride, themeModeStorageKey } from "../utils/theme";
+import { downloadBackup, loadBackupCollectionNames } from "../utils/backup";
+import { apiUrl } from "../utils/api";
 
 const NOTIFICATION_STATE_KEY = "isp-notification-state";
 const LOW_STOCK_SOUND_STATE_KEY = "isp-low-stock-sounded";
@@ -181,6 +186,51 @@ const [secondaryCurrency, setSecondaryCurrency] = useState(
 );
 
 const headerDropdownRef = useRef(null);
+const accountBackupInputRef = useRef(null);
+const [accountBackupBusy, setAccountBackupBusy] = useState(false);
+
+const exportAccountBackup = async () => {
+  if (accountBackupBusy) return;
+  try {
+    setAccountBackupBusy(true);
+    await downloadBackup("manual");
+    setOpenMenu(null);
+  } catch (error) {
+    console.error("Unable to export backup:", error);
+    window.alert("Unable to export backup.");
+  } finally {
+    setAccountBackupBusy(false);
+  }
+};
+
+const importAccountBackup = async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file || accountBackupBusy) return;
+
+  try {
+    setAccountBackupBusy(true);
+    const parsed = JSON.parse(await file.text());
+    const data = parsed.collections && typeof parsed.collections === "object"
+      ? parsed.collections
+      : parsed;
+    const collections = await loadBackupCollectionNames();
+    const importable = collections.filter((name) => Array.isArray(data[name]));
+
+    if (!importable.length) throw new Error("No compatible collections found");
+    if (!window.confirm(`Import will replace ${importable.length} data table(s). Continue?`)) return;
+
+    await Promise.all(importable.map((name) => axios.put(apiUrl(name), data[name])));
+    setOpenMenu(null);
+    window.alert("Backup imported successfully. The app will now refresh.");
+    window.location.reload();
+  } catch (error) {
+    console.error("Unable to import backup:", error);
+    window.alert("Unable to import backup. Please select a valid JSON backup file.");
+  } finally {
+    setAccountBackupBusy(false);
+  }
+};
 
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem(themeModeStorageKey) === "Dark" || document.body.classList.contains("dark-mode")
@@ -959,19 +1009,19 @@ const saveCashWalletTransaction = async (event) => {
 
           {openMenu === "profile" && (
             <div className="dropdown profile-dropdown">
-              <small className="profile-dropdown-label">My Account</small><strong>
-                {currentUser?.fullName || currentUser?.email || currentUser?.username}
-              </strong>
-              <p>{currentUser?.email || t.noEmailConfigured || "No email configured"}</p>
-
-              <Link to="/accounts" className="dropdown-action" onClick={() => setOpenMenu(null)}><User size={15}/>Profile</Link>
-              <Link to="/settings" className="dropdown-action" onClick={() => setOpenMenu(null)}><Settings size={15}/>Settings</Link>
-              <button className="dropdown-action profile-lock-action" type="button" onClick={() => openAccountLockScreen()}><LockKeyhole size={15}/>Lock Screen</button>
-
-          <button className="dropdown-logout" onClick={() => openAccountLockScreen({ logout:true })}>
-                <LogOut size={15} />
-                {t.logout || "Logout"}
-              </button>
+              <div className="profile-dropdown-label">My Account</div>
+              <div className="profile-dropdown-group">
+                <Link to="/accounts" className="dropdown-action" onClick={() => setOpenMenu(null)}><User size={15}/>Profile</Link>
+                <Link to="/settings" className="dropdown-action" onClick={() => setOpenMenu(null)}><Settings size={15}/>Settings</Link>
+              </div>
+              <div className="profile-dropdown-group">
+                <button className="dropdown-action" type="button" disabled={accountBackupBusy} onClick={exportAccountBackup}><Download size={15}/>Export Backup</button>
+                <button className="dropdown-action" type="button" disabled={accountBackupBusy} onClick={() => accountBackupInputRef.current?.click()}><Upload size={15}/>Import / Restore Backup</button>
+                <input ref={accountBackupInputRef} hidden type="file" accept="application/json,.json" onChange={importAccountBackup}/>
+              </div>
+              <div className="profile-dropdown-group profile-dropdown-lock-group">
+                <button className="dropdown-action profile-lock-action" type="button" onClick={() => openAccountLockScreen()}><LockKeyhole size={15}/>Lock Screen</button>
+              </div>
             </div>
           )}
         </div>
