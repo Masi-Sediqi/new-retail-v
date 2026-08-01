@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { todayDateValue } from "../utils/afghanDate";
-import { convertCurrencyAmount, formatBusinessCurrencyAmount } from "../utils/currencyExchange";
+import { convertCurrencyAmount, formatBusinessCurrencyAmount, formatCurrencyAmount } from "../utils/currencyExchange";
 import "../App.css";
 
 const money = (value, currency = "AFN") => formatBusinessCurrencyAmount(Number(value || 0), currency);
@@ -320,10 +320,8 @@ const supplierNetBalance =
       balances[currency] = (balances[currency] || 0) + direction * parseNumber(transaction.amount);
       return balances;
     }, {});
-    const cashWalletTotal = Object.entries(cashWalletByCurrency).reduce(
-      (sum, [currency, amount]) => sum + toBase(amount, currency),
-      0
-    );
+    const cashWalletHasNegative = Object.values(cashWalletByCurrency)
+      .some((amount) => parseNumber(amount) < 0);
     const legacyCashWallet = filteredTransactions.reduce((sum, transaction) => {
       const type = normalize(transaction.type || transaction.kind || transaction.category);
       const amount = toBase(parseNumber(transaction.amount), transaction.currency);
@@ -341,7 +339,10 @@ const supplierNetBalance =
     (product) => !isInactive(product)
   ).length,
 
-  cashWallet: Object.keys(cashWalletByCurrency).length ? cashWalletTotal : legacyCashWallet,
+  cashWallet: Object.keys(cashWalletByCurrency).length ? 0 : legacyCashWallet,
+  cashWalletHasNegative: Object.keys(cashWalletByCurrency).length
+    ? cashWalletHasNegative
+    : legacyCashWallet < 0,
   cashWalletByCurrency: Object.keys(cashWalletByCurrency).length
     ? cashWalletByCurrency
     : { [baseCurrency]: legacyCashWallet },
@@ -477,14 +478,14 @@ const statCards = [
     value: (
       <span className="dashboard-wallet-currency-list">
         {walletLines.map(({ currency, amount }) => (
-          <span key={currency}>{money(amount, currency)}</span>
+          <span key={currency}>{formatCurrencyAmount(amount, currency)}</span>
         ))}
       </span>
     ),
     icon: WalletCards,
     tone: "green",
     path: "/financials",
-    danger: metrics.cashWallet < 0,
+    danger: metrics.cashWalletHasNegative,
   },
   {
     group: "Financial overview",
@@ -565,9 +566,7 @@ const statCards = [
   {
     group: "Suppliers / Katanama overview",
     label: t.netBalance || "Net Balance",
-    value: `${money(
-      Math.abs(metrics.supplierNetBalance)
-    )} ${
+    value: `${money(metrics.supplierNetBalance, baseCurrency)} ${
       metrics.supplierNetBalance > 0
         ? `(${t.netPayable || "Net Payable"})`
         : metrics.supplierNetBalance < 0
@@ -577,6 +576,7 @@ const statCards = [
     icon: DollarSign,
     tone: "orange",
     path: "/suppliers",
+    danger: metrics.supplierNetBalance < 0,
   },
 
   // Stock overview
@@ -758,12 +758,14 @@ const statGroups = [
       >
         {group.cards.map((card) => {
           const Icon = card.icon;
+          const valueIsNegative = card.danger ||
+            (typeof card.value === "string" && /^\s*-/.test(card.value));
 
           return (
             <button
               type="button"
               className={`stat dashboard-stat-button dashboard-stat-${card.tone} ${
-                card.danger
+                valueIsNegative
                   ? "dashboard-danger-stat"
                   : ""
               }`}

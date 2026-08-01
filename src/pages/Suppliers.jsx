@@ -242,8 +242,8 @@ function Suppliers() {
       stat.adjustmentBalance += Number.isFinite(Number(adjustment.balanceDelta))
         ? parseNumber(adjustment.balanceDelta)
         : adjustment.type === "debit"
-          ? parseNumber(adjustment.amount)
-          : -parseNumber(adjustment.amount);
+          ? -parseNumber(adjustment.amount)
+          : parseNumber(adjustment.amount);
       if (String(adjustment.date) > String(stat.lastDate)) stat.lastDate = adjustment.date;
     });
 
@@ -352,7 +352,7 @@ function Suppliers() {
     if (!portalSupplier) return;
     const record = {
       ...adjustment,
-      balanceDelta: adjustment.type === "debit" ? parseNumber(adjustment.amount) : -parseNumber(adjustment.amount),
+      balanceDelta: adjustment.type === "debit" ? -parseNumber(adjustment.amount) : parseNumber(adjustment.amount),
       createdAt: new Date().toISOString(),
       date: todayInput(),
       id: `adjustment-${crypto.randomUUID()}`,
@@ -381,12 +381,14 @@ function Suppliers() {
       {
         id: `supplier-${record.id}`,
         type: record.type === "debit" ? "expense" : "income",
+        transactionType: record.type === "debit" ? "withdraw" : "deposit",
         title: `${record.type === "debit" ? "Supplier debit" : "Supplier credit"} - ${portalSupplier.name}`,
         amount: roundMoney(record.amount),
         date: record.date,
         description: record.reason,
-        source: "supplier-adjustment",
-        category: "supplier",
+        source: "cash-wallet",
+        referenceSource: "supplier-adjustment",
+        category: "Cash Wallet",
         referenceId: portalSupplier.id,
         currency: record.currency,
       },
@@ -687,7 +689,17 @@ function SupplierPortal({
 
   const purchaseValue = filteredEntries.reduce((sum, entry) => sum + parseNumber(entry.total), 0);
   const paid = filteredEntries.reduce((sum, entry) => sum + parseNumber(entry.paid), 0);
-  const remaining = filteredEntries.reduce((sum, entry) => sum + parseNumber(entry.remaining), 0);
+  const adjustmentBalance = filteredAdjustments.reduce(
+    (sum, adjustment) => sum + (Number.isFinite(Number(adjustment.balanceDelta))
+      ? parseNumber(adjustment.balanceDelta)
+      : adjustment.type === "debit"
+        ? -parseNumber(adjustment.amount)
+        : parseNumber(adjustment.amount)),
+    0
+  );
+  const remaining = parseNumber(supplier.balance) +
+    filteredEntries.reduce((sum, entry) => sum + parseNumber(entry.remaining), 0) +
+    adjustmentBalance;
   const profit = filteredEntries.reduce((sum, entry) => sum + Math.max(0, parseNumber(entry.selling) - parseNumber(entry.purchase)) * parseNumber(entry.quantity), 0);
 
   const printPortal = () => {
@@ -1018,11 +1030,11 @@ function AdjustmentModal({ baseCurrency, onClose, onSave, supplier }) {
           <div className="supplier-adjustment-type full">
             <button type="button" className={type === "debit" ? "active" : ""} onClick={() => setType("debit")}>
               <MinusCircle size={17} />
-              Debit / Payable
+              Debit / Payment
             </button>
             <button type="button" className={type === "credit" ? "active" : ""} onClick={() => setType("credit")}>
               <PlusCircle size={17} />
-              Credit / Receivable
+              Credit / New payable
             </button>
           </div>
           <Field label="Amount"><input value={amount} onChange={(event) => setAmount(event.target.value)} /></Field>

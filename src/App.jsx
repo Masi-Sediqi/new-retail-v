@@ -191,8 +191,11 @@ function App() {
   const [language, setLanguage] = useState(
     () => localStorage.getItem(languageStorageKey) || "en"
   );
-  const [displayCurrency, setDisplayCurrency] = useState(
+  const [primaryCurrencyFilter, setPrimaryCurrencyFilter] = useState(
     () => localStorage.getItem("isp-primary-currency") || "AFN"
+  );
+  const [displayCurrency, setDisplayCurrency] = useState(
+    () => localStorage.getItem("isp-secondary-currency") || "USD"
   );
   const sidebarInfoRef = useRef(null);
 
@@ -220,9 +223,10 @@ function App() {
   }, [loadSettings]);
 
   useEffect(() => {
-    const updateCurrency = (event) => setDisplayCurrency(
-      event?.detail?.primaryCurrency || localStorage.getItem("isp-primary-currency") || company.baseCurrency || "AFN"
-    );
+    const updateCurrency = (event) => {
+      setPrimaryCurrencyFilter(event?.detail?.primaryCurrency || localStorage.getItem("isp-primary-currency") || company.baseCurrency || "AFN");
+      setDisplayCurrency(event?.detail?.secondaryCurrency || localStorage.getItem("isp-secondary-currency") || "USD");
+    };
     window.addEventListener("app-currency-changed", updateCurrency);
     return () => window.removeEventListener("app-currency-changed", updateCurrency);
   }, [company.baseCurrency]);
@@ -231,6 +235,7 @@ function App() {
     baseCurrency: company.baseCurrency || "AFN",
     exchangeRates: company.exchangeRates || {},
     displayCurrency,
+    primaryCurrency: primaryCurrencyFilter,
   };
 
   useEffect(() => installPrintStudio(() => ({ settings: company.printSettings || {}, company })), [company]);

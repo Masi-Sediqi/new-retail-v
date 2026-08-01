@@ -84,6 +84,13 @@
   color: #334155;
 }
 
+.supplier-adjustment-type button.active {
+  border: 2px solid var(--app-accent, #2563eb);
+  background: var(--app-accent-soft, #eff6ff);
+  color: var(--app-accent, #1d4ed8);
+  box-shadow: 0 0 0 3px var(--app-accent-soft, rgba(37, 99, 235, .12));
+}
+
 .supplier-danger-btn {
   background: #dc2626;
   color: #ffffff;

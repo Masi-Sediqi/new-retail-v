@@ -526,7 +526,7 @@ const unitList = useMemo(() => {
     const saved = await setProducts(nextProducts);
     if (!saved) return;
 
-    if (editIndex === null) {
+    if (editIndex === null || nextProduct.supplierId) {
       const now = new Date().toISOString();
       const date = now.slice(0, 10);
       const quantity = parseNumber(nextProduct.quantity);

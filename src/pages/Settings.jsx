@@ -426,17 +426,41 @@ function Settings() {
     const ok = await confirmAction({
       title: "Clear All App Data",
       message:
-        "This will clear all saved app data, including settings. This cannot be undone. Continue?",
+        "This will clear all business data, including customers, sales, products and Cash Wallet transactions. System settings will be preserved. This cannot be undone. Continue?",
       confirmText: "Clear Data",
     });
     if (!ok) return;
 
     try {
       setAppDataBusy(true);
-      const collections = await loadCollectionNames();
-      await Promise.all(collections.filter((name) => name !== "settings").map((name) => axios.put(apiUrl(name), [])));
+      const serverCollections = await loadCollectionNames();
+      const requiredBusinessCollections = [
+        "transactions",
+        "billingInvoices",
+        "customers",
+        "products",
+        "godownEntries",
+        "supplierPurchases",
+        "supplierPayments",
+        "suppliers",
+        "expenses",
+        "loans",
+        "staffMembers",
+        "deletedItems",
+      ];
+      const collections = [...new Set([...serverCollections, ...requiredBusinessCollections])]
+        .filter((name) => name && name !== "settings");
+
+      await Promise.all(collections.map(async (name) => {
+        await axios.put(apiUrl(name), []);
+        window.dispatchEvent(new CustomEvent("json-collection-updated", {
+          detail: { name, items: [] },
+        }));
+      }));
+      localStorage.removeItem("isp-notification-state");
+      localStorage.removeItem("isp-low-stock-sounded");
       setClearConfirm("");
-      notify("App data cleared successfully. System settings were preserved.");
+      notify("All business data, sales and Cash Wallet records were cleared. System settings were preserved.");
     } catch (error) {
       console.error("Unable to clear app data:", error);
       notify("Unable to clear app data.", "error");
