@@ -725,6 +725,23 @@ body.dark-mode tbody tr {
   white-space: nowrap;
 }
 
+.dashboard-exchange-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.dashboard-exchange-warning span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-exchange-warning strong {
+  color: #b45309;
+}
+
 .dashboard-bottom-grid {
   padding: 0 28px 28px;
   display: grid;

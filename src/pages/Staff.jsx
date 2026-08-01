@@ -218,21 +218,38 @@ function Staff() {
     );
     if (!saved) return;
 
-    await setTransactions((current) => [
-      {
+    const walletTransaction = {
         id: `salary-${staff.id}-${payrollEntry.id}`,
+        transactionType: "withdraw",
         type: "expense",
         title: `Salary paid to ${staff.name}`,
         amount: payrollEntry.paidAmount,
         date: payrollEntry.createdAt.slice(0, 10),
+        createdAt: payrollEntry.createdAt,
+        updatedAt: payrollEntry.createdAt,
         description: payrollEntry.notes || `${payrollEntry.start} to ${payrollEntry.end}`,
-        source: "staff-payroll",
-        category: "salary",
+        note: payrollEntry.notes || `${payrollEntry.start} to ${payrollEntry.end}`,
+        source: "cash-wallet",
+        category: "Cash Wallet",
+        module: "staff-payroll",
+        payrollEntryId: payrollEntry.id,
         referenceId: staff.id,
+        staffId: staff.id,
+        staffName: staff.name,
         currency: payrollEntry.currency,
-      },
+      };
+
+    const transactionSaved = await setTransactions((current) => [
+      walletTransaction,
       ...current,
     ]);
+    if (transactionSaved) {
+      window.dispatchEvent(
+        new CustomEvent("cash-wallet-updated", {
+          detail: walletTransaction,
+        })
+      );
+    }
 
     notify("Payroll payment saved successfully.");
     setPayrollStaff(null);
@@ -271,6 +288,13 @@ function Staff() {
       )
     );
     if (!saved) return;
+    await setTransactions((current) =>
+      current.filter(
+        (transaction) =>
+          String(transaction.payrollEntryId || "") !== String(entry.id) &&
+          String(transaction.id || "") !== `salary-${staff.id}-${entry.id}`
+      )
+    );
     notify("Payroll entry deleted.");
     setDeletePayrollEntry(null);
   };

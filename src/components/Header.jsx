@@ -741,7 +741,7 @@ const saveCashWalletTransaction = async (event) => {
       : ""
   }`}
   aria-label={t.selectExchangeCurrency || "Select exchange currency"}
-  title={`${primaryCurrency} / ${secondaryCurrency}`}
+  title={secondaryCurrency}
   aria-expanded={
     openMenu === "secondary-currency"
   }
@@ -767,13 +767,7 @@ const saveCashWalletTransaction = async (event) => {
         </div>
 
         <div className="header-currency-list">
-          {currencyOptions
-            .filter(
-              (currency) =>
-                currency.value !==
-                primaryCurrency
-            )
-            .map((currency) => (
+          {currencyOptions.map((currency) => (
               <button
                 type="button"
                 key={currency.value}
@@ -794,10 +788,7 @@ const saveCashWalletTransaction = async (event) => {
                 </span>
 
                 <span>
-                  <strong>
-                    {primaryCurrency} /{" "}
-                    {currency.value}
-                  </strong>
+                  <strong>{currency.value}</strong>
 
                   <small>{t[currencyTranslationKeys[currency.value]] || currency.label}</small>
                 </span>
