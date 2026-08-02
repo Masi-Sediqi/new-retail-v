@@ -97,7 +97,7 @@ const guideSections = [
     key: "settings",
     title: "Settings",
     description:
-      "Settings controls company information, logo, theme, currency, printing, notifications, backup, sharing, users, security, forms, license information, and advanced sync options.",
+      "Settings controls company information, logo, theme, currency, printing, notifications, backup, sharing, users, security, forms, and advanced sync options.",
   },
 ];
 

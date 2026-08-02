@@ -82,9 +82,9 @@ const en = {
   stockQuantity: 'Stock Quantity',
   stockUpdated: 'Stock Updated',
   subtitleTagline: 'Subtitle / Tagline',
-  suppliers: 'Suppliers/Katanama',
+  suppliers: 'Supplier / Katah',
   bundlesManagement: 'Bundles',
-  suppliersOverview: 'Suppliers / Katanama overview',
+  suppliersOverview: 'Supplier / Katah overview',
   sync: 'Sync',
   theme: 'Theme',
   themeDefaultDesc: 'Classic dark blue theme',
@@ -3353,5 +3353,9 @@ Object.assign(ps, { dashboardTitle: 'د هوښیار دفتر ډشبورډ', sho
 
 Object.assign(en, { selectSystemLanguage: 'Select system language', primaryCurrency: 'Primary Currency', selectPrimaryCurrency: 'Select primary currency', primaryCurrencyHint: 'Main currency used by the system', exchangeCurrency: 'Exchange Currency', selectExchangeCurrency: 'Select exchange currency', exchangeCurrencyHint: 'Secondary currency used for exchange', cashWallet: 'Cash Wallet', openCashWallet: 'Open cash wallet', walletHint: 'Track owner cash deposits and withdrawals.', deposit: 'Deposit', withdraw: 'Withdraw', amountRequired: 'Amount *', reasonNote: 'Reason / Note', saveDeposit: 'Save Deposit', saveWithdrawal: 'Save Withdrawal', closeCashWallet: 'Close cash wallet', alerts: 'Alerts', markAllRead: 'Mark all as read', clearNotifications: 'Clear notifications', read: 'Read', unread: 'Unread', noNotifications: 'No notifications right now.', removeNotification: 'Remove notification', lightMode: 'Light mode', darkMode: 'Dark mode', switchLightMode: 'Switch to light mode', switchDarkMode: 'Switch to dark mode', profile: 'Profile', noEmailConfigured: 'No email configured', logout: 'Logout', searchAnySystemData: 'Search any system data...', afghanAfghani: 'Afghan Afghani', usDollar: 'US Dollar', euro: 'Euro', britishPound: 'British Pound', pakistaniRupee: 'Pakistani Rupee', iranianRial: 'Iranian Rial', saudiRiyal: 'Saudi Riyal', uaeDirham: 'UAE Dirham', indianRupee: 'Indian Rupee' })
 Object.assign(fa, { selectSystemLanguage: 'زبان سیستم را انتخاب کنید', primaryCurrency: 'ارز اصلی', selectPrimaryCurrency: 'انتخاب ارز اصلی', primaryCurrencyHint: 'ارز اصلی مورد استفاده سیستم', exchangeCurrency: 'ارز تبادله', selectExchangeCurrency: 'انتخاب ارز تبادله', exchangeCurrencyHint: 'ارز ثانوی برای تبدیل و تبادله', cashWallet: 'کیف پول نقدی', openCashWallet: 'بازکردن کیف پول نقدی', walletHint: 'واریز و برداشت پول نقد مالک را ثبت کنید.', deposit: 'واریز', withdraw: 'برداشت', amountRequired: 'مبلغ *', reasonNote: 'دلیل / یادداشت', saveDeposit: 'ذخیره واریز', saveWithdrawal: 'ذخیره برداشت', closeCashWallet: 'بستن کیف پول نقدی', alerts: 'هشدارها', markAllRead: 'همه را خوانده‌شده علامت بزن', clearNotifications: 'پاک‌کردن اعلان‌ها', read: 'خوانده‌شده', unread: 'خوانده‌نشده', noNotifications: 'فعلاً اعلانی وجود ندارد.', removeNotification: 'حذف اعلان', lightMode: 'حالت روشن', darkMode: 'حالت تاریک', switchLightMode: 'تغییر به حالت روشن', switchDarkMode: 'تغییر به حالت تاریک', profile: 'پروفایل', noEmailConfigured: 'ایمیل تنظیم نشده است', logout: 'خروج', searchAnySystemData: 'جستجو در تمام اطلاعات سیستم...', afghanAfghani: 'افغانی افغانستان', usDollar: 'دالر امریکا', euro: 'یورو', britishPound: 'پوند بریتانیا', pakistaniRupee: 'روپیه پاکستان', iranianRial: 'ریال ایران', saudiRiyal: 'ریال سعودی', uaeDirham: 'درهم امارات', indianRupee: 'روپیه هند' })
+
+Object.assign(en, { primaryCurrency: 'Business Currency Filter', selectPrimaryCurrency: 'Select business currency filter', primaryCurrencyHint: 'Filter records by business currency', exchangeCurrencyHint: 'Choose conversion display currency', allCurrencies: 'All -- All Currencies', originalNoConversion: 'Original (No Conversion)' })
+Object.assign(fa, { primaryCurrency: 'Business Currency Filter', selectPrimaryCurrency: 'Select business currency filter', primaryCurrencyHint: 'Filter records by business currency', exchangeCurrencyHint: 'Choose conversion display currency', allCurrencies: 'All -- All Currencies', originalNoConversion: 'Original (No Conversion)' })
+Object.assign(ps, { primaryCurrency: 'Business Currency Filter', selectPrimaryCurrency: 'Select business currency filter', primaryCurrencyHint: 'Filter records by business currency', exchangeCurrencyHint: 'Choose conversion display currency', allCurrencies: 'All -- All Currencies', originalNoConversion: 'Original (No Conversion)' })
 
 export const translations = { en, fa, ps }

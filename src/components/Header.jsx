@@ -33,7 +33,7 @@ import { todayDateValue } from "../utils/afghanDate";
 import { buildSystemSearchResults, money } from "../utils/systemSearch";
 import { playNotificationSound } from "../utils/notificationSounds";
 import { setThemeModeOverride, themeModeStorageKey } from "../utils/theme";
-import { downloadBackup, loadBackupCollectionNames } from "../utils/backup";
+import { downloadBackup, loadBackupCollectionNames, normalizeBackupCollections } from "../utils/backup";
 import { apiUrl } from "../utils/api";
 
 const NOTIFICATION_STATE_KEY = "isp-notification-state";
@@ -122,6 +122,18 @@ const currencyOptions = [
 ];
 
 const currencyTranslationKeys = { AFN: "afghanAfghani", USD: "usDollar", EUR: "euro", GBP: "britishPound", PKR: "pakistaniRupee", IRR: "iranianRial", SAR: "saudiRiyal", AED: "uaeDirham", INR: "indianRupee" };
+const allCurrencyFilterOption = {
+  value: "all",
+  label: "All Currencies",
+  shortLabel: "All",
+  symbol: "All",
+};
+const originalCurrencyOption = {
+  value: "original",
+  label: "No Conversion",
+  shortLabel: "Original",
+  symbol: "Org",
+};
 
 const readNotificationState = () => {
   try {
@@ -178,11 +190,11 @@ const [walletForm, setWalletForm] = useState({
 );
 
 const [primaryCurrency, setPrimaryCurrency] = useState(
-  () => localStorage.getItem(PRIMARY_CURRENCY_STORAGE_KEY) || "AFN"
+  () => localStorage.getItem(PRIMARY_CURRENCY_STORAGE_KEY) || "all"
 );
 
 const [secondaryCurrency, setSecondaryCurrency] = useState(
-  () => localStorage.getItem(SECONDARY_CURRENCY_STORAGE_KEY) || "USD"
+  () => localStorage.getItem(SECONDARY_CURRENCY_STORAGE_KEY) || "original"
 );
 
 const headerDropdownRef = useRef(null);
@@ -211,16 +223,16 @@ const importAccountBackup = async (event) => {
   try {
     setAccountBackupBusy(true);
     const parsed = JSON.parse(await file.text());
-    const data = parsed.collections && typeof parsed.collections === "object"
-      ? parsed.collections
-      : parsed;
     const collections = await loadBackupCollectionNames();
+    const data = normalizeBackupCollections(parsed, collections);
     const importable = collections.filter((name) => Array.isArray(data[name]));
 
     if (!importable.length) throw new Error("No compatible collections found");
     if (!window.confirm(`Import will replace ${importable.length} data table(s). Continue?`)) return;
 
     await Promise.all(importable.map((name) => axios.put(apiUrl(name), data[name])));
+    localStorage.setItem(PRIMARY_CURRENCY_STORAGE_KEY, "all");
+    localStorage.setItem(SECONDARY_CURRENCY_STORAGE_KEY, "original");
     setOpenMenu(null);
     window.alert("Backup imported successfully. The app will now refresh.");
     window.location.reload();
@@ -255,7 +267,12 @@ const importAccountBackup = async (event) => {
     ["Damaged", "Lost"].includes(asset.status)
   );
 
-  useEffect(() => {
+useEffect(() => {
+  const openCashWalletFromPage = () => {
+    setOpenMenu(null);
+    setShowCashWallet(true);
+  };
+
   const closeHeaderDropdown = (event) => {
     if (
       headerDropdownRef.current &&
@@ -280,6 +297,10 @@ const importAccountBackup = async (event) => {
     "keydown",
     closeWithEscape
   );
+  window.addEventListener(
+    "open-cash-wallet",
+    openCashWalletFromPage
+  );
 
   return () => {
     document.removeEventListener(
@@ -290,6 +311,10 @@ const importAccountBackup = async (event) => {
     document.removeEventListener(
       "keydown",
       closeWithEscape
+    );
+    window.removeEventListener(
+      "open-cash-wallet",
+      openCashWalletFromPage
     );
   };
 }, []);
@@ -528,7 +553,7 @@ const changeSecondaryCurrency = (currencyCode) => {
 
   setWalletForm({
     amount: "",
-    currency: primaryCurrency || "AFN",
+    currency: primaryCurrency && primaryCurrency !== "all" ? primaryCurrency : "AFN",
     note: "",
   });
 
@@ -542,7 +567,7 @@ const closeCashWallet = () => {
 
   setWalletForm({
     amount: "",
-    currency: primaryCurrency || "AFN",
+    currency: primaryCurrency && primaryCurrency !== "all" ? primaryCurrency : "AFN",
     note: "",
   });
 };
@@ -578,7 +603,7 @@ const saveCashWalletTransaction = async (event) => {
         ? "Cash Wallet Deposit"
         : "Cash Wallet Withdrawal",
     amount,
-    currency: walletForm.currency || primaryCurrency || "AFN",
+    currency: walletForm.currency || (primaryCurrency !== "all" ? primaryCurrency : "AFN") || "AFN",
     note: walletForm.note.trim(),
     date: now.slice(0, 10),
     createdAt: now,
@@ -711,7 +736,7 @@ const saveCashWalletTransaction = async (event) => {
     )}
   </div>
 
-  {/* Primary currency dropdown */}
+  {/* Business currency filter dropdown */}
   <div className="header-menu header-preference-menu">
     <button
   type="button"
@@ -720,8 +745,8 @@ const saveCashWalletTransaction = async (event) => {
       ? "active"
       : ""
   }`}
-  aria-label={t.selectPrimaryCurrency || "Select primary currency"}
-  title={`${t.primaryCurrency || "Primary Currency"}: ${primaryCurrency}`}
+  aria-label={t.selectPrimaryCurrency || "Select business currency filter"}
+  title={`${t.primaryCurrency || "Business Currency Filter"}: ${primaryCurrency === "all" ? "All" : primaryCurrency}`}
   aria-expanded={
     openMenu === "primary-currency"
   }
@@ -739,15 +764,15 @@ const saveCashWalletTransaction = async (event) => {
     {openMenu === "primary-currency" && (
       <div className="dropdown header-preference-dropdown currency-dropdown">
         <div className="header-preference-dropdown-title">
-          <strong>{t.primaryCurrency || "Primary Currency"}</strong>
+          <strong>{t.primaryCurrency || "Business Currency Filter"}</strong>
 
           <span>
-            {t.primaryCurrencyHint || "Main currency used by the system"}
+            {t.primaryCurrencyHint || "Filter records by business currency"}
           </span>
         </div>
 
         <div className="header-currency-list">
-          {currencyOptions.map((currency) => (
+          {[allCurrencyFilterOption, ...currencyOptions].map((currency) => (
             <button
               type="button"
               key={currency.value}
@@ -767,8 +792,8 @@ const saveCashWalletTransaction = async (event) => {
               </span>
 
               <span>
-                <strong>{currency.value}</strong>
-                <small>{t[currencyTranslationKeys[currency.value]] || currency.label}</small>
+                <strong>{currency.value === "all" ? "All" : currency.value}</strong>
+                <small>{currency.value === "all" ? (t.allCurrencies || "All -- All Currencies") : (t[currencyTranslationKeys[currency.value]] || currency.label)}</small>
               </span>
 
               {primaryCurrency ===
@@ -802,7 +827,7 @@ const saveCashWalletTransaction = async (event) => {
       : ""
   }`}
   aria-label={t.selectExchangeCurrency || "Select exchange currency"}
-  title={secondaryCurrency}
+  title={secondaryCurrency === "original" ? (t.originalNoConversion || "Original (No Conversion)") : secondaryCurrency}
   aria-expanded={
     openMenu === "secondary-currency"
   }
@@ -823,12 +848,12 @@ const saveCashWalletTransaction = async (event) => {
           <strong>{t.exchangeCurrency || "Exchange Currency"}</strong>
 
           <span>
-            {t.exchangeCurrencyHint || "Secondary currency used for exchange"}
+            {t.exchangeCurrencyHint || "Choose conversion display currency"}
           </span>
         </div>
 
         <div className="header-currency-list">
-          {currencyOptions.map((currency) => (
+          {[originalCurrencyOption, ...currencyOptions].map((currency) => (
               <button
                 type="button"
                 key={currency.value}
@@ -849,9 +874,9 @@ const saveCashWalletTransaction = async (event) => {
                 </span>
 
                 <span>
-                  <strong>{currency.value}</strong>
+                  <strong>{currency.value === "original" ? "Original" : currency.value}</strong>
 
-                  <small>{t[currencyTranslationKeys[currency.value]] || currency.label}</small>
+                  <small>{currency.value === "original" ? (t.originalNoConversion || "Original (No Conversion)") : (t[currencyTranslationKeys[currency.value]] || currency.label)}</small>
                 </span>
 
                 {secondaryCurrency ===

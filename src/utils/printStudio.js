@@ -12,7 +12,7 @@ export const defaultPrintStudio = {
 export const normalizePrintSettings = (settings = {}, company = {}) => ({
   ...defaultPrintStudio, ...settings,
   businessNameEn: settings.businessNameEn || company.companyName || "Smart Office",
-  subtitleEn: settings.subtitleEn || company.systemSubtitle || "Business Management System",
+  subtitleEn: settings.subtitleEn || company.systemSubtitle || "Smart Office Management System",
   address: settings.address || company.address || "", phone: settings.phone || company.phoneNumber || "",
   email: settings.email || company.emailAddress || "", website: settings.website || company.website || "",
   logo: settings.logo || company.logo || "",

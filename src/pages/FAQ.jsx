@@ -86,7 +86,7 @@ const faqItems = [
     id: "theme",
     question: "How do I change the theme or system preferences?",
     answer:
-      "Open Settings. The settings tabs include company information, themes, currency, printing, notifications, sharing, backup, security, users, forms, and license information.",
+      "Open Settings. The settings tabs include company information, themes, currency, printing, notifications, sharing, backup, security, users, and forms.",
   },
 ];
 

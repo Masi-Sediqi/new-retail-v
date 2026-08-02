@@ -61,7 +61,7 @@ function CustomerReceipt() {
             </div>
             <div>
               <h1>{systemName}</h1>
-              <p>{company.systemSubtitle || "Business Management System"}</p>
+              <p>{company.systemSubtitle || "Smart Office Management System"}</p>
             </div>
           </div>
 

@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
+import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
@@ -102,6 +103,7 @@ function Expenses() {
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
+  const expenseCustomFields = company.customFields?.expenses || [];
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
@@ -402,6 +404,7 @@ function Expenses() {
       {modalOpen && (
         <ExpenseModal
           categories={categories}
+          customFields={expenseCustomFields}
           initialExpense={editingExpense}
           onCategoryAdd={addCategory}
           onClose={() => {
@@ -424,7 +427,7 @@ function Expenses() {
   );
 }
 
-function ExpenseModal({ categories, initialExpense, onCategoryAdd, onClose, onSave }) {
+function ExpenseModal({ categories, customFields = [], initialExpense, onCategoryAdd, onClose, onSave }) {
   const [form, setForm] = useState(() => ({
     ...emptyExpense,
     ...(initialExpense || {}),
@@ -511,6 +514,17 @@ function ExpenseModal({ categories, initialExpense, onCategoryAdd, onClose, onSa
           <Field label="Notes" className="full">
             <textarea value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Additional notes" />
           </Field>
+          <CustomFormFields
+            fields={customFields}
+            values={form.customFields}
+            fieldClassName="expense-form-field"
+            onChange={(key, value) =>
+              update("customFields", {
+                ...(form.customFields || {}),
+                [key]: value,
+              })
+            }
+          />
         </div>
 
         <div className="expense-modal-actions">

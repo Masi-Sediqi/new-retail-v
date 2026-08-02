@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
+import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
@@ -46,12 +47,6 @@ const emptySupplier = {
   status: "Active",
   customFields: {},
 };
-
-const accountTypes = [
-  { value: "supplier", label: "Supplier" },
-  { value: "partner", label: "Partner" },
-  { value: "investing", label: "Investing" },
-];
 
 const currencyCodes = ["AFN", "USD", "EUR", "GBP", "SAR", "PKR", "INR", "IRR", "AED", "CNY"];
 
@@ -136,6 +131,7 @@ function Suppliers() {
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
+  const supplierCustomFields = company.customFields?.suppliers || [];
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
@@ -151,6 +147,8 @@ function Suppliers() {
   const [portalDateFilter, setPortalDateFilter] = useState("all");
   const [portalCustomStart, setPortalCustomStart] = useState("");
   const [portalCustomEnd, setPortalCustomEnd] = useState("");
+  const [editingLedgerRow, setEditingLedgerRow] = useState(null);
+  const [deletingLedgerRow, setDeletingLedgerRow] = useState(null);
 
   const normalizedSuppliers = useMemo(
     () =>
@@ -181,7 +179,9 @@ function Suppliers() {
         const rows = Array.isArray(entry.rows) ? entry.rows : [];
         return rows.map((row) => {
           const total = parseNumber(row.total) || parseNumber(row.quantity) * parseNumber(row.purchase);
-          const paidShare = parseNumber(entry.paid) / Math.max(1, rows.length);
+          const paidShare = row.paid !== undefined
+            ? parseNumber(row.paid)
+            : parseNumber(entry.paid) / Math.max(1, rows.length);
           const product = products.find((item) => String(item.id) === String(row.productId));
           const stockLeft = parseNumber(product?.quantity ?? row.quantity);
           const sold = Math.max(0, parseNumber(row.quantity) - stockLeft);
@@ -191,6 +191,7 @@ function Suppliers() {
             date: row.date || entry.date || entry.createdAt || todayInput(),
             entryId: entry.id,
             id: `${entry.id}-${row.id || row.productId || row.code || row.name}`,
+            rowId: row.id || row.productId || row.code || row.name,
             paid: Math.min(total, paidShare),
             remaining: Math.max(0, total - paidShare),
             sold,
@@ -399,9 +400,137 @@ function Suppliers() {
     setAdjustmentOpen(false);
   };
 
+  const saveLedgerRow = async (form) => {
+    if (!editingLedgerRow) return;
+    const paidAmount = roundMoney(form.paid);
+    const amount = roundMoney(form.amount);
+    if (paidAmount < 0 || amount < 0) {
+      notify("Amount cannot be negative.", "error");
+      return;
+    }
+    if (editingLedgerRow.kind === "purchase" && paidAmount > amount) {
+      notify("Paid amount cannot be greater than total amount.", "error");
+      return;
+    }
+
+    const saved = await setGodownEntries((current) =>
+      current.map((entry) => {
+        if (editingLedgerRow.kind === "adjustment") {
+          const adjustments = (entry.adjustments || []).map((adjustment) =>
+            String(adjustment.id) === String(editingLedgerRow.sourceId)
+              ? {
+                  ...adjustment,
+                  amount,
+                  balanceDelta:
+                    adjustment.type === "debit" ? -amount : amount,
+                  currency: form.currency,
+                  date: form.date,
+                  reason: form.description.trim(),
+                  updatedAt: new Date().toISOString(),
+                }
+              : adjustment
+          );
+          return adjustments === entry.adjustments ? entry : { ...entry, adjustments };
+        }
+
+        if (String(entry.id) !== String(editingLedgerRow.entryId)) return entry;
+        const rows = Array.isArray(entry.rows) ? entry.rows : [];
+        const nextRows = rows.map((row) => {
+          const rowId = row.id || row.productId || row.code || row.name;
+          if (String(rowId) !== String(editingLedgerRow.rowId)) return row;
+          return {
+            ...row,
+            currency: form.currency,
+            date: form.date,
+            name: form.description.trim() || row.name,
+            paid: paidAmount,
+            remaining: Math.max(0, amount - paidAmount),
+            total: amount,
+          };
+        });
+        return {
+          ...entry,
+          paid: nextRows.reduce((sum, row) => sum + parseNumber(row.paid), 0),
+          remaining: nextRows.reduce((sum, row) => sum + parseNumber(row.remaining), 0),
+          rows: nextRows,
+          total: nextRows.reduce((sum, row) => sum + parseNumber(row.total), 0),
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+    if (!saved) return;
+
+    if (editingLedgerRow.kind === "adjustment") {
+      await setTransactions((current) =>
+        current.map((transaction) =>
+          String(transaction.id) === `supplier-${editingLedgerRow.sourceId}`
+            ? {
+                ...transaction,
+                amount,
+                currency: form.currency,
+                date: form.date,
+                description: form.description.trim(),
+                updatedAt: new Date().toISOString(),
+              }
+            : transaction
+        )
+      );
+    }
+
+    notify("Ledger record updated successfully.");
+    setEditingLedgerRow(null);
+  };
+
+  const deleteLedgerRow = async () => {
+    if (!deletingLedgerRow) return;
+    const saved = await setGodownEntries((current) =>
+      current
+        .map((entry) => {
+          if (deletingLedgerRow.kind === "adjustment") {
+            const adjustments = (entry.adjustments || []).filter(
+              (adjustment) =>
+                String(adjustment.id) !== String(deletingLedgerRow.sourceId)
+            );
+            return { ...entry, adjustments };
+          }
+          if (String(entry.id) !== String(deletingLedgerRow.entryId)) return entry;
+          const rows = (entry.rows || []).filter((row) => {
+            const rowId = row.id || row.productId || row.code || row.name;
+            return String(rowId) !== String(deletingLedgerRow.rowId);
+          });
+          return {
+            ...entry,
+            paid: rows.reduce((sum, row) => sum + parseNumber(row.paid), 0),
+            remaining: rows.reduce((sum, row) => sum + parseNumber(row.remaining), 0),
+            rows,
+            total: rows.reduce((sum, row) => sum + parseNumber(row.total), 0),
+            updatedAt: new Date().toISOString(),
+          };
+        })
+        .filter((entry) =>
+          deletingLedgerRow.kind === "adjustment"
+            ? (entry.adjustments || []).length || (entry.rows || []).length
+            : (entry.rows || []).length || (entry.adjustments || []).length
+        )
+    );
+    if (!saved) return;
+
+    if (deletingLedgerRow.kind === "adjustment") {
+      await setTransactions((current) =>
+        current.filter(
+          (transaction) =>
+            String(transaction.id) !== `supplier-${deletingLedgerRow.sourceId}`
+        )
+      );
+    }
+
+    notify("Ledger record deleted successfully.");
+    setDeletingLedgerRow(null);
+  };
+
   const printReport = () => {
     printRows(
-      `${accountTypes.find((type) => type.value === accountTab)?.label || "Supplier"} Report`,
+      "Supplier Report",
       filteredSuppliers.map((supplier) => {
         const stat = supplierStats.get(getSupplierKey(supplier));
         return {
@@ -431,6 +560,8 @@ function Suppliers() {
           setEditingSupplier(portalSupplier);
           setModalOpen(true);
         }}
+        onDeleteLedgerRow={setDeletingLedgerRow}
+        onEditLedgerRow={setEditingLedgerRow}
         onRangeChange={({ start, end }) => {
           setPortalCustomStart(start);
           setPortalCustomEnd(end);
@@ -444,7 +575,7 @@ function Suppliers() {
       >
         {modalOpen && (
           <SupplierModal
-       
+            customFields={supplierCustomFields}
             initialSupplier={editingSupplier}
             onClose={() => {
               setModalOpen(false);
@@ -459,6 +590,21 @@ function Suppliers() {
             onClose={() => setAdjustmentOpen(false)}
             onSave={saveAdjustment}
             supplier={portalSupplier}
+          />
+        )}
+        {editingLedgerRow && (
+          <LedgerRecordModal
+            initialRow={editingLedgerRow}
+            onClose={() => setEditingLedgerRow(null)}
+            onSave={saveLedgerRow}
+          />
+        )}
+        {deletingLedgerRow && (
+          <ConfirmModal
+            title="Delete Ledger Record"
+            message={`Delete ${deletingLedgerRow.description}? This record will be removed from the supplier ledger.`}
+            onClose={() => setDeletingLedgerRow(null)}
+            onConfirm={deleteLedgerRow}
           />
         )}
       </SupplierPortal>
@@ -604,7 +750,7 @@ function Suppliers() {
 
       {modalOpen && (
         <SupplierModal
-          
+          customFields={supplierCustomFields}
           initialSupplier={editingSupplier}
           onClose={() => {
             setModalOpen(false);
@@ -633,8 +779,10 @@ function SupplierPortal({
   entries,
   onAdjust,
   onBack,
+  onDeleteLedgerRow,
   onDateFilter,
   onEdit,
+  onEditLedgerRow,
   onRangeChange,
   portalCustomEnd,
   portalCustomStart,
@@ -662,6 +810,7 @@ function SupplierPortal({
           withdraw: openingBalance > 0 ? formatCurrencyAmount(openingBalance, openingCurrency) : "-",
           balance: formatCurrencyAmount(openingBalance, openingCurrency),
           currency: openingCurrency,
+          paid: "-",
         },
       ]
       : []),
@@ -672,8 +821,15 @@ function SupplierPortal({
       description: `${entry.name} (${entry.quantity} ${entry.unit || "Piece"})`,
       deposit: "-",
       withdraw: formatCurrencyAmount(entry.total, entry.currency || openingCurrency),
+      paid: formatCurrencyAmount(entry.paid, entry.currency || openingCurrency),
       balance: formatCurrencyAmount(entry.remaining, entry.currency || openingCurrency),
       currency: entry.currency || openingCurrency,
+      kind: "purchase",
+      amount: entry.total,
+      paidAmount: entry.paid,
+      entryId: entry.entryId,
+      rowId: entry.rowId,
+      sourceId: entry.id,
     })),
     ...filteredAdjustments.map((adjustment) => ({
       id: adjustment.id,
@@ -682,8 +838,13 @@ function SupplierPortal({
       description: adjustment.reason,
       deposit: adjustment.type === "credit" ? formatCurrencyAmount(adjustment.amount, adjustment.currency || openingCurrency) : "-",
       withdraw: adjustment.type === "debit" ? formatCurrencyAmount(adjustment.amount, adjustment.currency || openingCurrency) : "-",
+      paid: adjustment.type === "debit" ? formatCurrencyAmount(adjustment.amount, adjustment.currency || openingCurrency) : "-",
       balance: formatCurrencyAmount(adjustment.balanceDelta || 0, adjustment.currency || openingCurrency),
       currency: adjustment.currency || openingCurrency,
+      kind: "adjustment",
+      amount: adjustment.amount,
+      paidAmount: adjustment.type === "debit" ? adjustment.amount : 0,
+      sourceId: adjustment.id,
     })),
   ].sort((a, b) => String(a.rawDate).localeCompare(String(b.rawDate)));
 
@@ -725,6 +886,7 @@ function SupplierPortal({
             Description: row.description,
             Deposit: row.deposit,
             Withdraw: row.withdraw,
+            Paid: row.paid,
             Balance: row.balance,
             Currency: row.currency,
           }));
@@ -796,6 +958,8 @@ function SupplierPortal({
         <SupplierPortalPanel
           entries={filteredEntries}
           ledgerRows={ledgerRows}
+          onDeleteLedgerRow={onDeleteLedgerRow}
+          onEditLedgerRow={onEditLedgerRow}
           openingCurrency={openingCurrency}
           portalTab={portalTab}
         />
@@ -805,7 +969,14 @@ function SupplierPortal({
   );
 }
 
-function SupplierPortalPanel({ entries, ledgerRows, openingCurrency, portalTab }) {
+function SupplierPortalPanel({
+  entries,
+  ledgerRows,
+  onDeleteLedgerRow,
+  onEditLedgerRow,
+  openingCurrency,
+  portalTab,
+}) {
   if (portalTab === "goods") {
     return (
       <SupplierTable
@@ -860,7 +1031,7 @@ function SupplierPortalPanel({ entries, ledgerRows, openingCurrency, portalTab }
 
   return (
     <SupplierTable
-      columns={["No", "Date", "Description", "Deposit", "Withdraw", "Balance", "Currency"]}
+      columns={["No", "Date", "Description", "Deposit", "Withdraw", "Paid", "Balance", "Currency", "Actions"]}
       empty="No ledger entries."
       rows={ledgerRows.map((row, index) => [
         index + 1,
@@ -868,8 +1039,19 @@ function SupplierPortalPanel({ entries, ledgerRows, openingCurrency, portalTab }
         row.description,
         row.deposit,
         <span className="supplier-warning-text" key="withdraw">{row.withdraw}</span>,
+        <span className="supplier-success-text" key="paid">{row.paid}</span>,
         row.balance,
         row.currency,
+        row.kind ? (
+          <div className="supplier-ledger-actions" key="actions">
+            <button type="button" onClick={() => onEditLedgerRow(row)} title="Edit">
+              <SquarePen size={15} />
+            </button>
+            <button type="button" className="danger" onClick={() => onDeleteLedgerRow(row)} title="Delete">
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ) : "-",
       ])}
     />
   );
@@ -891,7 +1073,73 @@ function SupplierTable({ columns, empty, rows }) {
   );
 }
 
+function LedgerRecordModal({ initialRow, onClose, onSave }) {
+  const [form, setForm] = useState(() => ({
+    amount: parseNumber(initialRow.amount),
+    currency: initialRow.currency,
+    date: initialRow.rawDate || todayInput(),
+    description: initialRow.description || "",
+    paid: parseNumber(initialRow.paidAmount),
+  }));
+
+  const update = (field, value) =>
+    setForm((current) => ({ ...current, [field]: value }));
+  const isPurchase = initialRow.kind === "purchase";
+  const remaining = Math.max(0, parseNumber(form.amount) - parseNumber(form.paid));
+
+  return (
+    <div className="supplier-modal-backdrop">
+      <form
+        className="supplier-adjustment-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!form.description.trim()) {
+            notify("Please enter description.", "error");
+            return;
+          }
+          onSave(form);
+        }}
+      >
+        <div className="supplier-modal-title">
+          <div>
+            <h2>Edit Ledger Record</h2>
+            <p>Update amount and paid value for this supplier ledger row.</p>
+          </div>
+          <button type="button" onClick={onClose}><X size={18} /></button>
+        </div>
+        <div className="supplier-form-grid">
+          <Field label="Date">
+            <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} />
+          </Field>
+          <Field label="Currency">
+            <CustomSelect ariaLabel="Currency" options={currencyCodes.map((code) => ({ value: code, label: code }))} value={form.currency} onChange={(value) => update("currency", value)} />
+          </Field>
+          <Field label={isPurchase ? "Total Amount" : "Amount"}>
+            <input value={form.amount} onChange={(event) => update("amount", event.target.value)} />
+          </Field>
+          <Field label="Paid Amount">
+            <input value={form.paid} onChange={(event) => update("paid", event.target.value)} />
+          </Field>
+          {isPurchase && (
+            <Field label="Remaining Amount">
+              <input readOnly value={formatCurrencyAmount(remaining, form.currency)} />
+            </Field>
+          )}
+          <Field label="Description" className="full">
+            <textarea value={form.description} onChange={(event) => update("description", event.target.value)} />
+          </Field>
+        </div>
+        <div className="supplier-modal-actions">
+          <button type="button" className="supplier-light-btn" onClick={onClose}>Cancel</button>
+          <button type="submit" className="supplier-primary-btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function SupplierModal({
+  customFields = [],
   initialSupplier,
   onClose,
   onSave,
@@ -990,6 +1238,17 @@ function SupplierModal({
           </Field>
           <Field label="Address" className="full"><input value={form.address} onChange={(event) => update("address", event.target.value)} /></Field>
           <Field label="Notes" className="full"><textarea value={form.notes} onChange={(event) => update("notes", event.target.value)} /></Field>
+          <CustomFormFields
+            fields={customFields}
+            values={form.customFields}
+            fieldClassName="supplier-form-field"
+            onChange={(key, value) =>
+              update("customFields", {
+                ...(form.customFields || {}),
+                [key]: value,
+              })
+            }
+          />
         </div>
 
         <div className="supplier-modal-actions">

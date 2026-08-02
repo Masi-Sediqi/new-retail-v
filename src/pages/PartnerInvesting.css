@@ -263,6 +263,108 @@
   text-align: center !important;
 }
 
+.partner-payment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.partner-payment-profile {
+  border: 1px solid #eeeae2;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.25fr);
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.partner-payment-profile > div:first-child > span,
+.partner-payment-ledger-title p,
+.partner-payment-metric span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.partner-payment-profile h1 {
+  margin: 4px 0 6px;
+  color: #111827;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.partner-payment-profile p {
+  margin: 0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.partner-payment-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.partner-payment-metric {
+  min-width: 0;
+  border: 1px solid #eeeae2;
+  border-radius: 12px;
+  background: #faf9f6;
+  padding: 12px;
+}
+
+.partner-payment-metric strong {
+  display: block;
+  margin-top: 6px;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.partner-payment-metric.warning strong,
+.partner-payment-balance.payable {
+  color: #b45309;
+}
+
+.partner-payment-metric.success strong,
+.partner-payment-balance.receivable {
+  color: #047857;
+}
+
+.partner-payment-warning {
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #9a3412;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.partner-payment-ledger-title {
+  border-bottom: 1px solid #eeeae2;
+  padding: 14px 16px;
+}
+
+.partner-payment-ledger-title h2 {
+  margin: 0 0 3px;
+  color: #111827;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.partner-payment-balance {
+  font-weight: 900;
+}
+
 .partner-investing-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -463,7 +565,10 @@ body.dark-mode .partner-investing-name-cell strong,
 body.dark-mode .partner-investing-contact,
 body.dark-mode .partner-investing-modal-title h2,
 body.dark-mode .partner-investing-confirm-modal h2,
-body.dark-mode .partner-investing-detail-item strong {
+body.dark-mode .partner-investing-detail-item strong,
+body.dark-mode .partner-payment-profile h1,
+body.dark-mode .partner-payment-metric strong,
+body.dark-mode .partner-payment-ledger-title h2 {
   color: #f8fafc !important;
 }
 
@@ -478,10 +583,18 @@ body.dark-mode .partner-investing-tabs button,
 body.dark-mode .partner-investing-modal-title button,
 body.dark-mode .partner-investing-form-field input,
 body.dark-mode .partner-investing-form-field textarea,
-body.dark-mode .partner-investing-detail-item {
+body.dark-mode .partner-investing-detail-item,
+body.dark-mode .partner-payment-profile,
+body.dark-mode .partner-payment-metric {
   border-color: #334155;
   background: #1e293b;
   color: #f8fafc;
+}
+
+body.dark-mode .partner-payment-warning {
+  border-color: #92400e;
+  background: #451a03;
+  color: #fed7aa;
 }
 
 body.dark-mode .partner-investing-table-wrap th {
@@ -502,11 +615,17 @@ body.dark-mode .partner-investing-table-wrap td {
   .partner-investing-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .partner-payment-profile,
+  .partner-payment-profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
   .partner-investing-header,
-  .partner-investing-header-actions {
+  .partner-investing-header-actions,
+  .partner-payment-header {
     align-items: stretch;
     flex-direction: column;
   }
@@ -514,7 +633,9 @@ body.dark-mode .partner-investing-table-wrap td {
   .partner-investing-toolbar,
   .partner-investing-form-grid,
   .partner-investing-detail-grid,
-  .partner-investing-stats {
+  .partner-investing-stats,
+  .partner-payment-profile,
+  .partner-payment-profile-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -527,7 +648,8 @@ body.dark-mode .partner-investing-table-wrap td {
     min-width: 0;
   }
 
-  .partner-investing-header-actions button {
+  .partner-investing-header-actions button,
+  .partner-payment-header button {
     width: 100%;
   }
 }

@@ -8,7 +8,6 @@ import {
   Download,
   FileText,
   Globe2,
-  KeyRound,
   Palette,
   Plus,
   Printer,
@@ -29,7 +28,7 @@ import {
 } from "lucide-react";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { apiUrl } from "../utils/api";
-import { downloadBackup, loadBackupCollectionNames } from "../utils/backup";
+import { downloadBackup, loadBackupCollectionNames, normalizeBackupCollections } from "../utils/backup";
 import { notify } from "../utils/notify";
 import { confirmAction } from "../utils/confirmDialog";
 import "./Settings.css";
@@ -39,7 +38,7 @@ import { defaultPrintStudio, normalizePrintSettings, openPrintPreview } from "..
 import { playNotificationSound, soundOptions as notificationSoundOptions } from "../utils/notificationSounds";
 
 const defaultSystemName = "Smart Office";
-const defaultSystemSubtitle = "Business Management System";
+const defaultSystemSubtitle = "Smart Office Management System";
 
 const settingTabs = [
   { key: "general", label: "General", icon: SettingsIcon },
@@ -53,7 +52,6 @@ const settingTabs = [
   { key: "security", label: "Security", icon: Shield },
   { key: "users", label: "Users", icon: Users },
   { key: "forms", label: "Forms", icon: FileText },
-  { key: "license", label: "Your License Key", icon: KeyRound },
 ];
 
 const currencyOptions = currencies.map(({ name, code }) => `${name} (${code})`);
@@ -109,6 +107,65 @@ const defaultKpiRouting = {
   netProfit: false,
   currentCashWallet: true,
 };
+
+const buildDefaultSettings = () => ({
+  companyName: defaultSystemName,
+  systemSubtitle: defaultSystemSubtitle,
+  logo: "",
+  address: "",
+  phoneNumber: "",
+  emailAddress: "",
+  website: "",
+  defaultCurrency: currencyOptions[0],
+  baseCurrency: currencyCodeFromLabel(currencyOptions[0]),
+  language: languageOptions[0],
+  kpiRouting: defaultKpiRouting,
+  taxRate: 0,
+  otherAdjustments: 0,
+  adjustmentsCurrency: currencyOptions[0],
+  adjustmentsCurrencyCode: currencyCodeFromLabel(currencyOptions[0]),
+  inventoryCostingMethod: "lifo",
+  autoBackupMode: "off",
+  autoBackupCustomDays: 7,
+  themeMode: themeOptions[0],
+  accentColor: accentOptions[0],
+  sidebarCompact: false,
+  themePreset: "default",
+  interfaceDensity: "Comfortable",
+  cornerStyle: "Rounded",
+  exchangeRates: {},
+  printSettings: {
+    ...defaultPrintStudio,
+    businessNameEn: defaultSystemName,
+    subtitleEn: defaultSystemSubtitle,
+  },
+  notificationSettings: {
+    enabled: true,
+    sound: "chime",
+    lowStock: true,
+    duePayments: true,
+    dailySummary: false,
+  },
+  sharingSettings: {
+    businessProfile: false,
+    publicReports: false,
+    shareUrl: "",
+    whatsappNumber: "",
+    emailAddress: "",
+  },
+  syncSettings: {
+    enabled: false,
+    endpoint: "",
+    intervalMinutes: 30,
+  },
+  securitySettings: {
+    lockOnStart: false,
+    sessionTimeout: 30,
+  },
+  systemUsers: [],
+  customFields: {},
+  updatedAt: new Date().toISOString(),
+});
 
 function Settings() {
   const [settings, setSettings] = useJsonCollection("settings");
@@ -168,11 +225,6 @@ function Settings() {
     currentPassword: "",
     password: "",
     confirmPassword: "",
-  });
-  const [licenseSettings, setLicenseSettings] = useState({
-    licenseKey: "",
-    owner: "",
-    expiresAt: "",
   });
   const [systemUsers, setSystemUsers] = useState([]);
   const [userDraft, setUserDraft] = useState({ name: "", username: "", password: "", confirmPassword: "", role: "Operator", email: "" });
@@ -234,11 +286,6 @@ function Settings() {
       password: "",
       confirmPassword: "",
     });
-    setLicenseSettings({
-      licenseKey: current.licenseSettings?.licenseKey || "",
-      owner: current.licenseSettings?.owner || "",
-      expiresAt: current.licenseSettings?.expiresAt || "",
-    });
     setSystemUsers(current.systemUsers || []);
     setCustomFields(current.customFields || {});
   }, [
@@ -250,7 +297,6 @@ function Settings() {
     current.defaultCurrency,
     current.emailAddress,
     current.inventoryCostingMethod,
-    current.licenseSettings,
     current.kpiRouting,
     current.language,
     current.logo,
@@ -345,7 +391,6 @@ function Settings() {
             ? { password: securitySettings.password, passwordUpdatedAt: new Date().toISOString() }
             : {}),
         },
-        licenseSettings,
         systemUsers,
         customFields,
         updatedAt: new Date().toISOString(),
@@ -394,11 +439,8 @@ function Settings() {
       setAppDataBusy(true);
       const text = await file.text();
       const parsed = JSON.parse(text);
-      const data =
-        parsed.collections && typeof parsed.collections === "object"
-          ? parsed.collections
-          : parsed;
       const collections = await loadCollectionNames();
+      const data = normalizeBackupCollections(parsed, collections);
       const importable = collections.filter((name) => Array.isArray(data[name]));
 
       if (!importable.length) {
@@ -416,7 +458,13 @@ function Settings() {
       await Promise.all(
         importable.map((name) => axios.put(apiUrl(name), data[name]))
       );
-      notify("App data imported successfully. Refresh the app to see all changes.");
+      localStorage.setItem("isp-primary-currency", "all");
+      localStorage.setItem("isp-secondary-currency", "original");
+      window.dispatchEvent(new CustomEvent("app-currency-changed", {
+        detail: { primaryCurrency: "all", secondaryCurrency: "original" },
+      }));
+      notify("App data imported successfully. The app will now refresh.");
+      window.setTimeout(() => window.location.reload(), 300);
     } catch (error) {
       console.error("Unable to import app data:", error);
       notify("Unable to import app data. Please select a valid JSON file.", "error");
@@ -434,7 +482,7 @@ function Settings() {
     const ok = await confirmAction({
       title: "Clear All App Data",
       message:
-        "This will clear all business data, including customers, sales, products and Cash Wallet transactions. System settings will be preserved. This cannot be undone. Continue?",
+        "This will clear all business data, Cash Wallet transactions, and Exchange Rates. Other system settings will be preserved. This cannot be undone. Continue?",
       confirmText: "Clear Data",
     });
     if (!ok) return;
@@ -453,11 +501,12 @@ function Settings() {
         "suppliers",
         "expenses",
         "loans",
-        "staffMembers",
+        "staff",
         "deletedItems",
       ];
+      const serverCollectionSet = new Set(serverCollections);
       const collections = [...new Set([...serverCollections, ...requiredBusinessCollections])]
-        .filter((name) => name && name !== "settings");
+        .filter((name) => name && name !== "settings" && serverCollectionSet.has(name));
 
       await Promise.all(collections.map(async (name) => {
         await axios.put(apiUrl(name), []);
@@ -465,10 +514,84 @@ function Settings() {
           detail: { name, items: [] },
         }));
       }));
+      const nextSettings = [
+        buildDefaultSettings(),
+      ];
+      await axios.put(apiUrl("settings"), nextSettings);
+      const verifySettings = await axios.get(apiUrl("settings"));
+      const savedSettings = Array.isArray(verifySettings.data)
+        ? verifySettings.data
+        : nextSettings;
+      const clearedSettings = savedSettings.length ? [savedSettings[0]] : nextSettings;
+      setCompanyName(defaultSystemName);
+      setSystemSubtitle(defaultSystemSubtitle);
+      setLogo("");
+      setAddress("");
+      setPhoneNumber("");
+      setEmailAddress("");
+      setWebsite("");
+      setDefaultCurrency(currencyOptions[0]);
+      setLanguage(languageOptions[0]);
+      setKpiRouting(defaultKpiRouting);
+      setTaxRate("0");
+      setOtherAdjustments("0");
+      setAdjustmentsCurrency(currencyOptions[0]);
+      setInventoryCostingMethod("lifo");
+      setAutoBackupMode("off");
+      setAutoBackupCustomDays("7");
+      setThemeMode(themeOptions[0]);
+      setAccentColor(accentOptions[0]);
+      setSidebarCompact(false);
+      setThemePreset("default");
+      setInterfaceDensity("Comfortable");
+      setCornerStyle("Rounded");
+      setExchangeRates({});
+      setPrintSettings(normalizePrintSettings(buildDefaultSettings().printSettings, buildDefaultSettings()));
+      setNotificationSettings({
+        enabled: true,
+        sound: "chime",
+        lowStock: true,
+        duePayments: true,
+        dailySummary: false,
+      });
+      setSharingSettings({
+        businessProfile: false,
+        publicReports: false,
+        shareUrl: "",
+        whatsappNumber: "",
+        emailAddress: "",
+      });
+      setSyncSettings({
+        enabled: false,
+        endpoint: "",
+        intervalMinutes: "30",
+      });
+      setSecuritySettings({
+        lockOnStart: false,
+        sessionTimeout: "30",
+        currentPassword: "",
+        password: "",
+        confirmPassword: "",
+      });
+      setSystemUsers([]);
+      setCustomFields({});
+      localStorage.setItem("isp-primary-currency", "all");
+      localStorage.setItem("isp-secondary-currency", "original");
+      window.dispatchEvent(new Event("company-settings-updated"));
+      window.dispatchEvent(new CustomEvent("app-currency-changed", {
+        detail: {
+          exchangeRates: {},
+          primaryCurrency: "all",
+          secondaryCurrency: "original",
+        },
+      }));
+      window.dispatchEvent(new CustomEvent("json-collection-updated", {
+        detail: { name: "settings", items: clearedSettings },
+      }));
       localStorage.removeItem("isp-notification-state");
       localStorage.removeItem("isp-low-stock-sounded");
       setClearConfirm("");
-      notify("All business data, sales and Cash Wallet records were cleared. System settings were preserved.");
+      notify("All business data, sales, Cash Wallet records, and exchange rates were cleared.");
     } catch (error) {
       console.error("Unable to clear app data:", error);
       notify("Unable to clear app data.", "error");
@@ -847,7 +970,7 @@ function Settings() {
                 </select>
               </Field>
             </div>
-            <h3 className="settings-rate-title">Exchange rates (1 currency = ? {currencyCodeFromLabel(defaultCurrency)})</h3>
+            <h3 className="settings-rate-title">Exchange rates (1 {currencyCodeFromLabel(defaultCurrency)} = ?)</h3>
             <div className="settings-currency-rate-grid">
               {currencies.filter(({ code }) => code !== currencyCodeFromLabel(defaultCurrency)).map(({ code, name, symbol }) => {
                 const rate = Number.parseFloat(exchangeRates[code]);
@@ -860,7 +983,7 @@ function Settings() {
                       <input type="number" min="0" step="any" inputMode="decimal" value={exchangeRates[code] || ""} onChange={(event) => setExchangeRates((previous) => ({ ...previous, [code]: event.target.value }))} placeholder="0.000000" />
                       {reciprocal > 0 && (
                         <small className="settings-rate-reciprocal">
-                          1 {baseCode} = {reciprocal.toLocaleString(undefined, { maximumFractionDigits: 10 })} {code}
+                          1 {code} = {reciprocal.toLocaleString(undefined, { maximumFractionDigits: 10 })} {baseCode}
                         </small>
                       )}
                     </Field>
@@ -868,7 +991,7 @@ function Settings() {
                 );
               })}
             </div>
-            <div className="settings-rate-note"><strong>Calculation rule</strong><span>Enter how much one unit of each currency is worth in {currencyCodeFromLabel(defaultCurrency)}. Records keep their original currency; reports and totals convert them using these rates.</span></div>
+            <div className="settings-rate-note"><strong>Calculation rule</strong><span>Enter how much of each currency equals 1 {currencyCodeFromLabel(defaultCurrency)}. Records keep their original currency; reports and totals convert them using these rates.</span></div>
           </section>
         </div>
       ) : activeTab === "printing" ? (
@@ -991,18 +1114,6 @@ function Settings() {
             />
           </section>
           {fieldModalOpen && <SettingsModal title={`Add Field — ${activeFormModule}`} onClose={() => setFieldModalOpen(false)}><Field label="Field Label *"><input autoFocus value={fieldDraft.label} onChange={(e) => setFieldDraft((p) => ({...p,label:e.target.value}))} placeholder="e.g. Warranty Period"/></Field><Field label="Placeholder"><input value={fieldDraft.placeholder} onChange={(e) => setFieldDraft((p) => ({...p,placeholder:e.target.value}))}/></Field><Field label="Field Type"><select value={fieldDraft.type} onChange={(e) => setFieldDraft((p) => ({...p,type:e.target.value}))}>{["text","number","date","dropdown"].map((type)=><option key={type}>{type}</option>)}</select></Field><div className="settings-toggle-field"><span>Required</span><Switch checked={fieldDraft.required} onChange={(value)=>setFieldDraft((p)=>({...p,required:value}))}/></div><div className="settings-modal-actions"><button type="button" className="settings-light-button" onClick={()=>setFieldModalOpen(false)}>Cancel</button><button type="button" className="settings-save" onClick={addCustomField}>Add Field</button></div></SettingsModal>}
-        </div>
-      ) : activeTab === "license" ? (
-        <div className="settings-stack">
-          <section className="settings-card">
-            <SectionTitle title="Your License Key" description="Store the license information for this installation." icon={KeyRound} />
-            <div className="settings-field-grid three">
-              <Field label="License key"><input value={licenseSettings.licenseKey} onChange={(event) => setLicenseSettings((previous) => ({ ...previous, licenseKey: event.target.value }))} /></Field>
-              <Field label="Owner"><input value={licenseSettings.owner} onChange={(event) => setLicenseSettings((previous) => ({ ...previous, owner: event.target.value }))} /></Field>
-              <Field label="Expires at"><input type="date" value={licenseSettings.expiresAt} onChange={(event) => setLicenseSettings((previous) => ({ ...previous, expiresAt: event.target.value }))} /></Field>
-            </div>
-            <p className="settings-help-text">Device ID: {current.deviceId || "local-device"}</p>
-          </section>
         </div>
       ) : (
         <PlaceholderTab tab={activeTabMeta} />

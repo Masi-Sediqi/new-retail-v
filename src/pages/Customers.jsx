@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
+import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
@@ -130,6 +131,7 @@ function Customers() {
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
+  const customerCustomFields = company.customFields?.customers || [];
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -303,6 +305,7 @@ function Customers() {
       >
         {modalOpen && (
           <CustomerModal
+            customFields={customerCustomFields}
             initialCustomer={editingCustomer}
             onClose={() => {
               setModalOpen(false);
@@ -473,6 +476,7 @@ function Customers() {
 
       {modalOpen && (
         <CustomerModal
+          customFields={customerCustomFields}
           initialCustomer={editingCustomer}
           onClose={() => {
             setModalOpen(false);
@@ -880,7 +884,7 @@ function ProfileTable({ columns, empty, rows }) {
   );
 }
 
-function CustomerModal({ initialCustomer, onClose, onSave }) {
+function CustomerModal({ customFields = [], initialCustomer, onClose, onSave }) {
   const [form, setForm] = useState(() => ({
     ...emptyCustomer,
     ...(initialCustomer || {}),
@@ -936,6 +940,17 @@ function CustomerModal({ initialCustomer, onClose, onSave }) {
           <Field label="Notes" className="full">
             <textarea value={form.notes} onChange={(event) => update("notes", event.target.value)} />
           </Field>
+          <CustomFormFields
+            fields={customFields}
+            values={form.customFields}
+            fieldClassName="customer-form-field"
+            onChange={(key, value) =>
+              update("customFields", {
+                ...(form.customFields || {}),
+                [key]: value,
+              })
+            }
+          />
           <div className={`customer-vip-field full ${form.vip ? "is-active" : ""}`}>
             <div>
               <strong>VIP Customer</strong>

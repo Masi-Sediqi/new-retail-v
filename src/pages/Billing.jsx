@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
+import CustomFormFields from "../components/CustomFormFields";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { notify } from "../utils/notify";
 import {
@@ -194,6 +195,7 @@ function Billing() {
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
   const exchangeRates = company.exchangeRates || {};
+  const billingCustomFields = company.customFields?.billing || [];
 
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState([]);
@@ -206,6 +208,7 @@ function Billing() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentStatusMode, setPaymentStatusMode] = useState("paid");
   const [paidAmountInput, setPaidAmountInput] = useState("");
+  const [invoiceCustomFields, setInvoiceCustomFields] = useState({});
   const [previewInvoice, setPreviewInvoice] = useState(null);
   const [scannerEnabled, setScannerEnabled] = useState(true);
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -254,6 +257,7 @@ function Billing() {
     setPaymentMethod(editingSale.paymentMethod || "cash");
     setPaymentStatusMode(parseMoney(editingSale.balance) > 0 ? "loan" : "paid");
     setPaidAmountInput(parseMoney(editingSale.balance) > 0 ? String(parseMoney(editingSale.paidAmount)) : "");
+    setInvoiceCustomFields(editingSale.customFields || {});
     loadedEditRef.current = editId;
   }, [baseCurrency, editId, editingSale, products]);
 
@@ -489,6 +493,7 @@ function Billing() {
       balance: roundMoney(balance),
       paymentMethod,
       paymentStatus: balance <= 0 ? "paid" : "loan",
+      customFields: invoiceCustomFields,
       refundTotal: parseMoney(editingSale?.refundTotal),
       refundHistory: editingSale?.refundHistory || [],
       paymentHistory: editingSale?.paymentHistory || [],
@@ -508,6 +513,7 @@ function Billing() {
     setPaymentMethod("cash");
     setPaymentStatusMode("paid");
     setPaidAmountInput("");
+    setInvoiceCustomFields({});
     setSearchTerm("");
   };
 
@@ -731,7 +737,7 @@ function Billing() {
             <header class="invoice-head">
               <div class="invoice-brand">
                 <div class="invoice-logo">${company.logo ? `<img src="${company.logo}" style="width:100%;height:100%;object-fit:contain">` : (company.companyName || "R").slice(0, 1)}</div>
-                <div><h2>${company.companyName || "Smart Office"}</h2><p>${company.systemSubtitle || "Business Management System"}</p></div>
+                <div><h2>${company.companyName || "Smart Office"}</h2><p>${company.systemSubtitle || "Smart Office Management System"}</p></div>
               </div>
               <div class="invoice-title-box"><h1>INVOICE</h1><span>#${invoice.invoiceNumber}</span></div>
             </header>
@@ -1036,6 +1042,19 @@ function Billing() {
               </small>
             </label>
           )}
+
+          <CustomFormFields
+            fields={billingCustomFields}
+            values={invoiceCustomFields}
+            fieldClassName="billing-field"
+            fullClassName=""
+            onChange={(key, value) =>
+              setInvoiceCustomFields((current) => ({
+                ...current,
+                [key]: value,
+              }))
+            }
+          />
 
           <div className="billing-summary">
             <div>

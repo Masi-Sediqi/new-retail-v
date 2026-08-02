@@ -1,22 +1,52 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Crown, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import { notify } from "../utils/notify";
 import "./LockScreen.css";
 
-export default function LockScreen({ accounts, company, onUnlock }) {
+const launchVideoSrc = "/VIDEO/Black and White Modern Launching Video.mp4";
+
+export default function LockScreen({
+  accounts,
+  company,
+  dataLoaded = true,
+  onUnlock,
+}) {
   const [selected, setSelected] = useState(null);
   const [password, setPassword] = useState("");
+  const [introReady, setIntroReady] = useState(false);
   const activeAccounts = accounts.filter((account) => String(account.status || "Active").toLowerCase() === "active");
+  const showIntro = !introReady || !dataLoaded;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIntroReady(true), 3000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const submit = (event) => {
     event.preventDefault();
-    if (!selected) return;
+    if (!selected || showIntro) return;
     const masterPassword = company.securitySettings?.password || "";
     if (password !== selected.password && password !== selected.secondaryPassword && password !== masterPassword) {
       notify("Password is incorrect.", "error"); return;
     }
     onUnlock(selected); setPassword("");
   };
-  return <div className="lock-screen"><section className="lock-card">
+  return <div className="lock-screen">
+    <video
+      className="lock-background-video"
+      autoPlay
+      muted
+      playsInline
+      preload="auto"
+      src={launchVideoSrc}
+    />
+    <div className={`lock-launch-intro ${showIntro ? "show" : "hide"}`}>
+      <div>
+        <span>{company.companyName || "Smart Office"}</span>
+        <strong>Launching system</strong>
+      </div>
+    </div>
+    <section className={`lock-card ${showIntro ? "waiting" : "ready"}`}>
     <div className="lock-brand-icon"><ShieldCheck size={24}/></div>
     <h1>{company.companyName || "Smart Office"}</h1>
     {!selected ? <><p>Select your account to continue</p><div className="lock-account-list">{activeAccounts.map((account) => {

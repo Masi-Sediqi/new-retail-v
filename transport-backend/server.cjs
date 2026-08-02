@@ -55,6 +55,7 @@ const COLLECTIONS = new Set([
   "travelExpenses",
   "travels",
   "userRoles",
+  "partnerInvestingAccounts",
 ]);
 
 const writeQueues = new Map();

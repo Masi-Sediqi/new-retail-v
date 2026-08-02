@@ -210,7 +210,7 @@ function SalesBills() {
           <article class="invoice-paper">
             <div class="invoice-ribbon"></div>
             <header class="invoice-head">
-              <div class="invoice-brand">${logo}<div><h2>${escapeHtml(company.companyName || "Smart Office")}</h2><p>${escapeHtml(company.systemSubtitle || "Business Management System")}</p></div></div>
+              <div class="invoice-brand">${logo}<div><h2>${escapeHtml(company.companyName || "Smart Office")}</h2><p>${escapeHtml(company.systemSubtitle || "Smart Office Management System")}</p></div></div>
               <div class="invoice-title-box"><h1>INVOICE</h1><span>#${escapeHtml(sale.invoiceNumber)}</span></div>
             </header>
             <section class="invoice-meta">

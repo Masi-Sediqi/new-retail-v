@@ -1,1 +1,263 @@
-.lock-screen{position:fixed;inset:0;z-index:2147483640;display:grid;place-items:center;background:#f6f8fa;color:#101828;font-family:inherit}.lock-card{width:min(300px,calc(100vw - 32px));padding:18px;border:1px solid #d8e0ea;border-radius:7px;background:#fff;box-shadow:0 2px 5px rgba(15,23,42,.08);text-align:center}.lock-brand-icon{width:44px;height:44px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;background:#edf0f4;color:#172a4d}.lock-card h1{font-size:17px;margin:0}.lock-card>p{margin:4px 0 15px;color:#64748b;font-size:10px}.lock-account-list{display:grid;gap:7px}.lock-account-list button{width:100%;display:flex;align-items:center;gap:10px;padding:9px;border:1px solid #d8e0ea;border-radius:7px;background:#fff;text-align:left;cursor:pointer}.lock-account-list button:hover{border-color:#9fb1c8;background:#f8fafc}.lock-account-list button>span:first-child{width:29px;height:29px;border-radius:50%;display:grid;place-items:center;background:#eef2f6;color:#475569}.lock-account-list button>span:first-child.admin{background:#fff4d8;color:#f59e0b}.lock-account-list button>span:last-child,.lock-selected-user span{display:grid;gap:2px}.lock-account-list b,.lock-selected-user b{font-size:11px}.lock-account-list small,.lock-selected-user small{font-size:8px;color:#64748b}.lock-password-form{display:grid;gap:12px;margin-top:12px;text-align:left}.lock-back{justify-self:start;border:0;background:none;color:#475569;display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer}.lock-selected-user{display:flex;align-items:center;gap:9px;padding:9px;border:1px solid #d8e0ea;border-radius:7px}.lock-password-form label>span{font-size:10px;font-weight:700}.lock-password-form label>div{height:38px;margin-top:5px;padding:0 10px;display:flex;align-items:center;gap:7px;border:1px solid #cdd7e4;border-radius:7px}.lock-password-form input{width:100%;border:0;outline:0;background:transparent}.lock-unlock{height:38px;border:0;border-radius:7px;background:#172a4d;color:#fff;cursor:pointer}body.dark-mode .lock-screen{background:#070b12;color:#e5e7eb}body.dark-mode .lock-card,body.dark-mode .lock-account-list button{background:#111827;border-color:#334155}body.dark-mode .lock-account-list button:hover{background:#172033}
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483640;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #eef2f7;
+  color: #101828;
+  font-family: inherit;
+}
+
+.lock-background-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.42;
+}
+
+.lock-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.74), rgba(239, 246, 255, 0.86)),
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.24), transparent 34%);
+}
+
+.lock-launch-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: rgba(248, 250, 252, 0.18);
+  transition: opacity 650ms ease, visibility 650ms ease;
+  pointer-events: none;
+}
+
+.lock-launch-intro.hide {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.lock-launch-intro.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.lock-launch-intro > div {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+  color: #0f172a;
+  text-shadow: 0 1px 18px rgba(255, 255, 255, 0.7);
+}
+
+.lock-launch-intro span {
+  font-size: clamp(18px, 3vw, 34px);
+  font-weight: 900;
+}
+
+.lock-launch-intro strong {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lock-card {
+  position: relative;
+  z-index: 3;
+  width: min(430px, calc(100vw - 36px));
+  padding: 28px;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 22px 70px rgba(15, 23, 42, 0.16);
+  text-align: center;
+  backdrop-filter: blur(14px);
+  transition: opacity 520ms ease, transform 520ms ease, visibility 520ms ease;
+}
+
+.lock-card.waiting {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.lock-card.ready {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+.lock-brand-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #edf0f4;
+  color: #172a4d;
+}
+
+.lock-card h1 {
+  font-size: 23px;
+  margin: 0;
+}
+
+.lock-card > p {
+  margin: 7px 0 20px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.lock-account-list {
+  display: grid;
+  gap: 10px;
+}
+
+.lock-account-list button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 10px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lock-account-list button:hover {
+  border-color: #9fb1c8;
+  background: #f8fafc;
+}
+
+.lock-account-list button > span:first-child {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #eef2f6;
+  color: #475569;
+}
+
+.lock-account-list button > span:first-child.admin {
+  background: #fff4d8;
+  color: #f59e0b;
+}
+
+.lock-account-list button > span:last-child,
+.lock-selected-user span {
+  display: grid;
+  gap: 3px;
+}
+
+.lock-account-list b,
+.lock-selected-user b {
+  font-size: 14px;
+}
+
+.lock-account-list small,
+.lock-selected-user small {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.lock-password-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  text-align: left;
+}
+
+.lock-back {
+  justify-self: start;
+  border: 0;
+  background: none;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.lock-selected-user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  border: 1px solid #d8e0ea;
+  border-radius: 10px;
+}
+
+.lock-password-form label > span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lock-password-form label > div {
+  height: 44px;
+  margin-top: 6px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #cdd7e4;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.lock-password-form input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.lock-unlock {
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: #172a4d;
+  color: #fff;
+  cursor: pointer;
+}
+
+body.dark-mode .lock-screen {
+  background: #070b12;
+  color: #e5e7eb;
+}
+
+body.dark-mode .lock-screen::after {
+  background: rgba(7, 11, 18, 0.62);
+}
+
+body.dark-mode .lock-launch-intro {
+  background: rgba(7, 11, 18, 0.12);
+}
+
+body.dark-mode .lock-launch-intro > div {
+  color: #f8fafc;
+  text-shadow: 0 1px 22px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .lock-card,
+body.dark-mode .lock-account-list button,
+body.dark-mode .lock-password-form label > div {
+  background: rgba(17, 24, 39, 0.92);
+  border-color: #334155;
+}
+
+body.dark-mode .lock-account-list button:hover {
+  background: #172033;
+}

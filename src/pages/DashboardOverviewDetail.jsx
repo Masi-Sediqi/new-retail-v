@@ -1,17 +1,24 @@
 import { Link, useParams } from "react-router-dom";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Banknote,
-  BriefcaseBusiness,
   Boxes,
   ChevronLeft,
+  DollarSign,
+  Filter,
+  MinusCircle,
+  PlusCircle,
+  Printer,
   ReceiptText,
   Truck,
   Users,
   WalletCards,
 } from "lucide-react";
 import { useJsonCollection } from "../hooks/useJsonCollection";
-import { formatCurrencyAmount } from "../utils/currencyExchange";
+import {
+  convertCurrencyAmount,
+  formatCurrencyAmount,
+} from "../utils/currencyExchange";
 import "../App.css";
 
 const parseNumber = (value) => {
@@ -19,10 +26,18 @@ const parseNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const money = (value, currency = "AFN") =>
-  formatCurrencyAmount(Number(value || 0), currency);
-
 const count = (value) => Number(value || 0).toLocaleString("en-US");
+
+const recordDate = (record) =>
+  String(
+    record?.date ??
+      record?.createdAt ??
+      record?.invoiceDate ??
+      record?.billDate ??
+      record?.purchaseDate ??
+      record?.paymentDate ??
+      ""
+  ).slice(0, 10);
 
 const invoiceTotal = (invoice) =>
   parseNumber(
@@ -36,23 +51,8 @@ const invoiceTotal = (invoice) =>
 const invoicePaid = (invoice) =>
   parseNumber(invoice.paidAmount ?? invoice.paid ?? invoice.amountPaid);
 
-const invoiceBalance = (invoice) => {
-  if (invoice.balance !== undefined && invoice.balance !== null && invoice.balance !== "") {
-    return Math.max(0, parseNumber(invoice.balance));
-  }
-
-  return Math.max(0, invoiceTotal(invoice) - invoicePaid(invoice));
-};
-
-const recordDate = (record) =>
-  String(
-    record?.date ??
-      record?.createdAt ??
-      record?.invoiceDate ??
-      record?.billDate ??
-      record?.purchaseDate ??
-      ""
-  ).slice(0, 10);
+const invoiceBalance = (invoice) =>
+  Math.max(0, parseNumber(invoice.balance) || invoiceTotal(invoice) - invoicePaid(invoice));
 
 const productName = (product) =>
   product.name || product.productName || product.deviceName || "Unnamed product";
@@ -72,194 +72,248 @@ const productCost = (product) =>
 const productSalePrice = (product) =>
   parseNumber(product.selling ?? product.sellingPrice ?? product.salePrice ?? product.price);
 
-function DashboardOverviewDetail({ t = {} }) {
-  const { overviewType = "financial" } = useParams();
+const isCashWalletTransaction = (transaction) =>
+  /cash-wallet|cash wallet/i.test(
+    `${transaction.source || ""} ${transaction.category || ""}`
+  );
+
+const transactionDirection = (transaction) =>
+  /withdraw|expense|payment out/i.test(
+    `${transaction.transactionType || ""} ${transaction.type || ""}`
+  )
+    ? -1
+    : 1;
+
+const sourceLabel = (record, fallback = "System") =>
+  record.module ||
+  record.referenceSource ||
+  record.sourceModule ||
+  record.group ||
+  fallback;
+
+function DashboardOverviewDetail() {
+  const { cardKey, overviewType } = useParams();
   const [products] = useJsonCollection("products");
   const [billingInvoices] = useJsonCollection("billingInvoices");
   const [expenses] = useJsonCollection("expenses");
   const [staff] = useJsonCollection("staff");
   const [suppliers] = useJsonCollection("suppliers");
   const [transactions] = useJsonCollection("transactions");
-  const [godownEntries] = useJsonCollection("godownEntries");
+  const [customers] = useJsonCollection("customers");
+  const [settings] = useJsonCollection("settings");
 
-  const data = useMemo(() => {
-    const revenue = billingInvoices.reduce((sum, invoice) => sum + invoiceTotal(invoice), 0);
-    const paidRevenue = billingInvoices.reduce((sum, invoice) => sum + invoicePaid(invoice), 0);
-    const pendingPayments = billingInvoices.reduce((sum, invoice) => sum + invoiceBalance(invoice), 0);
-    const expenseTotal = expenses.reduce((sum, expense) => sum + parseNumber(expense.amount), 0);
-    const refundTotal = billingInvoices.reduce((sum, invoice) => {
-      const refunds = invoice.refundHistory || invoice.refunds || [];
-      return sum + refunds.reduce((refundSum, refund) => refundSum + parseNumber(refund.amount), 0);
-    }, 0);
-    const staffSalary = staff.reduce(
-      (sum, member) => sum + parseNumber(member.salary ?? member.monthlySalary ?? member.payable),
-      0
-    );
-    const cashWallet = transactions.reduce((sum, transaction) => {
-      const type = String(transaction.type || transaction.kind || transaction.category || "").toLowerCase();
-      const amount = parseNumber(transaction.amount);
-      if (/expense|withdraw|payment out/.test(type)) return sum - amount;
-      if (/income|sale|deposit|payment in/.test(type)) return sum + amount;
-      return sum;
-    }, paidRevenue - expenseTotal);
-    const stockQuantity = products.reduce((sum, product) => sum + productQuantity(product), 0);
-    const stockValue = products.reduce(
-      (sum, product) => sum + productQuantity(product) * productCost(product),
-      0
-    );
-    const stockSaleValue = products.reduce(
-      (sum, product) => sum + productQuantity(product) * productSalePrice(product),
-      0
-    );
-    const lowStockProducts = products.filter((product) => {
-      const quantity = productQuantity(product);
-      const alert = parseNumber(product.lowStock || product.lowStockThreshold || product.minimumStock);
-      return quantity <= 0 || (alert > 0 && quantity <= alert);
+  const company = settings[0] || {};
+  const baseCurrency = company.baseCurrency || "AFN";
+  const exchangeRates = company.exchangeRates || {};
+  const [moduleFilter, setModuleFilter] = useState("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const money = useCallback(
+    (value, currency = baseCurrency) =>
+      formatCurrencyAmount(Number(value || 0), currency),
+    [baseCurrency]
+  );
+
+  const toBase = (value, currency = baseCurrency) => {
+    const converted = convertCurrencyAmount(value, {
+      baseCurrency,
+      exchangeRates,
+      fromCurrency: currency || baseCurrency,
+      targetCurrency: baseCurrency,
     });
-    const supplierPayables = suppliers.reduce(
-      (sum, supplier) => sum + Math.max(0, parseNumber(supplier.balance ?? supplier.remainingBalance)),
-      0
-    );
-
-    return {
-      cashWallet,
-      expenseTotal,
-      lowStockProducts,
-      netProfit: revenue - expenseTotal - staffSalary - refundTotal,
-      pendingPayments,
-      revenue,
-      staffSalary,
-      stockQuantity,
-      stockSaleValue,
-      stockValue,
-      supplierPayables,
-    };
-  }, [billingInvoices, expenses, products, staff, suppliers, transactions]);
-
-  const pages = {
-    financial: {
-      icon: ReceiptText,
-      title: t.financialOverview || "Financial overview",
-      subtitle: "Invoices, expenses, pending balances, wallet movement, and profit.",
-      stats: [
-        { label: "Total Revenue", value: money(data.revenue) },
-        { label: "Net Profit", value: money(data.netProfit), danger: data.netProfit < 0 },
-        { label: "Pending Payments", value: money(data.pendingPayments) },
-        { label: "Total Expenses", value: money(data.expenseTotal), danger: true },
-        { label: "Cash Wallet", value: money(data.cashWallet), danger: data.cashWallet < 0 },
-      ],
-      tables: [
-        {
-          title: "Sales invoices",
-          columns: ["Invoice", "Customer", "Date", "Total", "Paid", "Balance"],
-          rows: billingInvoices.map((invoice) => [
-            invoice.invoiceNumber || invoice.billNumber || invoice.id || "-",
-            invoice.customerName || invoice.customer || "Walk-in customer",
-            recordDate(invoice) || "-",
-            money(invoiceTotal(invoice), invoice.currency || "AFN"),
-            money(invoicePaid(invoice), invoice.currency || "AFN"),
-            money(invoiceBalance(invoice), invoice.currency || "AFN"),
-          ]),
-        },
-        {
-          title: "Expenses",
-          columns: ["Title", "Category", "Date", "Amount"],
-          rows: expenses.map((expense) => [
-            expense.title || expense.name || expense.description || "Expense",
-            expense.category || "-",
-            recordDate(expense) || "-",
-            money(parseNumber(expense.amount), expense.currency || "AFN"),
-          ]),
-        },
-      ],
-    },
-    suppliers: {
-      icon: Truck,
-      title: t.suppliersOverview || "Suppliers / Katanama overview",
-      subtitle: "Supplier accounts, payable balances, and godown purchase movement.",
-      stats: [
-        { label: "Supplier Payables", value: money(data.supplierPayables) },
-        { label: "Total Suppliers", value: count(suppliers.length) },
-        { label: "Godown Entries", value: count(godownEntries.length) },
-      ],
-      tables: [
-        {
-          title: "Supplier accounts",
-          columns: ["Supplier", "Phone", "Email", "Balance", "Status"],
-          rows: suppliers.map((supplier) => [
-            supplierName(supplier),
-            supplier.phone || supplier.mobile || "-",
-            supplier.email || "-",
-            money(parseNumber(supplier.balance ?? supplier.remainingBalance), supplier.currency || "AFN"),
-            supplier.status || "Active",
-          ]),
-        },
-        {
-          title: "Godown movement",
-          columns: ["Product", "Supplier", "Date", "Quantity", "Total"],
-          rows: godownEntries.map((entry) => [
-            entry.productName || entry.name || "-",
-            entry.supplierName || entry.supplier || "-",
-            recordDate(entry) || "-",
-            count(entry.quantity || entry.qty),
-            money(parseNumber(entry.total || entry.grandTotal || entry.amount), entry.currency || "AFN"),
-          ]),
-        },
-      ],
-    },
-    stock: {
-      icon: Boxes,
-      title: t.stockOverview || "Stock overview",
-      subtitle: "Product quantity, purchase value, sale value, and low-stock alerts.",
-      stats: [
-        { label: "Stock Value", value: money(data.stockValue) },
-        { label: "Stock Sale Value", value: money(data.stockSaleValue) },
-        { label: "Stock Quantity", value: count(data.stockQuantity) },
-        { label: "Low Stock", value: count(data.lowStockProducts.length), danger: data.lowStockProducts.length > 0 },
-      ],
-      tables: [
-        {
-          title: "Products",
-          columns: ["Product", "Code", "Category", "Quantity", "Purchase", "Selling", "Status"],
-          rows: products.map((product) => [
-            productName(product),
-            product.code || product.productCode || "-",
-            product.category || product.productCategory || "-",
-            `${count(productQuantity(product))} ${product.unit || ""}`.trim(),
-            money(productCost(product), product.currency || "AFN"),
-            money(productSalePrice(product), product.currency || "AFN"),
-            data.lowStockProducts.some((item) => String(item.id) === String(product.id)) ? "Low stock" : "In stock",
-          ]),
-        },
-      ],
-    },
-    staff: {
-      icon: BriefcaseBusiness,
-      title: t.staffOverview || "Staff overview",
-      subtitle: "Registered staff, salary obligations, and employment status.",
-      stats: [
-        { label: "Total Staff", value: count(staff.length) },
-        { label: "Staff Payable", value: money(data.staffSalary) },
-        { label: "Active Staff", value: count(staff.filter((member) => !/inactive|disabled/i.test(String(member.status || ""))).length) },
-      ],
-      tables: [
-        {
-          title: "Staff members",
-          columns: ["Name", "Role", "Phone", "Salary", "Status"],
-          rows: staff.map((member) => [
-            staffName(member),
-            member.role || member.position || member.jobTitle || "-",
-            member.phone || member.mobile || "-",
-            money(parseNumber(member.salary ?? member.monthlySalary ?? member.payable), member.currency || "AFN"),
-            member.status || "Active",
-          ]),
-        },
-      ],
-    },
+    return converted === null ? 0 : converted;
   };
 
-  const page = pages[overviewType] || pages.financial;
-  const Icon = page.icon || Banknote;
+  const rowsByCard = useMemo(() => {
+    const invoiceRows = billingInvoices.map((invoice) => ({
+      date: recordDate(invoice),
+      module: "Billing",
+      type: "Credit",
+      title: invoice.invoiceNumber || invoice.billNumber || "Invoice",
+      name: invoice.customerName || invoice.customer || "Walk-in customer",
+      status: invoice.status || invoice.paymentStatus || "-",
+      amount: invoiceTotal(invoice),
+      paid: invoicePaid(invoice),
+      balance: invoiceBalance(invoice),
+      currency: invoice.currency || baseCurrency,
+      details: `Total: ${money(invoiceTotal(invoice), invoice.currency || baseCurrency)} | Paid: ${money(invoicePaid(invoice), invoice.currency || baseCurrency)}`,
+    }));
+
+    const expenseRows = expenses.map((expense) => ({
+      date: recordDate(expense),
+      module: "Expenses",
+      type: "Debit",
+      title: expense.title || expense.name || expense.description || "Expense",
+      name: expense.category || "-",
+      status: expense.status || "-",
+      amount: parseNumber(expense.amount),
+      currency: expense.currency || baseCurrency,
+      details: expense.note || expense.description || "-",
+    }));
+
+    const refundRows = billingInvoices.flatMap((invoice) =>
+      (invoice.refundHistory || invoice.refunds || []).map((refund) => ({
+        date: recordDate(refund) || recordDate(invoice),
+        module: "Billing",
+        type: "Debit",
+        title: `Refund - ${invoice.invoiceNumber || invoice.billNumber || invoice.id || "-"}`,
+        name: invoice.customerName || invoice.customer || "Customer",
+        status: refund.status || "Refund",
+        amount: parseNumber(refund.amount),
+        currency: refund.currency || invoice.currency || baseCurrency,
+        details: refund.reason || refund.note || "-",
+      }))
+    );
+
+    const walletRows = transactions
+      .filter(isCashWalletTransaction)
+      .map((transaction) => {
+        const direction = transactionDirection(transaction);
+        return {
+          date: recordDate(transaction),
+          module: sourceLabel(transaction, "Cash Wallet"),
+          type: direction < 0 ? "Debit" : "Credit",
+          title: transaction.title || transaction.description || "Cash Wallet transaction",
+          name: transaction.accountName || transaction.staffName || transaction.customerName || "-",
+          status: transaction.transactionType || transaction.type || "-",
+          amount: direction * parseNumber(transaction.amount),
+          currency: transaction.currency || baseCurrency,
+          details: transaction.note || transaction.description || "-",
+        };
+      });
+
+    const supplierRows = suppliers.map((supplier) => {
+      const balance = parseNumber(supplier.balance ?? supplier.remainingBalance);
+      return {
+        date: recordDate(supplier),
+        module: "Supplier / Katah",
+        type: balance >= 0 ? "Payable" : "Receivable",
+        title: supplierName(supplier),
+        name: supplier.phone || supplier.email || "-",
+        status: supplier.status || "Active",
+        amount: balance,
+        currency: supplier.currency || baseCurrency,
+        details: supplier.address || supplier.notes || "-",
+      };
+    });
+
+    const productRows = products.map((product) => ({
+      date: recordDate(product),
+      module: "Products",
+      type: "Stock",
+      title: productName(product),
+      name: product.code || product.productCode || product.category || "-",
+      status: product.status || "Active",
+      amount: productQuantity(product) * productCost(product),
+      currency: product.currency || baseCurrency,
+      details: `Qty: ${count(productQuantity(product))} | Sale: ${money(productSalePrice(product), product.currency || baseCurrency)}`,
+    }));
+
+    const staffRows = staff.map((member) => {
+      const paid = (member.payrollHistory || []).reduce(
+        (sum, entry) => sum + parseNumber(entry.paidAmount),
+        0
+      );
+      const payable = Math.max(
+        0,
+        parseNumber(member.salary ?? member.monthlySalary ?? member.payable) - paid
+      );
+      return {
+        date: recordDate(member),
+        module: "Staff",
+        type: "Payroll",
+        title: staffName(member),
+        name: member.role || member.position || member.phone || "-",
+        status: member.status || "Active",
+        amount: parseNumber(member.salary ?? member.monthlySalary ?? member.payable),
+        paid,
+        balance: payable,
+        currency: member.currency || baseCurrency,
+        details: `Paid: ${money(paid, member.currency || baseCurrency)} | Payable: ${money(payable, member.currency || baseCurrency)}`,
+      };
+    });
+
+    const customerRows = customers.map((customer) => ({
+      date: recordDate(customer),
+      module: "Customers",
+      type: "Customer",
+      title: customer.name || customer.fullName || customer.customerName || "Customer",
+      name: customer.phone || customer.email || "-",
+      status: customer.status || "Active",
+      amount: parseNumber(customer.balance ?? customer.remainingBalance),
+      currency: customer.currency || baseCurrency,
+      details: customer.address || customer.notes || "-",
+    }));
+
+    const netRows = [...invoiceRows, ...expenseRows, ...refundRows, ...staffRows.map((row) => ({ ...row, type: "Debit" }))];
+
+    return {
+      "total-revenue": invoiceRows,
+      "cash-wallet": walletRows,
+      "net-profit": netRows,
+      "pure-profit": [...invoiceRows, ...expenseRows],
+      "total-sales": invoiceRows,
+      "total-expenses": expenseRows,
+      "pending-payments": invoiceRows.filter((row) => parseNumber(row.balance) > 0),
+      "total-refunds": refundRows,
+      "total-customers": customerRows,
+      "supplier-payables": supplierRows.filter((row) => parseNumber(row.amount) > 0),
+      "supplier-receivables": supplierRows.filter((row) => parseNumber(row.amount) < 0),
+      "supplier-net-balance": supplierRows,
+      "active-products": productRows.filter((row) => !/inactive|disabled/i.test(row.status)),
+      "stock-quantity": productRows,
+      "global-stock-value": productRows,
+      "total-staff": staffRows,
+      "staff-payable": staffRows.filter((row) => parseNumber(row.balance) > 0),
+      "staff-paid": staffRows.filter((row) => parseNumber(row.paid) > 0),
+    };
+  }, [baseCurrency, billingInvoices, customers, expenses, money, products, staff, suppliers, transactions]);
+
+  const cardPages = {
+    "total-revenue": { title: "Total Revenue", subtitle: "All revenue records from every module.", icon: DollarSign },
+    "cash-wallet": { title: "Current cash wallet", subtitle: "All debit and credit Cash Wallet transactions.", icon: WalletCards, walletButton: true },
+    "net-profit": { title: "Net Profit", subtitle: "Revenue, expenses, refunds, and payroll records used for profit.", icon: Banknote },
+    "pure-profit": { title: "Pure Profit", subtitle: "Revenue and expense records used for pure profit.", icon: Banknote },
+    "total-sales": { title: "Total sales", subtitle: "All sales and billing records.", icon: ReceiptText },
+    "total-expenses": { title: "Total Expenses", subtitle: "All expense records.", icon: WalletCards },
+    "pending-payments": { title: "Pending Payments", subtitle: "Invoices with remaining customer balance.", icon: Banknote },
+    "total-refunds": { title: "Total refunds", subtitle: "All refund records from sales.", icon: ReceiptText },
+    "total-customers": { title: "Total customers", subtitle: "All customer records.", icon: Users },
+    "supplier-payables": { title: "Supplier Payables", subtitle: "Supplier balances we owe.", icon: Truck },
+    "supplier-receivables": { title: "Supplier Receivables", subtitle: "Supplier balances owed to us.", icon: Truck },
+    "supplier-net-balance": { title: "Supplier Net Balance", subtitle: "Payable and receivable supplier accounts.", icon: Truck },
+    "active-products": { title: "Active products", subtitle: "Active product records.", icon: Boxes },
+    "stock-quantity": { title: "Stock Quantity", subtitle: "Product stock quantities and values.", icon: Boxes },
+    "global-stock-value": { title: "Global Stock Value", subtitle: "Stock value by product.", icon: Boxes },
+    "total-staff": { title: "Total staff", subtitle: "All staff records.", icon: Users },
+    "staff-payable": { title: "Staff Payable", subtitle: "Staff members with remaining payable salary.", icon: Users },
+    "staff-paid": { title: "Staff Paid", subtitle: "Staff payroll records with paid amount.", icon: DollarSign },
+  };
+
+  const legacyMap = {
+    financial: "total-revenue",
+    suppliers: "supplier-net-balance",
+    stock: "global-stock-value",
+    staff: "total-staff",
+  };
+
+  const activeKey = cardKey || legacyMap[overviewType] || "total-revenue";
+  const page = cardPages[activeKey] || cardPages["total-revenue"];
+  const rows = rowsByCard[activeKey] || [];
+  const moduleOptions = ["all", ...new Set(rows.map((row) => row.module).filter(Boolean))];
+  const filteredRows = rows.filter((row) => {
+    const date = row.date || "";
+    const matchesModule = moduleFilter === "all" || row.module === moduleFilter;
+    const matchesFrom = !fromDate || !date || date >= fromDate;
+    const matchesTo = !toDate || !date || date <= toDate;
+    return matchesModule && matchesFrom && matchesTo;
+  });
+  const total = filteredRows.reduce(
+    (sum, row) => sum + toBase(Math.abs(parseNumber(row.amount)), row.currency),
+    0
+  );
+  const Icon = page.icon;
 
   return (
     <div className="dashboard-page dashboard-overview-detail-page">
@@ -279,58 +333,136 @@ function DashboardOverviewDetail({ t = {} }) {
         </div>
         <div className="dashboard-insight-count">
           <Users size={18} />
-          <strong>{page.tables.reduce((sum, table) => sum + table.rows.length, 0)}</strong>
+          <strong>{count(filteredRows.length)}</strong>
           <span>Total records</span>
         </div>
       </section>
 
-      <div className="stats dashboard-business-stats dashboard-overview-detail-stats">
-        {page.stats.map((stat) => (
-          <div className={`stat ${stat.danger ? "dashboard-danger-stat" : ""}`} key={stat.label}>
-            <span>{stat.label}</span>
-            <h2>{stat.value}</h2>
+      <section className="card table-card dashboard-insight-card">
+        <div className="card-title">
+          <div>
+            <h3>
+              <Filter size={16} /> Filters
+            </h3>
+            <span>{money(total, baseCurrency)} total value in current view</span>
           </div>
-        ))}
-      </div>
+          <div className="dashboard-detail-actions">
+            {page.walletButton && (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => window.dispatchEvent(new Event("open-cash-wallet"))}
+              >
+                <WalletCards size={16} />
+                Cash wallet
+              </button>
+            )}
+            <button type="button" className="btn" onClick={() => window.print()}>
+              <Printer size={16} />
+              Print
+            </button>
+          </div>
+        </div>
 
-      {page.tables.map((table) => (
-        <section className="card table-card dashboard-insight-card" key={table.title}>
-          <div className="card-title">
-            <div>
-              <h3>{table.title}</h3>
-              <span>{count(table.rows.length)} record(s)</span>
-            </div>
+        <div className="dashboard-detail-filters">
+          <label>
+            <span>Section</span>
+            <select value={moduleFilter} onChange={(event) => setModuleFilter(event.target.value)}>
+              {moduleOptions.map((option) => (
+                <option value={option} key={option}>
+                  {option === "all" ? "All sections" : option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>From</span>
+            <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+          </label>
+          <label>
+            <span>To</span>
+            <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+          </label>
+        </div>
+      </section>
+
+      <section className="card table-card dashboard-insight-card">
+        <div className="card-title">
+          <div>
+            <h3>{page.title}</h3>
+            <span>{count(filteredRows.length)} record(s)</span>
           </div>
-          <div className="dashboard-table-wrap">
-            <table className="data-table">
-              <thead>
+        </div>
+        <div className="dashboard-table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Section</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.length === 0 ? (
                 <tr>
-                  {table.columns.map((column) => (
-                    <th key={column}>{column}</th>
-                  ))}
+                  <td className="empty-cell" colSpan="8">
+                    No records found.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {table.rows.length === 0 ? (
-                  <tr>
-                    <td className="empty-cell" colSpan={table.columns.length}>
-                      No records found.
+              ) : (
+                filteredRows.map((row, index) => (
+                  <tr key={`${row.module}-${row.title}-${index}`}>
+                    <td>{row.date || "-"}</td>
+                    <td>{row.module}</td>
+                    <td>
+                      {activeKey === "cash-wallet" ? (
+                        <span
+                          className={`dashboard-wallet-flow ${
+                            parseNumber(row.amount) < 0 ? "debit" : "credit"
+                          }`}
+                        >
+                          {parseNumber(row.amount) < 0 ? (
+                            <MinusCircle size={16} />
+                          ) : (
+                            <PlusCircle size={16} />
+                          )}
+                          {row.type}
+                        </span>
+                      ) : (
+                        row.type
+                      )}
                     </td>
+                    <td>{row.title}</td>
+                    <td>{row.name}</td>
+                    <td>{row.status}</td>
+                    <td>
+                      <span
+                        className={
+                          activeKey === "cash-wallet"
+                            ? `dashboard-wallet-amount ${
+                                parseNumber(row.amount) < 0
+                                  ? "debit"
+                                  : "credit"
+                              }`
+                            : ""
+                        }
+                      >
+                        {money(row.amount, row.currency)}
+                      </span>
+                    </td>
+                    <td>{row.details}</td>
                   </tr>
-                ) : (
-                  table.rows.map((row, rowIndex) => (
-                    <tr key={`${table.title}-${rowIndex}`}>
-                      {row.map((cell, cellIndex) => (
-                        <td key={`${table.title}-${rowIndex}-${cellIndex}`}>{cell}</td>
-                      ))}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ))}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

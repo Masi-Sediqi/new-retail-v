@@ -12,7 +12,7 @@ function Login({ accounts, setAccounts, onLogin, company }) {
 
   const systemName = company.companyName || "Smart Office";
   const systemSubtitle =
-    company.systemSubtitle || "Business Management System";
+    company.systemSubtitle || "Smart Office Management System";
 
   const submit = async (event) => {
     event.preventDefault();

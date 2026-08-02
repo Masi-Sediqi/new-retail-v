@@ -245,6 +245,33 @@
   background: #f8fafc;
 }
 
+.supplier-ledger-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.supplier-ledger-actions button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.supplier-ledger-actions button:hover {
+  border-color: #818cf8;
+  color: #4338ca;
+}
+
+.supplier-ledger-actions button.danger {
+  color: #dc2626;
+}
+
 .supplier-name-cell strong,
 .supplier-table-wrap td strong,
 .supplier-activity-list strong {
@@ -575,6 +602,16 @@ body.dark-mode .supplier-table-wrap th {
 body.dark-mode .supplier-table-wrap td {
   border-color: #334155;
   color: #e2e8f0;
+}
+
+body.dark-mode .supplier-ledger-actions button {
+  border-color: #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+body.dark-mode .supplier-ledger-actions button.danger {
+  color: #fca5a5;
 }
 
 @media (max-width: 1220px) {

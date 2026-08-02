@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
+import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
@@ -182,6 +183,7 @@ function Products({ language = "en" }) {
   const [unitQuery, setUnitQuery] = useState("");
   const [customUnits, setCustomUnits] = useState([]);
   const imageInputRef = useRef(null);
+  const productCustomFields = systemSettings[0]?.customFields?.products || [];
 
   
 
@@ -203,7 +205,7 @@ const unitList = useMemo(() => {
       ...usedUnits,
       ...customUnits,
     ]),
-  ].sort((a, b) => a.localeCompare(b));
+  ];
 }, [customUnits, products]);
 
   const normalizedProducts = useMemo(
@@ -876,6 +878,7 @@ const unitList = useMemo(() => {
           categoryList={categoryList}
           categoryQuery={categoryQuery}
           currencyOptions={currencyOptions}
+          customFields={productCustomFields}
           editMode={editIndex !== null}
           formData={formData}
           generateBarcode={generateBarcode}
@@ -890,7 +893,6 @@ const unitList = useMemo(() => {
           setFormData={setFormData}
           setUnitQuery={setUnitQuery}
           supplierOptions={supplierOptions}
-          unitOptions={unitList}
           addCustomUnit={addCustomUnit}
           unitQuery={unitQuery}
           tx={formTx}
@@ -975,7 +977,6 @@ function StatusBadge({ status }) {
 function SearchableTextInput({
   options,
   placeholder,
-  value,
   query,
   setQuery,
   onChange,
@@ -1045,6 +1046,7 @@ function ProductModal({
   categoryList,
   categoryQuery,
   currencyOptions,
+  customFields,
   editMode,
   formData,
   generateBarcode,
@@ -1059,7 +1061,6 @@ function ProductModal({
   setFormData,
   setUnitQuery,
   supplierOptions,
-  unitOptions,
   unitQuery,
   tx,
   rtl,
@@ -1084,7 +1085,6 @@ function ProductModal({
       selling: String(Math.round((selling + Number.EPSILON) * 100) / 100),
     }));
   };
-
   return (
     <div className="products-modal-backdrop">
       <div className={`products-modal products-product-modal${rtl ? " products-modal-rtl" : ""}`} dir={rtl ? "rtl" : "ltr"}>
@@ -1280,7 +1280,7 @@ function ProductModal({
 
             <Field label={tx.unit} className="third field-with-actions">
   <SearchableTextInput
-                options={unitOptions}
+                options={productUnits}
     placeholder={tx.searchUnit}
     value={formData.unit}
     query={unitQuery}
@@ -1396,6 +1396,21 @@ function ProductModal({
                 placeholder={tx.notesPlaceholder}
               />
             </Field>
+
+            <CustomFormFields
+              fields={customFields}
+              values={formData.customFields}
+              fieldClassName="products-form-group"
+              onChange={(key, value) =>
+                setFormData((previous) => ({
+                  ...previous,
+                  customFields: {
+                    ...(previous.customFields || {}),
+                    [key]: value,
+                  },
+                }))
+              }
+            />
 
             <div className="products-image-field full products-optional-field">
               <div>

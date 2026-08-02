@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import {
+  ArrowLeft,
   BarChart3,
+  CreditCard,
   DollarSign,
   Eye,
   Handshake,
@@ -20,7 +22,10 @@ import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
-import { formatCurrencyAmount } from "../utils/currencyExchange";
+import {
+  convertCurrencyAmount,
+  formatCurrencyAmount,
+} from "../utils/currencyExchange";
 import "./PartnerInvesting.css";
 
 const currencyCodes = [
@@ -57,6 +62,7 @@ const emptyAccount = {
 };
 
 const parseNumber = (value) => Number.parseFloat(value || 0) || 0;
+const roundMoney = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 
 const getAccountName = (account) =>
   account.name ||
@@ -65,31 +71,77 @@ const getAccountName = (account) =>
   account.investorName ||
   "Unnamed Account";
 
+const getPaymentLedger = (account) =>
+  Array.isArray(account.paymentLedger) ? account.paymentLedger : [];
+
+const getPaymentPercent = (account) =>
+  parseNumber(
+    account.accountType === "partner"
+      ? account.partnerPercent
+      : account.monthlySharePercent
+  );
+
+const getLedgerSummary = (account) => {
+  const ledger = getPaymentLedger(account);
+  const paid = ledger.reduce(
+    (sum, entry) => sum + parseNumber(entry.paidAmount),
+    0
+  );
+  const balance = ledger.reduce(
+    (sum, entry) => sum + parseNumber(entry.balanceDelta),
+    0
+  );
+
+  return {
+    balance,
+    paid,
+    payable: Math.max(0, balance),
+    receivable: Math.max(0, -balance),
+  };
+};
+
+const isCashWalletTransaction = (transaction) =>
+  /cash-wallet|cash wallet/i.test(
+    `${transaction.source || ""} ${transaction.category || ""}`
+  );
+
+const getTransactionDirection = (transaction) =>
+  /withdraw|expense|payment out/i.test(
+    `${transaction.transactionType || ""} ${transaction.type || ""}`
+  )
+    ? -1
+    : 1;
+
 function PartnerInvesting() {
   const [accounts, setAccounts] = useJsonCollection(
     "partnerInvestingAccounts"
   );
+  const [transactions, setTransactions] =
+    useJsonCollection("transactions");
   const [settings] = useJsonCollection("settings");
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
+  const exchangeRates = company.exchangeRates || {};
 
   const [activeTab, setActiveTab] = useState("partner");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [deleteAccount, setDeleteAccount] = useState(null);
   const [viewAccount, setViewAccount] = useState(null);
+  const [paymentAccountId, setPaymentAccountId] = useState(null);
+  const [paymentDraft, setPaymentDraft] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
   const normalizedAccounts = useMemo(
     () =>
-      accounts.map((account) => ({
+      accounts.map((account, index) => ({
         ...emptyAccount,
         ...account,
         id:
           account.id ||
-          `partner-investing-${Date.now()}-${Math.random()}`,
+          `partner-investing-${account.accountType || "account"}-${index}`,
         name: getAccountName(account),
         accountType: account.accountType || "partner",
         currency: account.currency || baseCurrency,
@@ -136,6 +188,55 @@ function PartnerInvesting() {
     filteredAccounts,
     `${activeTab}-${search}-${statusFilter}`
   );
+
+  const paymentAccount = useMemo(
+    () =>
+      normalizedAccounts.find(
+        (account) => String(account.id) === String(paymentAccountId)
+      ) || null,
+    [normalizedAccounts, paymentAccountId]
+  );
+
+  const getCashWalletTotal = (targetCurrency) => {
+    const missingCurrencies = new Set();
+    const total = transactions.reduce((sum, transaction) => {
+      if (!isCashWalletTransaction(transaction)) return sum;
+
+      const amount =
+        getTransactionDirection(transaction) *
+        parseNumber(transaction.amount);
+      const fromCurrency = transaction.currency || baseCurrency;
+      const converted = convertCurrencyAmount(amount, {
+        baseCurrency,
+        exchangeRates,
+        fromCurrency,
+        targetCurrency,
+      });
+
+      if (converted === null) {
+        missingCurrencies.add(fromCurrency);
+        return sum;
+      }
+
+      return sum + converted;
+    }, 0);
+
+    return {
+      missingCurrencies: [...missingCurrencies],
+      total: roundMoney(total),
+    };
+  };
+
+  const getSuggestedPayment = (account) => {
+    const wallet = getCashWalletTotal(account.currency || baseCurrency);
+    const percent = getPaymentPercent(account);
+
+    return {
+      ...wallet,
+      percent,
+      suggestedAmount: roundMoney(wallet.total * (percent / 100)),
+    };
+  };
 
   const totals = useMemo(() => {
     const partnerAccounts = normalizedAccounts.filter(
@@ -251,6 +352,137 @@ function PartnerInvesting() {
   const printReport = () => {
     window.print();
   };
+
+  const openPaymentDraft = () => {
+    if (!paymentAccount) return;
+
+    const suggested = getSuggestedPayment(paymentAccount);
+    if (suggested.missingCurrencies.length) {
+      notify(
+        `Exchange rate is missing for ${suggested.missingCurrencies.join(
+          ", "
+        )}. Those Cash Wallet amounts were not included.`,
+        "warning"
+      );
+    }
+
+    setPaymentDraft({
+      date: new Date().toISOString().slice(0, 10),
+      walletTotal: suggested.total,
+      percent: suggested.percent,
+      expectedAmount: suggested.suggestedAmount,
+      paidAmount: suggested.suggestedAmount,
+      currency: paymentAccount.currency || baseCurrency,
+      notes: "",
+    });
+  };
+
+  const savePayment = async (draft) => {
+    if (!paymentAccount) return;
+
+    const paidAmount = roundMoney(parseNumber(draft.paidAmount));
+    if (paidAmount <= 0) {
+      notify("Please enter paid amount.", "error");
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const paymentEntry = {
+      id: `partner-payment-${Date.now()}`,
+      accountId: paymentAccount.id,
+      accountType: paymentAccount.accountType,
+      date: draft.date || now.slice(0, 10),
+      walletTotal: roundMoney(draft.walletTotal),
+      percent: parseNumber(draft.percent),
+      expectedAmount: roundMoney(draft.expectedAmount),
+      paidAmount,
+      balanceDelta: roundMoney(parseNumber(draft.expectedAmount) - paidAmount),
+      currency: draft.currency,
+      notes: draft.notes.trim(),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const saved = await setAccounts((current) =>
+      current.map((account) =>
+        String(account.id) === String(paymentAccount.id)
+          ? {
+              ...account,
+              paymentLedger: [
+                paymentEntry,
+                ...getPaymentLedger(account),
+              ],
+              updatedAt: now,
+            }
+          : account
+      )
+    );
+    if (!saved) return;
+
+    const walletTransaction = {
+      id: `partner-investing-payment-${paymentEntry.id}`,
+      transactionType: "withdraw",
+      type: "expense",
+      title: `Payment to ${paymentAccount.name}`,
+      amount: paidAmount,
+      date: paymentEntry.date,
+      createdAt: now,
+      updatedAt: now,
+      description:
+        paymentEntry.notes ||
+        `${paymentEntry.percent}% of Cash Wallet for ${paymentAccount.name}`,
+      note: paymentEntry.notes,
+      source: "cash-wallet",
+      referenceSource: "partner-investing",
+      category: "Cash Wallet",
+      module: "partner-investing-payment",
+      paymentEntryId: paymentEntry.id,
+      referenceId: paymentAccount.id,
+      partnerInvestingAccountId: paymentAccount.id,
+      accountName: paymentAccount.name,
+      currency: paymentEntry.currency,
+    };
+
+    const transactionSaved = await setTransactions((current) => [
+      walletTransaction,
+      ...current,
+    ]);
+
+    if (transactionSaved) {
+      window.dispatchEvent(
+        new CustomEvent("cash-wallet-updated", {
+          detail: walletTransaction,
+        })
+      );
+    }
+
+    notify("Payment saved and deducted from Cash Wallet.");
+    setPaymentDraft(null);
+  };
+
+  if (paymentAccount) {
+    return (
+      <PaymentLedgerView
+        account={paymentAccount}
+        onBack={() => {
+          setPaymentAccountId(null);
+          setPaymentDraft(null);
+        }}
+        onOpenPayment={openPaymentDraft}
+        suggested={getSuggestedPayment(paymentAccount)}
+      >
+        {paymentDraft && (
+          <PaymentModal
+            account={paymentAccount}
+            draft={paymentDraft}
+            onChange={setPaymentDraft}
+            onClose={() => setPaymentDraft(null)}
+            onSave={savePayment}
+          />
+        )}
+      </PaymentLedgerView>
+    );
+  }
 
   return (
     <div className="partner-investing-page">
@@ -470,6 +702,11 @@ function PartnerInvesting() {
                           onClick: () => setViewAccount(account),
                         },
                         {
+                          icon: <CreditCard size={15} />,
+                          label: "Payment",
+                          onClick: () => setPaymentAccountId(account.id),
+                        },
+                        {
                           icon: <SquarePen size={15} />,
                           label: "Edit",
                           onClick: () => openEditModal(account),
@@ -537,6 +774,316 @@ function PartnerInvesting() {
           onConfirm={removeAccount}
         />
       )}
+    </div>
+  );
+}
+
+function PaymentLedgerView({
+  account,
+  children,
+  onBack,
+  onOpenPayment,
+  suggested,
+}) {
+  const isPartner = account.accountType === "partner";
+  const ledger = getPaymentLedger(account);
+  const summary = getLedgerSummary(account);
+  const actionLabel = isPartner
+    ? "Add Payment"
+    : `Payment to ${account.name}`;
+
+  return (
+    <div className="partner-investing-page">
+      <div className="partner-payment-header">
+        <button
+          type="button"
+          className="partner-investing-light-btn"
+          onClick={onBack}
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
+
+        <button
+          type="button"
+          className="partner-investing-primary-btn"
+          onClick={onOpenPayment}
+        >
+          <CreditCard size={16} />
+          {actionLabel}
+        </button>
+      </div>
+
+      <section className="partner-payment-profile">
+        <div>
+          <span>{isPartner ? "Partner" : "Investing Account"}</span>
+          <h1>{account.name}</h1>
+          <p>
+            {isPartner
+              ? `${parseNumber(account.partnerPercent)}% partner share`
+              : `${parseNumber(
+                  account.monthlySharePercent
+                )}% monthly share`}
+          </p>
+        </div>
+
+        <div className="partner-payment-profile-grid">
+          <PaymentMetric
+            label={isPartner ? "Capital Given" : "Monthly Gives Us"}
+            value={formatCurrencyAmount(
+              isPartner
+                ? account.partnerAmount
+                : account.monthlyInvestment,
+              account.currency
+            )}
+          />
+          <PaymentMetric
+            label="Cash Wallet Share"
+            value={formatCurrencyAmount(
+              suggested.suggestedAmount,
+              account.currency
+            )}
+          />
+          <PaymentMetric
+            label="Paid"
+            value={formatCurrencyAmount(summary.paid, account.currency)}
+          />
+          <PaymentMetric
+            label="We Owe"
+            value={formatCurrencyAmount(
+              summary.payable,
+              account.currency
+            )}
+            tone={summary.payable ? "warning" : ""}
+          />
+          <PaymentMetric
+            label="They Owe Us"
+            value={formatCurrencyAmount(
+              summary.receivable,
+              account.currency
+            )}
+            tone={summary.receivable ? "success" : ""}
+          />
+        </div>
+      </section>
+
+      {!!suggested.missingCurrencies.length && (
+        <div className="partner-payment-warning">
+          Exchange rate is missing for{" "}
+          {suggested.missingCurrencies.join(", ")}. Those wallet amounts
+          are not included in this calculation.
+        </div>
+      )}
+
+      <section className="partner-investing-card">
+        <div className="partner-payment-ledger-title">
+          <div>
+            <h2>Payment Ledger</h2>
+            <p>
+              Expected share minus paid amount becomes payable; extra paid
+              becomes receivable.
+            </p>
+          </div>
+        </div>
+
+        <div className="partner-investing-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Cash Wallet</th>
+                <th>Percent</th>
+                <th>Expected</th>
+                <th>Paid</th>
+                <th>Balance</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {ledger.map((entry) => (
+                <tr key={entry.id}>
+                  <td>{entry.date}</td>
+                  <td>
+                    {formatCurrencyAmount(
+                      entry.walletTotal,
+                      entry.currency
+                    )}
+                  </td>
+                  <td>{parseNumber(entry.percent)}%</td>
+                  <td>
+                    {formatCurrencyAmount(
+                      entry.expectedAmount,
+                      entry.currency
+                    )}
+                  </td>
+                  <td>
+                    {formatCurrencyAmount(
+                      entry.paidAmount,
+                      entry.currency
+                    )}
+                  </td>
+                  <td>
+                    <span
+                      className={`partner-payment-balance ${
+                        parseNumber(entry.balanceDelta) < 0
+                          ? "receivable"
+                          : parseNumber(entry.balanceDelta) > 0
+                            ? "payable"
+                            : ""
+                      }`.trim()}
+                    >
+                      {parseNumber(entry.balanceDelta) < 0
+                        ? "They owe us "
+                        : parseNumber(entry.balanceDelta) > 0
+                          ? "We owe "
+                          : ""}
+                      {formatCurrencyAmount(
+                        Math.abs(parseNumber(entry.balanceDelta)),
+                        entry.currency
+                      )}
+                    </span>
+                  </td>
+                  <td>{entry.notes || "-"}</td>
+                </tr>
+              ))}
+
+              {!ledger.length && (
+                <tr>
+                  <td className="partner-investing-empty" colSpan="7">
+                    No payment has been recorded yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {children}
+    </div>
+  );
+}
+
+function PaymentMetric({ label, tone = "", value }) {
+  return (
+    <article className={`partner-payment-metric ${tone}`.trim()}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
+  );
+}
+
+function PaymentModal({
+  account,
+  draft,
+  onChange,
+  onClose,
+  onSave,
+}) {
+  const update = (field, value) =>
+    onChange((current) => ({
+      ...current,
+      [field]: value,
+    }));
+
+  return (
+    <div className="partner-investing-modal-backdrop">
+      <form
+        className="partner-investing-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave(draft);
+        }}
+      >
+        <div className="partner-investing-modal-title">
+          <div>
+            <h2>Payment to {account.name}</h2>
+            <p>
+              Paid amount is prefilled from Cash Wallet percentage and can
+              be adjusted.
+            </p>
+          </div>
+
+          <button type="button" onClick={onClose} aria-label="Close">
+            <X size={17} />
+          </button>
+        </div>
+
+        <div className="partner-investing-form-grid">
+          <Field label="Date">
+            <input
+              type="date"
+              value={draft.date}
+              onChange={(event) => update("date", event.target.value)}
+            />
+          </Field>
+
+          <Field label="Cash Wallet Total">
+            <input
+              readOnly
+              value={formatCurrencyAmount(
+                draft.walletTotal,
+                draft.currency
+              )}
+            />
+          </Field>
+
+          <Field label="Share Percent">
+            <div className="partner-investing-input-suffix">
+              <input readOnly value={draft.percent} />
+              <span>%</span>
+            </div>
+          </Field>
+
+          <Field label="Expected Amount">
+            <input
+              readOnly
+              value={formatCurrencyAmount(
+                draft.expectedAmount,
+                draft.currency
+              )}
+            />
+          </Field>
+
+          <Field label="Paid">
+            <input
+              autoFocus
+              type="number"
+              min="0"
+              step="0.01"
+              value={draft.paidAmount}
+              onChange={(event) =>
+                update("paidAmount", event.target.value)
+              }
+            />
+          </Field>
+
+          <Field label="Notes" className="full">
+            <textarea
+              value={draft.notes}
+              onChange={(event) => update("notes", event.target.value)}
+            />
+          </Field>
+        </div>
+
+        <div className="partner-investing-modal-actions">
+          <button
+            type="button"
+            className="partner-investing-light-btn"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            className="partner-investing-primary-btn"
+          >
+            Save Payment
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

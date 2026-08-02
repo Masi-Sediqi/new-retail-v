@@ -193,10 +193,10 @@ function App() {
     () => localStorage.getItem(languageStorageKey) || "en"
   );
   const [primaryCurrencyFilter, setPrimaryCurrencyFilter] = useState(
-    () => localStorage.getItem("isp-primary-currency") || "AFN"
+    () => localStorage.getItem("isp-primary-currency") || "all"
   );
   const [displayCurrency, setDisplayCurrency] = useState(
-    () => localStorage.getItem("isp-secondary-currency") || "USD"
+    () => localStorage.getItem("isp-secondary-currency") || "original"
   );
   const sidebarInfoRef = useRef(null);
 
@@ -211,7 +211,7 @@ function App() {
   const direction = getLanguageDirection(language);
   const t = translations[language] || translations.en;
   const systemName = company.companyName || "Smart Office";
-  const systemSubtitle = company.systemSubtitle || "Business Management System";
+  const systemSubtitle = company.systemSubtitle || "Smart Office Management System";
   const configuredUsers = (company.systemUsers || []).map((user) => ({ ...user, fullName: user.fullName || user.name, status: user.status || "Active" }));
   const mergedAccounts = [...accounts, ...configuredUsers.filter((user) => !accounts.some((account) => String(account.id) === String(user.id)))];
   const effectiveAccounts = mergedAccounts.some((account) => String(account.id) === "default-admin")
@@ -228,8 +228,8 @@ function App() {
 
   useEffect(() => {
     const updateCurrency = (event) => {
-      setPrimaryCurrencyFilter(event?.detail?.primaryCurrency || localStorage.getItem("isp-primary-currency") || company.baseCurrency || "AFN");
-      setDisplayCurrency(event?.detail?.secondaryCurrency || localStorage.getItem("isp-secondary-currency") || "USD");
+      setPrimaryCurrencyFilter(event?.detail?.primaryCurrency || localStorage.getItem("isp-primary-currency") || "all");
+      setDisplayCurrency(event?.detail?.secondaryCurrency || localStorage.getItem("isp-secondary-currency") || "original");
     };
     window.addEventListener("app-currency-changed", updateCurrency);
     return () => window.removeEventListener("app-currency-changed", updateCurrency);
@@ -439,7 +439,7 @@ const menuItems = [
   },
   {
     to: "/suppliers",
-    label: "Suppliers",
+    label: "Supplier / Katah",
     labelKey: "suppliers",
     moduleKey: "suppliers",
     icon: Truck,
@@ -698,6 +698,11 @@ const menuItems = [
   element={protect("dashboard", <DashboardOverviewDetail t={t} />)}
 />
 
+<Route
+  path="/dashboard/card/:cardKey"
+  element={protect("dashboard", <DashboardOverviewDetail t={t} />)}
+/>
+
             <Route
   path="/assets"
   element={protect("assets", <Products language={language} />)}
@@ -812,7 +817,14 @@ const menuItems = [
     <>
       <StartupSplash />
       {appContent}
-      {accountsLoaded && locked && <LockScreen accounts={effectiveAccounts} company={company} onUnlock={unlockScreen} />}
+      {locked && (
+        <LockScreen
+          accounts={effectiveAccounts}
+          company={company}
+          dataLoaded={accountsLoaded}
+          onUnlock={unlockScreen}
+        />
+      )}
       {!currentUser && <ToastHost />}
       {!currentUser && <ConfirmDialogHost />}
     </>

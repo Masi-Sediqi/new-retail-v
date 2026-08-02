@@ -34,12 +34,15 @@ import { todayDateValue } from "../utils/afghanDate";
 import {
   convertCurrencyAmount,
   formatBusinessCurrencyAmount,
+  formatCurrencyAmount,
   hasExchangeRate,
 } from "../utils/currencyExchange";
 import "../App.css";
 
 const money = (value, currency = "AFN") => formatBusinessCurrencyAmount(Number(value || 0), currency);
 const count = (value) => Number(value || 0).toLocaleString("en-US");
+const compactWalletMoney = (value, currency = "AFN") =>
+  formatCurrencyAmount(value, currency).replace(/\.00(\D|$)/, "$1").trim();
 const clean = (value) => String(value || "").trim();
 const normalize = (value) => clean(value).toLowerCase();
 const parseNumber = (value) => {
@@ -121,10 +124,10 @@ const productQuantity = (product) =>
   parseNumber(product.quantity ?? product.stock ?? product.currentStock);
 
 const productCost = (product) =>
-  parseNumber(product.purchase ?? product.purchasePrice ?? product.cost);
+  parseNumber(product.purchase ?? product.purchasePrice ?? product.cost ?? product.unitCost);
 
 const productSalePrice = (product) =>
-  parseNumber(product.sellingPrice ?? product.salePrice ?? product.price);
+  parseNumber(product.selling ?? product.sellingPrice ?? product.salePrice ?? product.price);
 
 const invoiceItems = (invoice) =>
   Array.isArray(invoice.items)
@@ -198,6 +201,10 @@ function Dashboard({ t = {} }) {
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
+  const currencyView =
+    typeof window === "undefined" ? {} : window.__retailCurrencyView || {};
+  const businessCurrencyFilter = currencyView.primaryCurrency || "all";
+  const displayCurrency = currencyView.displayCurrency || "original";
   const exchangeRates = useMemo(
     () => company.exchangeRates || {},
     [company.exchangeRates]
@@ -216,22 +223,41 @@ function Dashboard({ t = {} }) {
     () => getDateRange(dateFilter, customRange),
     [dateFilter, customRange]
   );
+  const inBusinessCurrency = useCallback(
+    (currency) =>
+      !businessCurrencyFilter ||
+      businessCurrencyFilter === "all" ||
+      normalizeCurrency(currency) === businessCurrencyFilter,
+    [businessCurrencyFilter, normalizeCurrency]
+  );
 
   const filteredInvoices = useMemo(
-    () => billingInvoices.filter((invoice) => inDateRange(invoice, activeDateRange)),
-    [billingInvoices, activeDateRange]
+    () => billingInvoices.filter((invoice) => inDateRange(invoice, activeDateRange) && inBusinessCurrency(invoice.currency)),
+    [billingInvoices, activeDateRange, inBusinessCurrency]
   );
   const filteredExpenses = useMemo(
-    () => expenses.filter((expense) => inDateRange(expense, activeDateRange)),
-    [expenses, activeDateRange]
+    () => expenses.filter((expense) => inDateRange(expense, activeDateRange) && inBusinessCurrency(expense.currency)),
+    [expenses, activeDateRange, inBusinessCurrency]
   );
   const filteredTransactions = useMemo(
-    () => transactions.filter((transaction) => inDateRange(transaction, activeDateRange)),
-    [transactions, activeDateRange]
+    () => transactions.filter((transaction) => inDateRange(transaction, activeDateRange) && inBusinessCurrency(transaction.currency)),
+    [transactions, activeDateRange, inBusinessCurrency]
   );
   const filteredGodownEntries = useMemo(
-    () => godownEntries.filter((entry) => inDateRange(entry, activeDateRange)),
-    [godownEntries, activeDateRange]
+    () => godownEntries.filter((entry) => inDateRange(entry, activeDateRange) && inBusinessCurrency(entry.currency)),
+    [godownEntries, activeDateRange, inBusinessCurrency]
+  );
+  const filteredProducts = useMemo(
+    () => products.filter((product) => inBusinessCurrency(product.currency)),
+    [products, inBusinessCurrency]
+  );
+  const filteredStaff = useMemo(
+    () => staff.filter((member) => inBusinessCurrency(member.currency)),
+    [staff, inBusinessCurrency]
+  );
+  const filteredSuppliers = useMemo(
+    () => suppliers.filter((supplier) => inBusinessCurrency(supplier.currency)),
+    [suppliers, inBusinessCurrency]
   );
 
   const metrics = useMemo(() => {
@@ -245,33 +271,19 @@ function Dashboard({ t = {} }) {
     }, 0);
 const soldGoodsCost = filteredInvoices.reduce(
   (sum, invoice) =>
-    sum + toBase(invoiceCost(invoice, products), invoice.currency),
+    sum + toBase(invoiceCost(invoice, filteredProducts), invoice.currency),
   0
 );
 
 const pureProfit =
   revenue - soldGoodsCost - refundTotal;
-    const stockValue = products.reduce(
-      (sum, product) => sum + toBase(productQuantity(product) * productCost(product), product.currency),
-      0
-    );
-    const stockSaleValue = products.reduce(
-      (sum, product) => sum + toBase(productQuantity(product) * productSalePrice(product), product.currency),
-      0
-    );
-    const stockQuantity = products.reduce((sum, product) => sum + productQuantity(product), 0);
-    const lowStock = products.filter((product) => {
-      const quantity = productQuantity(product);
-      const alert = parseNumber(product.lowStock || product.lowStockThreshold || product.minimumStock);
-      return quantity <= 0 || (alert > 0 && quantity <= alert);
-    }).length;
-    const staffPayableFromPayroll = staff.reduce(
+    const staffPayableFromPayroll = filteredStaff.reduce(
   (sum, member) =>
     sum + payrollPayableTotal(member.payrollHistory || [], toBase, member.currency),
   0
 );
 
-const staffPayableFromRecords = staff.reduce(
+const staffPayableFromRecords = filteredStaff.reduce(
   (sum, member) => {
     if (Array.isArray(member.payrollHistory) && member.payrollHistory.length) {
       return sum;
@@ -289,7 +301,7 @@ const staffPayableFromRecords = staff.reduce(
 
 const staffPayable = staffPayableFromPayroll + staffPayableFromRecords;
 
-const staffPaidFromRecords = staff.reduce(
+const staffPaidFromRecords = filteredStaff.reduce(
   (sum, member) => {
     const history = member.payrollHistory || [];
     if (history.length) {
@@ -338,7 +350,65 @@ const staffPaid =
   staffPaidFromTransactions > 0
     ? staffPaidFromTransactions
     : staffPaidFromRecords;
-    const supplierPayables = suppliers.reduce(
+    const stockProducts = products;
+    const stockValueByCurrency = stockProducts.reduce((totals, product) => {
+      const currency = product.currency || baseCurrency;
+      totals[currency] = (totals[currency] || 0) + productQuantity(product) * productCost(product);
+      return totals;
+    }, {});
+    const stockSaleValueByCurrency = stockProducts.reduce((totals, product) => {
+      const currency = product.currency || baseCurrency;
+      totals[currency] = (totals[currency] || 0) + productQuantity(product) * productSalePrice(product);
+      return totals;
+    }, {});
+    const convertCurrencyTotals = (totalsByCurrency, targetCurrency) =>
+      Object.entries(totalsByCurrency)
+        .filter(([, amount]) => parseNumber(amount) !== 0)
+        .reduce(
+          (result, [currency, amount]) => {
+            if (targetCurrency === "original" || targetCurrency === "all") return result;
+            const converted = convertCurrencyAmount(amount, {
+              baseCurrency,
+              exchangeRates,
+              fromCurrency: currency,
+              targetCurrency,
+            });
+            if (converted === null) {
+              result.missing.add(currency);
+              return result;
+            }
+            result.total += converted;
+            return result;
+          },
+          { total: 0, missing: new Set() }
+        );
+    const stockValueConversion = convertCurrencyTotals(stockValueByCurrency, displayCurrency);
+    const stockSaleValueConversion = convertCurrencyTotals(stockSaleValueByCurrency, displayCurrency);
+    const stockValue = Object.entries(stockValueByCurrency).reduce((sum, [currency, amount]) => {
+      const converted = convertCurrencyAmount(amount, {
+        baseCurrency,
+        exchangeRates,
+        fromCurrency: currency,
+        targetCurrency: baseCurrency,
+      });
+      return converted === null ? sum : sum + converted;
+    }, 0);
+    const stockSaleValue = Object.entries(stockSaleValueByCurrency).reduce((sum, [currency, amount]) => {
+      const converted = convertCurrencyAmount(amount, {
+        baseCurrency,
+        exchangeRates,
+        fromCurrency: currency,
+        targetCurrency: baseCurrency,
+      });
+      return converted === null ? sum : sum + converted;
+    }, 0);
+    const stockQuantity = stockProducts.reduce((sum, product) => sum + productQuantity(product), 0);
+    const lowStock = stockProducts.filter((product) => {
+      const quantity = productQuantity(product);
+      const alert = parseNumber(product.lowStock || product.lowStockThreshold || product.minimumStock);
+      return quantity <= 0 || (alert > 0 && quantity <= alert);
+    }).length;
+    const supplierPayables = filteredSuppliers.reduce(
   (sum, supplier) => {
     const balance = parseNumber(
       supplier.balance ??
@@ -351,7 +421,7 @@ const staffPaid =
   0
 );
 
-const supplierReceivables = suppliers.reduce(
+const supplierReceivables = filteredSuppliers.reduce(
   (sum, supplier) => {
     const balance = parseNumber(
       supplier.balance ??
@@ -375,10 +445,37 @@ const supplierNetBalance =
       balances[currency] = (balances[currency] || 0) + direction * parseNumber(transaction.amount);
       return balances;
     }, {});
-    const cashWalletTotal = Object.entries(cashWalletByCurrency).reduce(
-      (sum, [currency, amount]) => sum + toBase(amount, currency),
-      0
+    const cashWalletEntries = Object.entries(cashWalletByCurrency)
+      .filter(([, amount]) => parseNumber(amount) !== 0);
+    const cashWalletConversion = cashWalletEntries.reduce(
+      (result, [currency, amount]) => {
+        if (displayCurrency === "original" || displayCurrency === "all") {
+          return result;
+        }
+        const converted = convertCurrencyAmount(amount, {
+          baseCurrency,
+          exchangeRates,
+          fromCurrency: currency,
+          targetCurrency: displayCurrency,
+        });
+        if (converted === null) {
+          result.missing.add(currency);
+          return result;
+        }
+        result.total += converted;
+        return result;
+      },
+      { total: 0, missing: new Set() }
     );
+    const cashWalletTotal = cashWalletEntries.reduce((sum, [currency, amount]) => {
+      const converted = convertCurrencyAmount(amount, {
+        baseCurrency,
+        exchangeRates,
+        fromCurrency: currency,
+        targetCurrency: baseCurrency,
+      });
+      return converted === null ? sum : sum + converted;
+    }, 0);
     const cashWalletHasNegative = Object.values(cashWalletByCurrency)
       .some((amount) => parseNumber(amount) < 0);
     const legacyCashWallet = filteredTransactions.reduce((sum, transaction) => {
@@ -394,7 +491,7 @@ const supplierNetBalance =
     (customer) => !isInactive(customer)
   ).length,
 
-  activeProducts: products.filter(
+  activeProducts: stockProducts.filter(
     (product) => !isInactive(product)
   ).length,
 
@@ -408,6 +505,8 @@ const supplierNetBalance =
   cashWalletByCurrency: Object.keys(cashWalletByCurrency).length
     ? cashWalletByCurrency
     : { [baseCurrency]: legacyCashWallet },
+  cashWalletConvertedTotal: cashWalletConversion.total,
+  cashWalletMissingCurrencies: [...cashWalletConversion.missing],
   expenseTotal,
   lowStock,
 
@@ -430,6 +529,12 @@ const supplierNetBalance =
   stockQuantity,
   stockSaleValue,
   stockValue,
+  stockSaleValueByCurrency,
+  stockSaleValueConvertedTotal: stockSaleValueConversion.total,
+  stockSaleValueMissingCurrencies: [...stockSaleValueConversion.missing],
+  stockValueByCurrency,
+  stockValueConvertedTotal: stockValueConversion.total,
+  stockValueMissingCurrencies: [...stockValueConversion.missing],
 
   supplierNetBalance,
   supplierPayables,
@@ -437,41 +542,48 @@ const supplierNetBalance =
 
   totalCustomers: customers.length,
   totalInvoices: filteredInvoices.length,
-  totalStaff: staff.length,
+  totalStaff: filteredStaff.length,
 };
-  }, [customers, filteredExpenses, filteredInvoices, filteredTransactions, products, staff, suppliers, baseCurrency, toBase]);
+  }, [customers, filteredExpenses, filteredInvoices, filteredProducts, filteredStaff, filteredSuppliers, filteredTransactions, products, baseCurrency, displayCurrency, exchangeRates, toBase]);
 
 const missingExchangeCurrencies = useMemo(() => {
   const usedCurrencies = new Set();
-  const addCurrency = (currency) => {
+  const addCurrency = (currency, amount = 0) => {
+    if (parseNumber(amount) === 0) return;
     usedCurrencies.add(normalizeCurrency(currency));
   };
 
   filteredInvoices.forEach((invoice) => {
-    addCurrency(invoice.currency);
+    addCurrency(invoice.currency, invoiceTotal(invoice));
     (invoice.refundHistory || invoice.refunds || []).forEach((refund) =>
-      addCurrency(refund.currency || invoice.currency)
+      addCurrency(refund.currency || invoice.currency, refund.amount)
     );
   });
-  filteredExpenses.forEach((expense) => addCurrency(expense.currency));
-  filteredTransactions.forEach((transaction) => addCurrency(transaction.currency));
-  products.forEach((product) => addCurrency(product.currency));
-  staff.forEach((member) => addCurrency(member.currency));
-  suppliers.forEach((supplier) => addCurrency(supplier.currency));
+  filteredExpenses.forEach((expense) => addCurrency(expense.currency, expense.amount));
+  filteredTransactions.forEach((transaction) => addCurrency(transaction.currency, transaction.amount));
+  products.forEach((product) => addCurrency(product.currency, product.purchase ?? product.purchasePrice ?? product.cost ?? product.selling ?? product.sellingPrice ?? product.totalValue));
+  filteredStaff.forEach((member) => addCurrency(member.currency, member.salary || member.monthlySalary));
+  filteredSuppliers.forEach((supplier) => addCurrency(supplier.currency, supplier.balance ?? supplier.remainingBalance ?? supplier.openingBalance));
+
+  if (displayCurrency !== "original" && displayCurrency !== "all" && usedCurrencies.size > 0) {
+    usedCurrencies.add(displayCurrency);
+  }
 
   return [...usedCurrencies]
+    .filter(() => displayCurrency !== "original" && displayCurrency !== "all")
     .filter((currency) => !hasExchangeRate(currency, baseCurrency, exchangeRates))
     .sort();
 }, [
   baseCurrency,
+  displayCurrency,
   exchangeRates,
   filteredExpenses,
   filteredInvoices,
+  filteredStaff,
+  filteredSuppliers,
   filteredTransactions,
   normalizeCurrency,
   products,
-  staff,
-  suppliers,
 ]);
 
 const trendData = useMemo(() => {
@@ -560,15 +672,31 @@ const statCards = [
     value: money(metrics.revenue, baseCurrency),
     icon: DollarSign,
     tone: "green",
-    path: "/sales-bills",
+    key: "total-revenue",
   },
   {
     group: "Financial overview",
     label: t.currentCashWallet || "Current cash wallet",
-    value: money(metrics.cashWalletTotal, baseCurrency),
+    value:
+      displayCurrency === "original" ||
+      displayCurrency === "all" ||
+      metrics.cashWalletMissingCurrencies?.length
+        ? Object.entries(metrics.cashWalletByCurrency || {})
+            .filter(([, amount]) => parseNumber(amount) !== 0)
+            .map(([currency, amount]) => compactWalletMoney(amount, currency))
+            .join("\n") || compactWalletMoney(0, baseCurrency)
+        : compactWalletMoney(metrics.cashWalletConvertedTotal, displayCurrency),
+    subValue: Object.entries(metrics.cashWalletByCurrency || {})
+      .filter(([, amount]) => parseNumber(amount) !== 0)
+      .map(([currency, amount]) => compactWalletMoney(amount, currency))
+      .join("\n"),
+    hideSubValue:
+      displayCurrency === "original" ||
+      displayCurrency === "all" ||
+      metrics.cashWalletMissingCurrencies?.length,
     icon: WalletCards,
     tone: "green",
-    path: "/financials",
+    key: "cash-wallet",
     danger: metrics.cashWalletHasNegative,
   },
   {
@@ -577,7 +705,7 @@ const statCards = [
     value: money(metrics.netProfit, baseCurrency),
     icon: TrendingUp,
     tone: "green",
-    path: "/financials",
+    key: "net-profit",
     danger: metrics.netProfit < 0,
   },
   {
@@ -586,7 +714,7 @@ const statCards = [
     value: money(metrics.pureProfit, baseCurrency),
     icon: TrendingUp,
     tone: "green",
-    path: "/financials",
+    key: "pure-profit",
     danger: metrics.pureProfit < 0,
   },
   {
@@ -595,7 +723,7 @@ const statCards = [
     value: count(metrics.totalInvoices),
     icon: ShoppingCart,
     tone: "blue",
-    path: "/sales-bills",
+    key: "total-sales",
   },
   {
     group: "Financial overview",
@@ -603,7 +731,7 @@ const statCards = [
     value: money(metrics.expenseTotal, baseCurrency),
     icon: WalletCards,
     tone: "dark",
-    path: "/expenses",
+    key: "total-expenses",
   },
   {
     group: "Financial overview",
@@ -611,7 +739,7 @@ const statCards = [
     value: money(metrics.pendingPayments, baseCurrency),
     icon: Clock3,
     tone: "orange",
-    path: "/sales-bills",
+    key: "pending-payments",
   },
   {
     group: "Financial overview",
@@ -619,7 +747,7 @@ const statCards = [
     value: money(metrics.refundTotal, baseCurrency),
     icon: Redo2,
     tone: "red",
-    path: "/sales-bills",
+    key: "total-refunds",
   },
   {
     group: "Financial overview",
@@ -627,28 +755,28 @@ const statCards = [
     value: count(metrics.totalCustomers),
     icon: UserRound,
     tone: "dark",
-    path: "/customers",
+    key: "total-customers",
   },
 
-  // Suppliers / Katanama overview
+  // Supplier / Katah overview
   {
-    group: "Suppliers / Katanama overview",
+    group: "Supplier / Katah overview",
     label: t.totalPayables || "Total Payables",
     value: money(metrics.supplierPayables, baseCurrency),
     icon: Banknote,
     tone: "orange",
-    path: "/suppliers",
+    key: "supplier-payables",
   },
   {
-    group: "Suppliers / Katanama overview",
+    group: "Supplier / Katah overview",
     label: t.totalReceivables || "Total Receivables",
     value: money(metrics.supplierReceivables, baseCurrency),
     icon: TrendingUp,
     tone: "green",
-    path: "/suppliers",
+    key: "supplier-receivables",
   },
   {
-    group: "Suppliers / Katanama overview",
+    group: "Supplier / Katah overview",
     label: t.netBalance || "Net Balance",
     value: `${money(metrics.supplierNetBalance, baseCurrency)} ${
       metrics.supplierNetBalance > 0
@@ -659,7 +787,7 @@ const statCards = [
     }`,
     icon: DollarSign,
     tone: "orange",
-    path: "/suppliers",
+    key: "supplier-net-balance",
     danger: metrics.supplierNetBalance < 0,
   },
 
@@ -670,7 +798,7 @@ const statCards = [
     value: count(metrics.activeProducts),
     icon: Boxes,
     tone: "dark",
-    path: "/products",
+    key: "active-products",
   },
   {
     group: "Stock overview",
@@ -678,15 +806,31 @@ const statCards = [
     value: count(metrics.stockQuantity),
     icon: PackageCheck,
     tone: "dark",
-    path: "/products",
+    key: "stock-quantity",
   },
   {
     group: "Stock overview",
     label: t.globalStockValue || "Global Stock Value",
-    value: money(metrics.stockValue, baseCurrency),
+    value:
+      displayCurrency === "original" ||
+      displayCurrency === "all" ||
+      metrics.stockValueMissingCurrencies?.length
+        ? Object.entries(metrics.stockValueByCurrency || {})
+            .filter(([, amount]) => parseNumber(amount) !== 0)
+            .map(([currency, amount]) => compactWalletMoney(amount, currency))
+            .join("\n") || compactWalletMoney(0, baseCurrency)
+        : compactWalletMoney(metrics.stockValueConvertedTotal, displayCurrency),
+    subValue: Object.entries(metrics.stockValueByCurrency || {})
+      .filter(([, amount]) => parseNumber(amount) !== 0)
+      .map(([currency, amount]) => compactWalletMoney(amount, currency))
+      .join("\n"),
+    hideSubValue:
+      displayCurrency === "original" ||
+      displayCurrency === "all" ||
+      metrics.stockValueMissingCurrencies?.length,
     icon: Warehouse,
     tone: "orange",
-    path: "/products",
+    key: "global-stock-value",
   },
 // Staff overview
 {
@@ -695,7 +839,7 @@ const statCards = [
   value: count(metrics.totalStaff),
   icon: Users,
   tone: "dark",
-  path: "/staff",
+  key: "total-staff",
 },
 {
   group: "Staff overview",
@@ -703,7 +847,7 @@ const statCards = [
   value: money(metrics.staffPayable, baseCurrency),
   icon: BriefcaseBusiness,
   tone: "orange",
-  path: "/staff",
+  key: "staff-payable",
 },
 {
   group: "Staff overview",
@@ -711,7 +855,7 @@ const statCards = [
   value: money(metrics.staffPaid, baseCurrency),
   icon: DollarSign,
   tone: "green",
-  path: "/staff",
+  key: "staff-paid",
 },
 ];
 
@@ -726,11 +870,11 @@ const statGroups = [
       t.financialOverview || "Financial overview",
   },
   {
-    key: "Suppliers / Katanama overview",
+    key: "Supplier / Katah overview",
     type: "suppliers",
     title:
       t.suppliersOverview ||
-      "Suppliers / Katanama overview",
+      "Supplier / Katah overview",
   },
   {
     key: "Stock overview",
@@ -835,8 +979,21 @@ const statGroups = [
         >
           <span>
             <AlertTriangle size={16} />
-            Missing exchange rate for currencies used in dashboard calculations:{" "}
-            {missingExchangeCurrencies.join(", ")}
+            {metrics.cashWalletMissingCurrencies?.length
+              ? `Exchange rate is not set for Cash Wallet conversion to ${displayCurrency}. Missing: ${[
+                  ...new Set([
+                    ...metrics.cashWalletMissingCurrencies,
+                    ...missingExchangeCurrencies,
+                  ]),
+                ].join(", ")}`
+              : metrics.stockValueMissingCurrencies?.length
+                ? `Exchange rate is not set for Global Stock Value conversion to ${displayCurrency}. Missing: ${[
+                    ...new Set([
+                      ...metrics.stockValueMissingCurrencies,
+                      ...missingExchangeCurrencies,
+                    ]),
+                  ].join(", ")}`
+              : `Missing exchange rate for currencies used in dashboard calculations: ${missingExchangeCurrencies.join(", ")}`}
           </span>
           <strong>Set Rates</strong>
         </button>
@@ -870,12 +1027,15 @@ const statGroups = [
               }`}
               key={card.label}
               onClick={() =>
-                navigate(card.path)
+                navigate(`/dashboard/card/${card.key}`)
               }
             >
               <div className="dashboard-stat-content">
                 <span>{card.label}</span>
                 <h2>{card.value}</h2>
+                {card.subValue && !card.hideSubValue && (
+                  <small className="dashboard-stat-subvalue">{card.subValue}</small>
+                )}
               </div>
 
               <span className="dashboard-stat-icon">

@@ -631,6 +631,17 @@ body.dark-mode tbody tr {
   font-weight: 800;
   line-height: 1.15;
   word-break: break-word;
+  white-space: pre-line;
+}
+
+.dashboard-stat-subvalue {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-stat-icon {
@@ -1241,6 +1252,93 @@ body.dark-mode .dashboard-recent-item p {
 
 .dashboard-insight-card {
   margin: 0 28px 28px;
+}
+
+.dashboard-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-detail-actions button {
+  min-height: 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111827;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.dashboard-detail-actions button.primary {
+  border-color: #252525;
+  background: #252525;
+  color: #ffffff;
+}
+
+.dashboard-detail-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(170px, 0.45fr));
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+
+.dashboard-detail-filters label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard-detail-filters span {
+  color: #52627a;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.dashboard-detail-filters select,
+.dashboard-detail-filters input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111827;
+  padding: 0 11px;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.dashboard-detail-filters select:focus,
+.dashboard-detail-filters input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.dashboard-wallet-flow,
+.dashboard-wallet-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 900;
+}
+
+.dashboard-wallet-flow.debit,
+.dashboard-wallet-amount.debit {
+  color: #dc2626 !important;
+}
+
+.dashboard-wallet-flow.credit,
+.dashboard-wallet-amount.credit {
+  color: #047857 !important;
 }
 
 .global-search {
@@ -6345,6 +6443,78 @@ body:not(.dark-mode) .top-actions .profile-dropdown .dropdown-action:disabled {
 
 .dashboard-overview-detail-stats .stat {
   min-height: 104px;
+}
+
+body.dark-mode[data-theme] .sidebar {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--theme-deep) 82%, #020617 18%), #111111) !important;
+  border-color: color-mix(in srgb, var(--app-accent) 44%, #334155 56%) !important;
+  box-shadow: 0 16px 42px color-mix(in srgb, var(--app-accent) 24%, transparent) !important;
+}
+
+body.dark-mode[data-theme] .brand {
+  border-color: color-mix(in srgb, var(--app-accent) 34%, #334155 66%) !important;
+}
+
+body.dark-mode[data-theme] .brand-logo,
+body.dark-mode[data-theme] .menu a.active,
+body.dark-mode[data-theme] .menu .active {
+  background: var(--app-gradient) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode[data-theme] .menu a:hover {
+  background: color-mix(in srgb, var(--app-accent) 20%, #ffffff 6%) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .menu a,
+body.dark-mode .menu a svg,
+body.dark-mode .header-preference-btn svg,
+body.dark-mode .icon-btn svg,
+body.dark-mode .profile-btn svg,
+body.dark-mode .dashboard-stat-icon svg,
+body.dark-mode .dashboard-overview-detail-icon svg,
+body.dark-mode .notification-icon svg,
+body.dark-mode button svg {
+  color: #e5eefc !important;
+  stroke: currentColor !important;
+}
+
+body.dark-mode .menu a.active svg,
+body.dark-mode .menu .active svg,
+body.dark-mode[data-theme] .brand-logo,
+body.dark-mode[data-theme] .brand-logo span {
+  color: #ffffff !important;
+}
+
+body.dark-mode .dashboard-stat-subvalue {
+  color: #a8b3c7;
+}
+
+body.dark-mode .dashboard-stat-green .dashboard-stat-icon {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #86efac !important;
+}
+
+body.dark-mode .dashboard-stat-blue .dashboard-stat-icon {
+  background: rgba(14, 165, 233, 0.2) !important;
+  color: #7dd3fc !important;
+}
+
+body.dark-mode .dashboard-stat-orange .dashboard-stat-icon {
+  background: rgba(245, 158, 11, 0.22) !important;
+  color: #fcd34d !important;
+}
+
+body.dark-mode .dashboard-stat-red .dashboard-stat-icon {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #fca5a5 !important;
+}
+
+body.dark-mode .dashboard-stat-dark .dashboard-stat-icon {
+  background: rgba(148, 163, 184, 0.22) !important;
+  color: #dbeafe !important;
 }
 
 .dashboard-table-wrap {

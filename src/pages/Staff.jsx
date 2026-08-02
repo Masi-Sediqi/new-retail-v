@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
+import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
@@ -101,6 +102,7 @@ const getPayrollPayableTotal = (history = []) => {
 
 function Staff() {
   const [staffMembers, setStaffMembers] = useJsonCollection("staff");
+  const [settings] = useJsonCollection("settings");
   const [, setTransactions] = useJsonCollection("transactions");
   const [, setDeletedItems] = useJsonCollection("deletedItems");
   const [search, setSearch] = useState("");
@@ -111,6 +113,7 @@ function Staff() {
   const [profileStaff, setProfileStaff] = useState(null);
   const [deleteStaff, setDeleteStaff] = useState(null);
   const [deletePayrollEntry, setDeletePayrollEntry] = useState(null);
+  const staffCustomFields = settings[0]?.customFields?.staffMembers || [];
 
   const normalizedStaff = useMemo(
     () =>
@@ -449,6 +452,7 @@ function Staff() {
 
       {showStaffModal && (
         <StaffModal
+          customFields={staffCustomFields}
           initialStaff={editingStaff}
           onClose={() => {
             setShowStaffModal(false);
@@ -516,7 +520,7 @@ function StatCard({ icon: Icon, label, value, tone = "" }) {
   );
 }
 
-function StaffModal({ initialStaff, onClose, onSave }) {
+function StaffModal({ customFields = [], initialStaff, onClose, onSave }) {
   const [form, setForm] = useState(() => ({
     ...emptyStaff,
     ...(initialStaff || {}),
@@ -600,6 +604,17 @@ function StaffModal({ initialStaff, onClose, onSave }) {
           <Field label="Notes" className="full">
             <textarea value={form.notes} onChange={(event) => update("notes", event.target.value)} />
           </Field>
+          <CustomFormFields
+            fields={customFields}
+            values={form.customFields}
+            fieldClassName="staff-form-field"
+            onChange={(key, value) =>
+              update("customFields", {
+                ...(form.customFields || {}),
+                [key]: value,
+              })
+            }
+          />
         </div>
 
         <div className="staff-modal-actions">
