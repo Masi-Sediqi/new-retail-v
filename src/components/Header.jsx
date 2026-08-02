@@ -807,16 +807,6 @@ const saveCashWalletTransaction = async (event) => {
     )}
   </div>
 
-  <button
-  type="button"
-  className="header-preference-btn header-icon-only-btn header-wallet-btn"
-  aria-label={t.openCashWallet || "Open cash wallet"}
-  title={t.cashWallet || "Cash Wallet"}
-  onClick={openCashWallet}
->
-  <WalletCards size={18} strokeWidth={1.9} />
-</button>
-
   {/* Secondary currency dropdown */}
   <div className="header-menu header-preference-menu">
    <button
@@ -889,6 +879,16 @@ const saveCashWalletTransaction = async (event) => {
       </div>
     )}
   </div>
+
+  <button
+    type="button"
+    className="header-preference-btn header-icon-only-btn header-wallet-btn"
+    aria-label={t.openCashWallet || "Open cash wallet"}
+    title={t.cashWallet || "Cash Wallet"}
+    onClick={openCashWallet}
+  >
+    <WalletCards size={18} strokeWidth={1.9} />
+  </button>
 </div>
 
         <div className="header-menu">
