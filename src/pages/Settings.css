@@ -420,6 +420,7 @@ body.dark-mode .theme-mode-picker button.active { border-color: var(--app-accent
 .settings-currency-rate .settings-field { gap: 4px; }
 .settings-currency-rate .settings-field > span { color: #64748b; font-size: 10px; }
 .settings-currency-rate .settings-field input { min-height: 38px; background: #f8fafc; font-variant-numeric: tabular-nums; }
+.settings-rate-reciprocal { color: #64748b; font-size: 10px; font-weight: 800; }
 .settings-rate-note { margin-top: 14px; border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; padding: 11px 13px; display: grid; gap: 4px; color: #475569; font-size: 11px; line-height: 1.55; }
 .settings-rate-note strong { color: #1e3a8a; font-size: 11px; }
 body.dark-mode .settings-currency-rate { background: #1e293b; border-color: #475569; }

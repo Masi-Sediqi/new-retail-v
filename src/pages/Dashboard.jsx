@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useCallback } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -12,11 +13,11 @@ import {
 } from "recharts";
 import {
   Banknote,
-  BarChart3,
   Boxes,
   BriefcaseBusiness,
   Clock3,
   DollarSign,
+  AlertTriangle,
   PackageCheck,
   ReceiptText,
   Redo2,
@@ -30,7 +31,11 @@ import {
 } from "lucide-react";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { todayDateValue } from "../utils/afghanDate";
-import { convertCurrencyAmount, formatBusinessCurrencyAmount, formatCurrencyAmount } from "../utils/currencyExchange";
+import {
+  convertCurrencyAmount,
+  formatBusinessCurrencyAmount,
+  hasExchangeRate,
+} from "../utils/currencyExchange";
 import "../App.css";
 
 const money = (value, currency = "AFN") => formatBusinessCurrencyAmount(Number(value || 0), currency);
@@ -155,6 +160,29 @@ const invoiceCost = (invoice, products = []) =>
 const isInactive = (record) =>
   /inactive|disabled|suspend|suspended|closed/i.test(String(record?.status || ""));
 
+const payrollPeriodKey = (entry) => `${entry.start || ""}__${entry.end || ""}`;
+
+const payrollPaidTotal = (history = [], toBase, fallbackCurrency) =>
+  history.reduce(
+    (sum, entry) =>
+      sum + toBase(parseNumber(entry.paidAmountBase ?? entry.paidAmount), entry.currency || fallbackCurrency),
+    0
+  );
+
+const payrollPayableTotal = (history = [], toBase, fallbackCurrency) => {
+  const latestPayableByPeriod = new Map();
+  history.forEach((entry) => {
+    latestPayableByPeriod.set(payrollPeriodKey(entry), {
+      amount: parseNumber(entry.payable),
+      currency: entry.currency || fallbackCurrency,
+    });
+  });
+  return [...latestPayableByPeriod.values()].reduce(
+    (sum, entry) => sum + toBase(entry.amount, entry.currency),
+    0
+  );
+};
+
 function Dashboard({ t = {} }) {
   const navigate = useNavigate();
   const [products] = useJsonCollection("products");
@@ -170,9 +198,19 @@ function Dashboard({ t = {} }) {
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
-  const exchangeRates = company.exchangeRates || {};
-  const toBase = (value, currency = baseCurrency) =>
-    convertCurrencyAmount(value, { baseCurrency, exchangeRates, fromCurrency: currency, targetCurrency: baseCurrency }) ?? 0;
+  const exchangeRates = useMemo(
+    () => company.exchangeRates || {},
+    [company.exchangeRates]
+  );
+  const toBase = useCallback(
+    (value, currency = baseCurrency) =>
+      convertCurrencyAmount(value, { baseCurrency, exchangeRates, fromCurrency: currency, targetCurrency: baseCurrency }) ?? 0,
+    [baseCurrency, exchangeRates]
+  );
+  const normalizeCurrency = useCallback(
+    (currency) => currency || baseCurrency,
+    [baseCurrency]
+  );
 
   const activeDateRange = useMemo(
     () => getDateRange(dateFilter, customRange),
@@ -227,28 +265,44 @@ const pureProfit =
       const alert = parseNumber(product.lowStock || product.lowStockThreshold || product.minimumStock);
       return quantity <= 0 || (alert > 0 && quantity <= alert);
     }).length;
-    const staffPayable = staff.reduce(
+    const staffPayableFromPayroll = staff.reduce(
   (sum, member) =>
-    sum +
-    toBase(parseNumber(
-      member.payable ??
-        member.remainingSalary ??
-        member.remaining ??
-        member.salary ??
-        member.monthlySalary
-    ), member.currency),
+    sum + payrollPayableTotal(member.payrollHistory || [], toBase, member.currency),
   0
 );
 
+const staffPayableFromRecords = staff.reduce(
+  (sum, member) => {
+    if (Array.isArray(member.payrollHistory) && member.payrollHistory.length) {
+      return sum;
+    }
+
+    return sum + toBase(parseNumber(
+      member.payable ??
+        member.remainingSalary ??
+        member.remaining ??
+        0
+    ), member.currency);
+  },
+  0
+);
+
+const staffPayable = staffPayableFromPayroll + staffPayableFromRecords;
+
 const staffPaidFromRecords = staff.reduce(
-  (sum, member) =>
-    sum +
-    toBase(parseNumber(
+  (sum, member) => {
+    const history = member.payrollHistory || [];
+    if (history.length) {
+      return sum + payrollPaidTotal(history, toBase, member.currency);
+    }
+
+    return sum + toBase(parseNumber(
       member.paidSalary ??
         member.salaryPaid ??
         member.paidAmount ??
         member.totalPaid
-    ), member.currency),
+    ), member.currency);
+  },
   0
 );
 
@@ -258,6 +312,7 @@ const staffPaidFromTransactions =
       [
         transaction.type,
         transaction.category,
+        transaction.module,
         transaction.source,
         transaction.title,
         transaction.description,
@@ -320,6 +375,10 @@ const supplierNetBalance =
       balances[currency] = (balances[currency] || 0) + direction * parseNumber(transaction.amount);
       return balances;
     }, {});
+    const cashWalletTotal = Object.entries(cashWalletByCurrency).reduce(
+      (sum, [currency, amount]) => sum + toBase(amount, currency),
+      0
+    );
     const cashWalletHasNegative = Object.values(cashWalletByCurrency)
       .some((amount) => parseNumber(amount) < 0);
     const legacyCashWallet = filteredTransactions.reduce((sum, transaction) => {
@@ -340,6 +399,9 @@ const supplierNetBalance =
   ).length,
 
   cashWallet: Object.keys(cashWalletByCurrency).length ? 0 : legacyCashWallet,
+  cashWalletTotal: Object.keys(cashWalletByCurrency).length
+    ? cashWalletTotal
+    : legacyCashWallet,
   cashWalletHasNegative: Object.keys(cashWalletByCurrency).length
     ? cashWalletHasNegative
     : legacyCashWallet < 0,
@@ -377,7 +439,40 @@ const supplierNetBalance =
   totalInvoices: filteredInvoices.length,
   totalStaff: staff.length,
 };
-  }, [customers, filteredExpenses, filteredInvoices, filteredTransactions, products, staff, suppliers, baseCurrency, exchangeRates]);
+  }, [customers, filteredExpenses, filteredInvoices, filteredTransactions, products, staff, suppliers, baseCurrency, toBase]);
+
+const missingExchangeCurrencies = useMemo(() => {
+  const usedCurrencies = new Set();
+  const addCurrency = (currency) => {
+    usedCurrencies.add(normalizeCurrency(currency));
+  };
+
+  filteredInvoices.forEach((invoice) => {
+    addCurrency(invoice.currency);
+    (invoice.refundHistory || invoice.refunds || []).forEach((refund) =>
+      addCurrency(refund.currency || invoice.currency)
+    );
+  });
+  filteredExpenses.forEach((expense) => addCurrency(expense.currency));
+  filteredTransactions.forEach((transaction) => addCurrency(transaction.currency));
+  products.forEach((product) => addCurrency(product.currency));
+  staff.forEach((member) => addCurrency(member.currency));
+  suppliers.forEach((supplier) => addCurrency(supplier.currency));
+
+  return [...usedCurrencies]
+    .filter((currency) => !hasExchangeRate(currency, baseCurrency, exchangeRates))
+    .sort();
+}, [
+  baseCurrency,
+  exchangeRates,
+  filteredExpenses,
+  filteredInvoices,
+  filteredTransactions,
+  normalizeCurrency,
+  products,
+  staff,
+  suppliers,
+]);
 
 const trendData = useMemo(() => {
   const grouped = new Map();
@@ -427,7 +522,7 @@ const trendData = useMemo(() => {
     .sort((a, b) =>
       String(a.date).localeCompare(String(b.date))
     );
-}, [filteredExpenses, filteredInvoices, baseCurrency, exchangeRates]);
+}, [filteredExpenses, filteredInvoices, toBase]);
 
   const recentActivity = useMemo(() => {
     const rows = [
@@ -457,11 +552,6 @@ const trendData = useMemo(() => {
       .slice(0, 8);
   }, [filteredExpenses, filteredGodownEntries, filteredInvoices]);
 
-const walletLines = Object.entries(metrics.cashWalletByCurrency || {})
-  .filter(([, amount]) => Math.abs(Number(amount || 0)) > 0.000001)
-  .map(([currency, amount]) => ({ currency, amount }));
-if (!walletLines.length) walletLines.push({ currency: baseCurrency, amount: 0 });
-
 const statCards = [
   // Financial overview
   {
@@ -475,13 +565,7 @@ const statCards = [
   {
     group: "Financial overview",
     label: t.currentCashWallet || "Current cash wallet",
-    value: (
-      <span className="dashboard-wallet-currency-list">
-        {walletLines.map(({ currency, amount }) => (
-          <span key={currency}>{formatCurrencyAmount(amount, currency)}</span>
-        ))}
-      </span>
-    ),
+    value: money(metrics.cashWalletTotal, baseCurrency),
     icon: WalletCards,
     tone: "green",
     path: "/financials",
@@ -743,6 +827,21 @@ const statGroups = [
         </button>
       )}
 
+      {missingExchangeCurrencies.length > 0 && (
+        <button
+          className="dashboard-stock-warning dashboard-exchange-warning"
+          type="button"
+          onClick={() => navigate("/settings")}
+        >
+          <span>
+            <AlertTriangle size={16} />
+            Missing exchange rate for currencies used in dashboard calculations:{" "}
+            {missingExchangeCurrencies.join(", ")}
+          </span>
+          <strong>Set Rates</strong>
+        </button>
+      )}
+
       <div className="dashboard-overview-groups">
   {statGroups.map((group) => (
     <section
@@ -853,40 +952,6 @@ const statGroups = [
   );
 }
 
-function ChartCard({ title, subtitle, children }) {
-  return (
-    <div className="card dashboard-chart-card">
-      <div className="card-title">
-        <div>
-          <h3>{title}</h3>
-          <span>{subtitle}</span>
-        </div>
-      </div>
-
-      {children}
-    </div>
-  );
-}
-
-function BarGraph({ data, dataKey, onItemClick }) {
-  const hasData = data.some(
-    (item) => Number(item[dataKey] || 0) > 0
-  );
-
-  if (!hasData) {
-    return (
-      <p className="dashboard-chart-empty">
-        No data to show yet.
-      </p>
-    );
-  }
-
-  return (
-    <div className="dashboard-chart-box">
-      {/* تمام کد BarChart */}
-    </div>
-  );
-}
 function TrendGraph({ data, t = {} }) {
   const graphData = data.length
     ? data

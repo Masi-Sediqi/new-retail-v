@@ -847,18 +847,28 @@ function Settings() {
                 </select>
               </Field>
             </div>
-            <h3 className="settings-rate-title">Exchange rates (1 {currencyCodeFromLabel(defaultCurrency)} = ?)</h3>
+            <h3 className="settings-rate-title">Exchange rates (1 currency = ? {currencyCodeFromLabel(defaultCurrency)})</h3>
             <div className="settings-currency-rate-grid">
-              {currencies.filter(({ code }) => code !== currencyCodeFromLabel(defaultCurrency)).map(({ code, name, symbol }) => (
-                <div className="settings-currency-rate" key={code}>
-                  <span className="settings-currency-symbol">{symbol}</span>
-                  <Field label={`${name} (${code})`}>
-                    <input type="number" min="0" step="any" inputMode="decimal" value={exchangeRates[code] || ""} onChange={(event) => setExchangeRates((previous) => ({ ...previous, [code]: event.target.value }))} placeholder="0.000000" />
-                  </Field>
-                </div>
-              ))}
+              {currencies.filter(({ code }) => code !== currencyCodeFromLabel(defaultCurrency)).map(({ code, name, symbol }) => {
+                const rate = Number.parseFloat(exchangeRates[code]);
+                const reciprocal = Number.isFinite(rate) && rate > 0 ? 1 / rate : 0;
+                const baseCode = currencyCodeFromLabel(defaultCurrency);
+                return (
+                  <div className="settings-currency-rate" key={code}>
+                    <span className="settings-currency-symbol">{symbol}</span>
+                    <Field label={`${name} (${code})`}>
+                      <input type="number" min="0" step="any" inputMode="decimal" value={exchangeRates[code] || ""} onChange={(event) => setExchangeRates((previous) => ({ ...previous, [code]: event.target.value }))} placeholder="0.000000" />
+                      {reciprocal > 0 && (
+                        <small className="settings-rate-reciprocal">
+                          1 {baseCode} = {reciprocal.toLocaleString(undefined, { maximumFractionDigits: 10 })} {code}
+                        </small>
+                      )}
+                    </Field>
+                  </div>
+                );
+              })}
             </div>
-            <div className="settings-rate-note"><strong>Calculation rule</strong><span>One {currencyCodeFromLabel(defaultCurrency)} equals the entered amount. Records keep their original currency; reports and totals convert them using these rates.</span></div>
+            <div className="settings-rate-note"><strong>Calculation rule</strong><span>Enter how much one unit of each currency is worth in {currencyCodeFromLabel(defaultCurrency)}. Records keep their original currency; reports and totals convert them using these rates.</span></div>
           </section>
         </div>
       ) : activeTab === "printing" ? (
