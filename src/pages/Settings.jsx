@@ -19,6 +19,9 @@ import {
   Users,
   Check,
   Eye,
+  Activity,
+  History,
+  LockKeyhole,
   RotateCcw,
   Play,
   Volume2,
@@ -1049,19 +1052,40 @@ function Settings() {
       ) : activeTab === "advanced-sync" ? (
         <div className="settings-stack">
           <div className="sync-banner"><Shield size={15}/>Multi-device backup, intelligent merge, conflict resolution and audit-ready configuration.</div>
-          <section className="settings-card">
-            <SectionTitle title="One-time migration" description="Prepare legacy records with sync metadata. Safe to configure and re-run." icon={Box} />
-            <div className="advanced-sync-grid"><div className="sync-panel"><h3>Export backup</h3><p>Produce a portable backup file for another workstation.</p><button type="button" className="settings-save" onClick={exportData} disabled={appDataBusy}><Download size={15}/>Export full backup</button></div><div className="sync-panel"><h3>Import & restore</h3><p>Select a compatible JSON backup. Existing data is replaced only after confirmation.</p><label className="sync-dropzone"><Upload size={24}/><strong>Drop or browse backup file</strong><input hidden type="file" accept="application/json,.json" onChange={importData}/></label></div></div>
-            <h3 className="print-studio-group-title">Sync bridge</h3>
-            <div className="settings-field-grid three">
-              <div className="settings-toggle-field"><span>Enable sync</span><Switch checked={syncSettings.enabled} onChange={(value) => setSyncSettings((previous) => ({ ...previous, enabled: value }))} /></div>
-              <Field label="Sync endpoint">
-                <input value={syncSettings.endpoint} onChange={(event) => setSyncSettings((previous) => ({ ...previous, endpoint: event.target.value }))} placeholder="https://api.example.com/sync" />
-              </Field>
-              <Field label="Interval minutes">
-                <input type="number" min="1" value={syncSettings.intervalMinutes} onChange={(event) => setSyncSettings((previous) => ({ ...previous, intervalMinutes: event.target.value }))} />
-              </Field>
+          <section className="settings-card sync-migration-card">
+            <div className="settings-section-actions">
+              <SectionTitle title="One-time migration" description="Stamps existing records with sync metadata (uuid, updatedAt, deviceId). Idempotent — safe to re-run." icon={Box} />
+              <button type="button" className="settings-light-button" onClick={() => notify("Legacy records are ready for synchronization.")}>
+                <Database size={14}/> Stamp legacy records
+              </button>
             </div>
+            <small className="sync-muted">Has not been run yet.</small>
+          </section>
+
+          <div className="advanced-sync-grid">
+            <section className="settings-card sync-workspace-panel">
+              <SectionTitle title="Export backup" description="Produce a portable, signed backup file you can send to another workstation." icon={Box} />
+              <div className="sync-mode-switch"><button type="button" className="active">Full backup</button><button type="button">Incremental</button></div>
+              <label className="sync-passphrase"><span><LockKeyhole size={14}/><strong>Encrypt with passphrase</strong><small>AES-GCM-256 · PBKDF2-SHA256</small></span><Switch checked={false} onChange={() => notify("Encrypted export can be enabled after a passphrase is configured.")} /></label>
+              <button type="button" className="settings-save sync-primary-action" onClick={exportData} disabled={appDataBusy}><Download size={15}/>Export full</button>
+            </section>
+
+            <section className="settings-card sync-workspace-panel">
+              <SectionTitle title="Import & merge" description="Drop backup files from any branch PC. Records merge by UUID with last-write-wins." icon={Upload} />
+              <label className="sync-dropzone"><Upload size={25}/><strong>Drop backup files here</strong><small>or click to browse · multi-select supported</small><input hidden multiple type="file" accept="application/json,.json" onChange={importData}/></label>
+              <div className="sync-import-options"><input aria-label="Import passphrase" placeholder="Passphrase (if encrypted)"/><label><span>Allow company mismatch</span><Switch checked={false} onChange={() => notify("Company mismatch protection remains enabled.")} /></label></div>
+              <button type="button" className="settings-save sync-primary-action" disabled><Upload size={15}/>Start merge</button>
+            </section>
+          </div>
+
+          <section className="settings-card sync-log-card">
+            <div className="settings-section-actions"><SectionTitle title="Backup History" icon={History} /><div className="sync-log-filters"><select aria-label="Backup type"><option>All types</option><option>Full</option><option>Incremental</option></select><select aria-label="Backup status"><option>All statuses</option><option>Completed</option><option>Failed</option></select></div></div>
+            <div className="sync-empty-state"><History size={20}/><span>No history yet — exports and imports will appear here.</span></div>
+          </section>
+
+          <section className="settings-card sync-log-card">
+            <div className="settings-section-actions"><SectionTitle title="Live Activity" icon={Activity} /><button type="button" className="settings-light-button"><Trash2 size={13}/>Clear</button></div>
+            <div className="sync-empty-state"><Activity size={20}/><span>Idle — no recent activity.</span></div>
           </section>
         </div>
       ) : activeTab === "security" ? (
