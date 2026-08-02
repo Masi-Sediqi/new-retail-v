@@ -63,13 +63,16 @@ const getSaleDiscountTotal = (sale) =>
   parseNumber(sale.discountTotal) ||
   parseNumber(sale.itemDiscountTotal) + parseNumber(sale.discount);
 
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+const addCurrencyTotal = (totals, amount, currency = "AFN") => ({
+  ...totals,
+  [currency]: (totals[currency] || 0) + parseNumber(amount),
+});
+
+const formatCurrencyTotals = (totals, fallbackCurrency = "AFN") => {
+  const rows = Object.entries(totals).filter(([, amount]) => parseNumber(amount) !== 0);
+  if (!rows.length) return formatCurrencyAmount(0, fallbackCurrency);
+  return rows.map(([currency, amount]) => formatCurrencyAmount(amount, currency)).join("\n");
+};
 
 function SalesBills() {
   const [sales, setSales] = useJsonCollection("billingInvoices");
@@ -115,10 +118,13 @@ function SalesBills() {
     const refunded = normalizedSales.filter((sale) => parseNumber(sale.refundTotal) > 0);
     return {
       invoices: normalizedSales.length,
-      revenue: normalizedSales.reduce((sum, sale) => sum + parseNumber(sale.total), 0),
-      paid: paid.reduce((sum, sale) => sum + parseNumber(sale.paidAmount || sale.total), 0),
-      pending: loan.reduce((sum, sale) => sum + parseNumber(sale.balance), 0),
-      refunds: refunded.reduce((sum, sale) => sum + parseNumber(sale.refundTotal), 0),
+      discounts: normalizedSales.reduce(
+        (totals, sale) => addCurrencyTotal(totals, getSaleDiscountTotal(sale), sale.currency),
+        {}
+      ),
+      paid: paid.reduce((totals, sale) => addCurrencyTotal(totals, sale.paidAmount || sale.total, sale.currency), {}),
+      pending: loan.reduce((totals, sale) => addCurrencyTotal(totals, sale.balance, sale.currency), {}),
+      refunds: refunded.reduce((totals, sale) => addCurrencyTotal(totals, sale.refundTotal, sale.currency), {}),
     };
   }, [normalizedSales]);
 
@@ -160,80 +166,6 @@ function SalesBills() {
 
   const printInvoice = (sale) => {
     setPrintSale(sale);
-    return;
-    const rows = sale.items
-      .map(
-        (item) => `
-          <tr>
-            <td>${escapeHtml(item.name)}</td>
-            <td>${escapeHtml(item.code)}</td>
-            <td>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || "pcs")}</td>
-            <td>${formatCurrencyAmount(item.price, sale.currency)}</td>
-            <td><strong>${formatCurrencyAmount(item.lineTotal, sale.currency)}</strong></td>
-          </tr>
-        `
-      )
-      .join("");
-
-    const logo = company.logo
-      ? `<img class="invoice-logo" src="${escapeHtml(company.logo)}" alt="" />`
-      : `<div class="invoice-logo">${escapeHtml((company.companyName || "R").slice(0, 1))}</div>`;
-
-    const printWindow = window.open("", "_blank", "width=900,height=1100");
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <!doctype html>
-      <html>
-        <head>
-          <title>${escapeHtml(sale.invoiceNumber)}</title>
-          <style>
-            * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            body { margin: 0; background: #e5e7eb; font-family: Arial, sans-serif; color: #111827; }
-            .invoice-paper { width: 190mm; min-height: 270mm; margin: 0 auto; background: #fff; overflow: hidden; }
-            .invoice-ribbon { height: 62px; background: linear-gradient(100deg, #252525, #4338ca); border-bottom-left-radius: 58% 22px; }
-            .invoice-head { display: flex; justify-content: space-between; gap: 24px; padding: 22px 38px 12px; }
-            .invoice-brand { display: flex; align-items: center; gap: 16px; }
-            .invoice-logo { width: 58px; height: 58px; border-radius: 16px; object-fit: contain; background: #f8fafc; display:grid;place-items:center;font-weight:900; }
-            .invoice-title-box { border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 8px; padding: 12px 18px; text-align: right; }
-            .invoice-title-box h1 { margin: 0; color: #3730a3; letter-spacing: 3px; font-size: 18px; }
-            .invoice-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 28px; margin: 20px 38px 8px; font-size: 12px; }
-            table { width: calc(100% - 76px); margin: 16px 38px; border-collapse: collapse; }
-            th, td { padding: 11px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; font-size: 12px; }
-            th { background: #f8fafc; color: #475569; }
-            .summary { width: 300px; margin: 18px 38px 0 auto; display: grid; gap: 7px; font-size: 12px; }
-            .summary div { display: flex; justify-content: space-between; gap: 20px; }
-            .summary .grand { border-top: 1px solid #cbd5e1; padding-top: 8px; font-weight: 900; }
-            @media print { body { background:#fff; } .invoice-paper { width:190mm; min-height:auto; } }
-          </style>
-        </head>
-        <body>
-          <article class="invoice-paper">
-            <div class="invoice-ribbon"></div>
-            <header class="invoice-head">
-              <div class="invoice-brand">${logo}<div><h2>${escapeHtml(company.companyName || "Smart Office")}</h2><p>${escapeHtml(company.systemSubtitle || "Smart Office Management System")}</p></div></div>
-              <div class="invoice-title-box"><h1>INVOICE</h1><span>#${escapeHtml(sale.invoiceNumber)}</span></div>
-            </header>
-            <section class="invoice-meta">
-              <span>Bill To: <strong>${escapeHtml(sale.customerName)}</strong></span>
-              <span>Status: <strong>${escapeHtml(sale.paymentStatus === "paid" ? "Paid" : "Loan")}</strong></span>
-              <span>Date: <strong>${escapeHtml(getGregorianLabel(sale.date))}</strong> / ${escapeHtml(getShamsiShortLabel(sale.date))}</span>
-              <span>Total: <strong>${formatCurrencyAmount(sale.total, sale.currency)}</strong></span>
-            </section>
-            <table><thead><tr><th>Item</th><th>Code</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>
-            <div class="summary">
-              <div><span>Subtotal</span><strong>${formatCurrencyAmount(sale.subtotal, sale.currency)}</strong></div>
-              <div><span>Discount</span><strong>${formatCurrencyAmount(getSaleDiscountTotal(sale), sale.currency)}</strong></div>
-              <div><span>Paid</span><strong>${formatCurrencyAmount(sale.paidAmount, sale.currency)}</strong></div>
-              <div><span>Remaining</span><strong>${formatCurrencyAmount(sale.balance, sale.currency)}</strong></div>
-              <div class="grand"><span>Total</span><strong>${formatCurrencyAmount(sale.total, sale.currency)}</strong></div>
-            </div>
-          </article>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    window.setTimeout(() => printWindow.print(), 250);
   };
 
   const addPayment = async () => {
@@ -418,10 +350,10 @@ function SalesBills() {
 
       <section className="sales-bills-stats">
         <StatCard icon={ReceiptText} label="Invoices" value={stats.invoices} />
-        <StatCard icon={DollarSign} label="Revenue" value={formatCurrencyAmount(stats.revenue, "AFN")} />
-        <StatCard icon={WalletCards} label="Paid" value={formatCurrencyAmount(stats.paid, "AFN")} />
-        <StatCard icon={CreditCard} label="Pending" value={formatCurrencyAmount(stats.pending, "AFN")} tone="warning" />
-        <StatCard icon={RefreshCcw} label="Refunds" value={formatCurrencyAmount(stats.refunds, "AFN")} tone="danger" />
+        <StatCard icon={DollarSign} label="Discounts" value={formatCurrencyTotals(stats.discounts)} />
+        <StatCard icon={WalletCards} label="Paid" value={formatCurrencyTotals(stats.paid)} />
+        <StatCard icon={CreditCard} label="Pending" value={formatCurrencyTotals(stats.pending)} tone="warning" />
+        <StatCard icon={RefreshCcw} label="Refunds" value={formatCurrencyTotals(stats.refunds)} tone="danger" />
       </section>
 
       <section className="sales-bills-card">
@@ -471,6 +403,7 @@ function SalesBills() {
                 <th>Date</th>
                 <th>Items</th>
                 <th>Total</th>
+                <th>Discount</th>
                 <th>Paid</th>
                 <th>Balance</th>
                 <th>Status</th>
@@ -488,6 +421,7 @@ function SalesBills() {
                   </td>
                   <td>{sale.items.length}</td>
                   <td>{formatCurrencyAmount(sale.total, sale.currency)}</td>
+                  <td>{formatCurrencyAmount(getSaleDiscountTotal(sale), sale.currency)}</td>
                   <td>{formatCurrencyAmount(sale.paidAmount, sale.currency)}</td>
                   <td className={sale.balance > 0 ? "sales-warning-text" : ""}>
                     {formatCurrencyAmount(sale.balance, sale.currency)}
@@ -521,7 +455,7 @@ function SalesBills() {
 
               {!filteredSales.length && (
                 <tr>
-                  <td colSpan="9" className="sales-empty">
+                  <td colSpan="10" className="sales-empty">
                     No sales bill has been recorded yet.
                   </td>
                 </tr>
@@ -868,6 +802,7 @@ function AdvancedRefundModal({ sale, onClose, onSave }) {
   </div></div>;
 }
 
+// eslint-disable-next-line no-unused-vars
 function RefundModal({ sale, amount, note, setAmount, setNote, onClose, onSave }) {
   return (
     <FormModal

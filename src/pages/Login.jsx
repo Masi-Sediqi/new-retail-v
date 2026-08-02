@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LockKeyhole } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { notify } from "../utils/notify";
 import { todayDateValue } from "../utils/afghanDate";
 import "./Auth.css";
@@ -9,6 +9,7 @@ function Login({ accounts, setAccounts, onLogin, company }) {
     email: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const systemName = company.companyName || "Smart Office";
   const systemSubtitle =
@@ -101,18 +102,28 @@ function Login({ accounts, setAccounts, onLogin, company }) {
 
           <label>
             Password
-            <input
-              type="password"
-              value={form.password}
-              onChange={(event) =>
-                setForm({
-                  ...form,
-                  password: event.target.value,
-                })
-              }
-              placeholder="Enter your password"
-              autoComplete="current-password"
-            />
+            <span className="auth-password-field">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    password: event.target.value,
+                  })
+                }
+                placeholder="Enter your password"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </span>
           </label>
 
           <button type="submit">Sign In</button>

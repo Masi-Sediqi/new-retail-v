@@ -5,7 +5,6 @@ import {
   Printer,
   Search,
   Trash2,
-  WalletCards,
   X,
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
@@ -157,20 +156,6 @@ function Expenses() {
     `${search}-${categoryFilter}-${methodFilter}-${dateFilter}-${customStartDate}-${customEndDate}`
   );
 
-  const stats = useMemo(() => {
-    const now = new Date();
-    const filteredTotal = filteredExpenses.reduce((sum, expense) => sum + parseNumber(expense.amount), 0);
-    const thisMonthTotal = normalizedExpenses.reduce((sum, expense) => {
-      const date = parseExpenseDate(expense.date);
-      if (!date) return sum;
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
-        ? sum + parseNumber(expense.amount)
-        : sum;
-    }, 0);
-    const highest = filteredExpenses.reduce((max, expense) => Math.max(max, parseNumber(expense.amount)), 0);
-    return { filteredTotal, thisMonthTotal, count: filteredExpenses.length, highest };
-  }, [filteredExpenses, normalizedExpenses]);
-
   const saveExpense = async (expense) => {
     const cleanExpense = {
       ...expense,
@@ -297,13 +282,6 @@ function Expenses() {
           </button>
         </div>
       </div>
-
-      <section className="expense-stats">
-        <StatCard icon={WalletCards} label="Filtered Total" value={formatCurrencyAmount(stats.filteredTotal, baseCurrency)} tone="danger" />
-        <StatCard icon={WalletCards} label="This Month" value={formatCurrencyAmount(stats.thisMonthTotal, baseCurrency)} tone="warning" />
-        <StatCard icon={WalletCards} label="Expense Count" value={stats.count} />
-        <StatCard icon={WalletCards} label="Highest Expense" value={formatCurrencyAmount(stats.highest, baseCurrency)} />
-      </section>
 
       <section className="expense-card">
         <div className="expense-toolbar">

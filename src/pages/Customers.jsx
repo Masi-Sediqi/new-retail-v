@@ -70,6 +70,10 @@ const getCustomerKey = (customer) => String(customer.id || customer.customerId |
 
 const getSaleItems = (sale) => (Array.isArray(sale.items) ? sale.items : []);
 
+const getSaleDiscountTotal = (sale) =>
+  parseNumber(sale.discountTotal) ||
+  parseNumber(sale.itemDiscountTotal) + parseNumber(sale.discount);
+
 const getSaleCost = (sale, products = []) =>
   getSaleItems(sale).reduce((sum, item) => {
     const product = products.find((current) => String(current.id) === String(item.productId));
@@ -533,7 +537,7 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
     const totalRevenue = customerSales.reduce((sum, sale) => sum + parseNumber(sale.total), 0);
     const totalSpent = customerSales.reduce((sum, sale) => sum + parseNumber(sale.paidAmount), 0);
     const pendingBalance = customerSales.reduce((sum, sale) => sum + parseNumber(sale.balance), 0);
-    const totalDiscounts = customerSales.reduce((sum, sale) => sum + parseNumber(sale.discountTotal), 0);
+    const totalDiscounts = customerSales.reduce((sum, sale) => sum + getSaleDiscountTotal(sale), 0);
     const totalCost = customerSales.reduce((sum, sale) => sum + getSaleCost(sale, products), 0);
     return {
       totalCost,
@@ -645,6 +649,7 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
                   Invoice: sale.invoiceNumber,
                   Items: getSaleItems(sale).length,
                   Total: formatCurrencyAmount(sale.total, sale.currency || baseCurrency),
+                  Discount: formatCurrencyAmount(getSaleDiscountTotal(sale), sale.currency || baseCurrency),
                   Paid: formatCurrencyAmount(sale.paidAmount, sale.currency || baseCurrency),
                   Balance: formatCurrencyAmount(sale.balance, sale.currency || baseCurrency),
                   Date: getDateLabel(sale.date),
@@ -842,13 +847,14 @@ function ProfilePanel({ activeTab, activityRows, baseCurrency, filteredSales, lo
   }
 
   return (
-    <ProfileTable
-      columns={["Invoice", "Items", "Total", "Paid", "Balance", "Status", "Date"]}
+      <ProfileTable
+      columns={["Invoice", "Items", "Total", "Discount", "Paid", "Balance", "Status", "Date"]}
       empty="No sales found."
       rows={filteredSales.map((sale) => [
         sale.invoiceNumber,
         getSaleItems(sale).length,
         <strong key="total">{formatCurrencyAmount(sale.total, sale.currency || baseCurrency)}</strong>,
+        formatCurrencyAmount(getSaleDiscountTotal(sale), sale.currency || baseCurrency),
         formatCurrencyAmount(sale.paidAmount, sale.currency || baseCurrency),
         <span className="customer-warning-text" key="balance">{formatCurrencyAmount(sale.balance, sale.currency || baseCurrency)}</span>,
         <span className={parseNumber(sale.balance) > 0 ? "customer-status warning" : "customer-status active"} key="status">

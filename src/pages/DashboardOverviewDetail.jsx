@@ -246,13 +246,21 @@ function DashboardOverviewDetail() {
       details: customer.address || customer.notes || "-",
     }));
 
-    const netRows = [...invoiceRows, ...expenseRows, ...refundRows, ...staffRows.map((row) => ({ ...row, type: "Debit" }))];
+    const signedRefundRows = refundRows.map((row) => ({ ...row, amount: -Math.abs(parseNumber(row.amount)) }));
+    const signedExpenseRows = expenseRows.map((row) => ({ ...row, amount: -Math.abs(parseNumber(row.amount)) }));
+    const signedStaffRows = staffRows.map((row) => ({
+      ...row,
+      type: "Debit",
+      amount: -Math.abs(parseNumber(row.paid || row.amount)),
+    }));
+    const revenueRows = [...invoiceRows, ...signedRefundRows];
+    const netRows = [...invoiceRows, ...signedExpenseRows, ...signedRefundRows, ...signedStaffRows];
 
     return {
-      "total-revenue": invoiceRows,
+      "total-revenue": revenueRows,
       "cash-wallet": walletRows,
       "net-profit": netRows,
-      "pure-profit": [...invoiceRows, ...expenseRows],
+      "pure-profit": revenueRows,
       "total-sales": invoiceRows,
       "total-expenses": expenseRows,
       "pending-payments": invoiceRows.filter((row) => parseNumber(row.balance) > 0),
@@ -309,8 +317,14 @@ function DashboardOverviewDetail() {
     const matchesTo = !toDate || !date || date <= toDate;
     return matchesModule && matchesFrom && matchesTo;
   });
+  const signedTotalCards = new Set(["total-revenue", "cash-wallet", "net-profit", "pure-profit"]);
   const total = filteredRows.reduce(
-    (sum, row) => sum + toBase(Math.abs(parseNumber(row.amount)), row.currency),
+    (sum, row) =>
+      sum +
+      toBase(
+        signedTotalCards.has(activeKey) ? parseNumber(row.amount) : Math.abs(parseNumber(row.amount)),
+        row.currency
+      ),
     0
   );
   const Icon = page.icon;
