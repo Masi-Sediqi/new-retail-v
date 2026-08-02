@@ -20,8 +20,10 @@ import {
 import CustomSelect from "../components/CustomSelect";
 import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
+import StandardPrintStudio from "../components/StandardPrintStudio";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
@@ -113,14 +115,6 @@ const getDateMatches = (dateValue, filter, start, end) => {
   return true;
 };
 
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
 function Suppliers() {
   const [suppliers, setSuppliers] = useJsonCollection("suppliers");
   const [godownEntries, setGodownEntries] = useJsonCollection("godownEntries");
@@ -128,6 +122,7 @@ function Suppliers() {
   const [settings] = useJsonCollection("settings");
   const [, setTransactions] = useJsonCollection("transactions");
   const [, setDeletedItems] = useJsonCollection("deletedItems");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
@@ -149,6 +144,7 @@ function Suppliers() {
   const [portalCustomEnd, setPortalCustomEnd] = useState("");
   const [editingLedgerRow, setEditingLedgerRow] = useState(null);
   const [deletingLedgerRow, setDeletingLedgerRow] = useState(null);
+  const [printReportOpen, setPrintReportOpen] = useState(false);
 
   const normalizedSuppliers = useMemo(
     () =>
@@ -262,7 +258,19 @@ function Suppliers() {
       !supplier.accountType ||
       supplier.accountType === "supplier"
   );
-  const filteredSuppliers = typedSuppliers.filter((supplier) => {
+  const currencyFilteredSuppliers = useMemo(
+    () =>
+      typedSuppliers.filter((supplier) => {
+        const stat = supplierStats.get(getSupplierKey(supplier));
+        return (
+          currencyMatchesFilter(supplier.currency, businessCurrencyFilter) ||
+          stat?.entries.some((row) => currencyMatchesFilter(row.currency, businessCurrencyFilter))
+        );
+      }),
+    [businessCurrencyFilter, supplierStats, typedSuppliers]
+  );
+
+  const filteredSuppliers = currencyFilteredSuppliers.filter((supplier) => {
     const stat = supplierStats.get(getSupplierKey(supplier));
     const query = search.trim().toLowerCase();
     const text = [
@@ -285,13 +293,20 @@ function Suppliers() {
     const matchesDate = getDateMatches(stat?.lastDate, dateFilter, customStart, customEnd);
     return matchesSearch && matchesBalance && matchesDate;
   });
+  const currencyFilteredSupplierAdjustments = useMemo(
+    () =>
+      supplierAdjustments.filter((adjustment) =>
+        currencyMatchesFilter(adjustment.currency || baseCurrency, businessCurrencyFilter)
+      ),
+    [baseCurrency, businessCurrencyFilter, supplierAdjustments]
+  );
 
   const pagination = useTablePagination(
     filteredSuppliers,
     `${search}-${balanceFilter}-${dateFilter}-${customStart}-${customEnd}`
   );
   const portalSupplier = normalizedSuppliers.find((supplier) => String(supplier.id) === String(portalSupplierId));
-  const activeStats = typedSuppliers.map((supplier) => supplierStats.get(getSupplierKey(supplier))).filter(Boolean);
+  const activeStats = currencyFilteredSuppliers.map((supplier) => supplierStats.get(getSupplierKey(supplier))).filter(Boolean);
   const totalPayables = activeStats.reduce((sum, stat) => sum + Math.max(0, stat.balance), 0);
   const totalReceivables = activeStats.reduce((sum, stat) => sum + Math.max(0, -stat.balance), 0);
   const purchaseValue = activeStats.reduce((sum, stat) => sum + stat.purchaseValue, 0);
@@ -528,9 +543,8 @@ function Suppliers() {
     setDeletingLedgerRow(null);
   };
 
-  const printReport = () => {
-    printRows(
-      "Supplier Report",
+  const supplierReportRows = useMemo(
+    () =>
       filteredSuppliers.map((supplier) => {
         const stat = supplierStats.get(getSupplierKey(supplier));
         return {
@@ -542,17 +556,20 @@ function Suppliers() {
           Receivable: formatCurrencyAmount(Math.max(0, -(stat?.balance || 0)), supplier.currency),
           Status: stat?.statusKey || "settled",
         };
-      })
-    );
-  };
+      }),
+    [filteredSuppliers, supplierStats]
+  );
 
   if (portalSupplier) {
     return (
       <SupplierPortal
-        adjustments={supplierAdjustments}
+        adjustments={currencyFilteredSupplierAdjustments}
         baseCurrency={baseCurrency}
+        company={company}
         dateFilter={portalDateFilter}
-        entries={supplierStats.get(getSupplierKey(portalSupplier))?.entries || []}
+        entries={(supplierStats.get(getSupplierKey(portalSupplier))?.entries || []).filter((entry) =>
+          currencyMatchesFilter(entry.currency || portalSupplier.currency, businessCurrencyFilter)
+        )}
         onAdjust={() => setAdjustmentOpen(true)}
         onBack={() => setPortalSupplierId("")}
         onDateFilter={setPortalDateFilter}
@@ -621,9 +638,9 @@ function Suppliers() {
 </p>
         </div>
         <div className="suppliers-header-actions">
-          <button type="button" className="supplier-light-btn" onClick={printReport}>
+          <button type="button" className="supplier-light-btn" onClick={() => setPrintReportOpen(true)}>
             <Printer size={16} />
-            Print
+            Print Report
           </button>
           <button type="button" className="supplier-primary-btn" onClick={() => setModalOpen(true)}>
             <Plus size={16} />
@@ -767,6 +784,24 @@ function Suppliers() {
           onConfirm={removeSupplier}
         />
       )}
+
+      {printReportOpen && (
+        <StandardPrintStudio
+          columns={["Name", "Phone", "Currency", "Purchases", "Payable", "Receivable", "Status"]}
+          company={company}
+          filename="supplier-report"
+          Icon={Truck}
+          rows={supplierReportRows}
+          stats={[
+            { label: "Suppliers", value: filteredSuppliers.length },
+            { label: "Payables", value: formatCurrencyAmount(totalPayables, baseCurrency) },
+            { label: "Receivables", value: formatCurrencyAmount(totalReceivables, baseCurrency) },
+          ]}
+          subtitle="All filtered supplier records"
+          title="Supplier Report"
+          onClose={() => setPrintReportOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -775,6 +810,7 @@ function SupplierPortal({
   adjustments,
   baseCurrency,
   children,
+  company,
   dateFilter,
   entries,
   onAdjust,
@@ -791,6 +827,7 @@ function SupplierPortal({
   stat,
   supplier,
 }) {
+  const [printOpen, setPrintOpen] = useState(false);
   const filteredEntries = entries.filter((entry) => getDateMatches(entry.date, dateFilter, portalCustomStart, portalCustomEnd));
   const filteredAdjustments = adjustments
     .filter((adjustment) => String(adjustment.supplierId) === String(supplier.id))
@@ -863,25 +900,24 @@ function SupplierPortal({
     adjustmentBalance;
   const profit = filteredEntries.reduce((sum, entry) => sum + Math.max(0, parseNumber(entry.selling) - parseNumber(entry.purchase)) * parseNumber(entry.quantity), 0);
 
-  const printPortal = () => {
-    const rows =
-      portalTab === "goods"
-        ? filteredEntries.map((entry) => ({
+  const portalReportRows =
+    portalTab === "goods"
+      ? filteredEntries.map((entry) => ({
           Product: entry.name,
           Quantity: `${entry.quantity} ${entry.unit || "Piece"}`,
           Purchase: formatCurrencyAmount(entry.purchase, entry.currency || openingCurrency),
           Total: formatCurrencyAmount(entry.total, entry.currency || openingCurrency),
           Date: getDateLabel(entry.date),
         }))
-        : portalTab === "profit"
-          ? filteredEntries.map((entry) => ({
+      : portalTab === "profit"
+        ? filteredEntries.map((entry) => ({
             Product: entry.name,
             Purchase: formatCurrencyAmount(entry.purchase, entry.currency || openingCurrency),
             Selling: formatCurrencyAmount(entry.selling, entry.currency || openingCurrency),
             Profit: formatCurrencyAmount(Math.max(0, parseNumber(entry.selling) - parseNumber(entry.purchase)) * parseNumber(entry.quantity), entry.currency || openingCurrency),
             Date: getDateLabel(entry.date),
           }))
-          : ledgerRows.map((row) => ({
+        : ledgerRows.map((row) => ({
             Date: row.date,
             Description: row.description,
             Deposit: row.deposit,
@@ -890,8 +926,12 @@ function SupplierPortal({
             Balance: row.balance,
             Currency: row.currency,
           }));
-    printRows(`${supplier.name} - ${portalTab}`, rows);
-  };
+  const portalReportColumns =
+    portalTab === "goods"
+      ? ["Product", "Quantity", "Purchase", "Total", "Date"]
+      : portalTab === "profit"
+        ? ["Product", "Purchase", "Selling", "Profit", "Date"]
+        : ["Date", "Description", "Deposit", "Withdraw", "Paid", "Balance", "Currency"];
 
   return (
     <div className="suppliers-page supplier-portal-page">
@@ -905,7 +945,7 @@ function SupplierPortal({
         <div className="supplier-portal-actions">
           <button type="button" className="supplier-light-btn" onClick={onEdit}><SquarePen size={16} /> Edit</button>
           <button type="button" className="supplier-light-btn" onClick={onAdjust}><PlusCircle size={16} /> Adjustment</button>
-          <button type="button" className="supplier-primary-btn" onClick={printPortal}><Printer size={16} /> Print</button>
+          <button type="button" className="supplier-primary-btn" onClick={() => setPrintOpen(true)}><Printer size={16} /> Print</button>
         </div>
       </div>
 
@@ -965,6 +1005,23 @@ function SupplierPortal({
         />
       </section>
       {children}
+      {printOpen && (
+        <StandardPrintStudio
+          columns={portalReportColumns}
+          company={company}
+          filename={`${supplier.name}-${portalTab}-supplier-report`}
+          Icon={Truck}
+          rows={portalReportRows}
+          stats={[
+            { label: "Purchase", value: formatCurrencyAmount(purchaseValue, supplier.currency) },
+            { label: "Paid", value: formatCurrencyAmount(paid, supplier.currency) },
+            { label: "Remaining", value: formatCurrencyAmount(remaining, supplier.currency) },
+          ]}
+          subtitle={`${supplier.name} - ${portalTab}`}
+          title={`${supplier.name} - Supplier Statement`}
+          onClose={() => setPrintOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1343,26 +1400,6 @@ function ConfirmModal({ message, onClose, onConfirm, title }) {
       </div>
     </div>
   );
-}
-
-function printRows(title, rows) {
-  const columns = Object.keys(rows[0] || {});
-  const tableRows = rows
-    .map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}</tr>`)
-    .join("");
-  const printWindow = window.open("", "_blank", "width=950,height=1100");
-  if (!printWindow) return;
-  printWindow.document.write(`
-    <!doctype html>
-    <html><head><title>${escapeHtml(title)}</title><style>
-    body{font-family:Arial,sans-serif;margin:30px;color:#111827} h1{margin:0 0 16px}
-    table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:12px}
-    th{background:#f8fafc;color:#475569}
-    </style></head><body><h1>${escapeHtml(title)}</h1><table><thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead><tbody>${tableRows || `<tr><td colspan="${columns.length || 1}">No records found.</td></tr>`}</tbody></table></body></html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  window.setTimeout(() => printWindow.print(), 250);
 }
 
 export default Suppliers;

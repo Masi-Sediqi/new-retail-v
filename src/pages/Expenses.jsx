@@ -10,8 +10,10 @@ import {
 import CustomSelect from "../components/CustomSelect";
 import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
+import StandardPrintStudio from "../components/StandardPrintStudio";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { currencies, formatCurrencyAmount } from "../utils/currencyExchange";
@@ -85,20 +87,13 @@ const getDateMatches = (dateValue, filter, customStartDate, customEndDate) => {
   );
 };
 
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
 function Expenses() {
   const [expenses, setExpenses] = useJsonCollection("expenses");
   const [expenseCategories, setExpenseCategories] = useJsonCollection("expenseCategories");
   const [settings] = useJsonCollection("settings");
   const [, setTransactions] = useJsonCollection("transactions");
   const [, setDeletedItems] = useJsonCollection("deletedItems");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
@@ -113,6 +108,7 @@ function Expenses() {
   const [dateFilter, setDateFilter] = useState("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  const [printReportOpen, setPrintReportOpen] = useState(false);
 
   const categories = useMemo(() => {
     const saved = expenseCategories.map((item) => item.name || item).filter(Boolean);
@@ -133,9 +129,17 @@ function Expenses() {
     [baseCurrency, expenses]
   );
 
+  const currencyFilteredExpenses = useMemo(
+    () =>
+      normalizedExpenses.filter((expense) =>
+        currencyMatchesFilter(expense.currency, businessCurrencyFilter)
+      ),
+    [businessCurrencyFilter, normalizedExpenses]
+  );
+
   const filteredExpenses = useMemo(
     () =>
-      normalizedExpenses.filter((expense) => {
+      currencyFilteredExpenses.filter((expense) => {
         const needle = search.trim().toLowerCase();
         const matchesSearch =
           !needle ||
@@ -148,7 +152,7 @@ function Expenses() {
         const matchesDate = getDateMatches(expense.date, dateFilter, customStartDate, customEndDate);
         return matchesSearch && matchesCategory && matchesMethod && matchesDate;
       }),
-    [categoryFilter, customEndDate, customStartDate, dateFilter, methodFilter, normalizedExpenses, search]
+    [categoryFilter, currencyFilteredExpenses, customEndDate, customStartDate, dateFilter, methodFilter, search]
   );
 
   const pagination = useTablePagination(
@@ -244,18 +248,19 @@ function Expenses() {
     });
   };
 
-  const printReport = () => {
-    printRows(
-      "Expense Report",
+  const expenseReportRows = useMemo(
+    () =>
       filteredExpenses.map((expense) => ({
         Category: expense.category,
         Description: expense.description,
         Amount: formatCurrencyAmount(expense.amount, expense.currency),
         Method: expense.method,
         Date: getDateLabel(expense.date),
-      }))
-    );
-  };
+      })),
+    [filteredExpenses]
+  );
+  const expenseTotal = filteredExpenses.reduce((sum, expense) => sum + parseNumber(expense.amount), 0);
+  const expenseCurrency = businessCurrencyFilter === "all" ? baseCurrency : businessCurrencyFilter;
 
   return (
     <div className="expenses-page">
@@ -265,9 +270,9 @@ function Expenses() {
           <p>Track business expenses, payment methods, categories and monthly spend.</p>
         </div>
         <div className="expenses-header-actions">
-          <button type="button" className="expense-light-btn" onClick={printReport}>
+          <button type="button" className="expense-light-btn" onClick={() => setPrintReportOpen(true)}>
             <Printer size={16} />
-            Print
+            Print Report
           </button>
           <button
             type="button"
@@ -401,6 +406,23 @@ function Expenses() {
           onConfirm={removeExpense}
         />
       )}
+      {printReportOpen && (
+        <StandardPrintStudio
+          columns={["Category", "Description", "Amount", "Method", "Date"]}
+          company={company}
+          filename="expense-report"
+          Icon={Printer}
+          rows={expenseReportRows}
+          stats={[
+            { label: "Records", value: filteredExpenses.length },
+            { label: "Categories", value: new Set(filteredExpenses.map((expense) => expense.category)).size },
+            { label: "Total", value: formatCurrencyAmount(expenseTotal, expenseCurrency) },
+          ]}
+          subtitle="All filtered expense records"
+          title="Expense Report"
+          onClose={() => setPrintReportOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -524,15 +546,6 @@ function Field({ children, className = "", invalid = false, label, required = fa
   );
 }
 
-function StatCard({ icon: Icon, label, tone = "", value }) {
-  return (
-    <article className={`expense-stat-card ${tone}`.trim()}>
-      <div><span>{label}</span><strong>{value}</strong></div>
-      <Icon size={21} />
-    </article>
-  );
-}
-
 function ConfirmModal({ message, onClose, onConfirm, title }) {
   return (
     <div className="expense-modal-backdrop">
@@ -546,26 +559,6 @@ function ConfirmModal({ message, onClose, onConfirm, title }) {
       </div>
     </div>
   );
-}
-
-function printRows(title, rows) {
-  const columns = Object.keys(rows[0] || {});
-  const tableRows = rows
-    .map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}</tr>`)
-    .join("");
-  const printWindow = window.open("", "_blank", "width=900,height=1100");
-  if (!printWindow) return;
-  printWindow.document.write(`
-    <!doctype html>
-    <html><head><title>${escapeHtml(title)}</title><style>
-    body{font-family:Arial,sans-serif;margin:30px;color:#111827} h1{margin:0 0 16px}
-    table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:12px}
-    th{background:#f8fafc;color:#475569}
-    </style></head><body><h1>${escapeHtml(title)}</h1><table><thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead><tbody>${tableRows || `<tr><td colspan="${columns.length || 1}">No records found.</td></tr>`}</tbody></table></body></html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  window.setTimeout(() => printWindow.print(), 250);
 }
 
 export default Expenses;

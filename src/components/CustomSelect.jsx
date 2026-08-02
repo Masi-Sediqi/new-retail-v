@@ -5,6 +5,86 @@ import "./CustomSelect.css";
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
+const selectLabelTranslations = {
+  fa: {
+    "All balances": "تمام بیلانس‌ها",
+    "All categories": "تمام کتگوری‌ها",
+    "All methods": "تمام روش‌ها",
+    "All products": "تمام محصولات",
+    "All statuses": "تمام وضعیت‌ها",
+    "All stock": "تمام گدام",
+    "All suppliers": "تمام تأمین‌کنندگان",
+    "All time": "تمام زمان‌ها",
+    Annual: "سالانه",
+    Custom: "دلخواه",
+    "Custom range": "بازه دلخواه",
+    Expired: "منقضی",
+    "Expiring soon": "نزدیک به انقضا",
+    "In stock": "موجود",
+    Monthly: "ماهانه",
+    Overdue: "دیرشده",
+    Paid: "پرداخت‌شده",
+    Payable: "پرداختنی",
+    Pending: "در انتظار",
+    Receivable: "دریافتنی",
+    Settled: "تصفیه‌شده",
+    Today: "امروز",
+    Weekly: "هفتگی",
+    "Low stock": "کمبود موجودی",
+    "Out of stock": "ناموجود",
+  },
+  ps: {
+    "All balances": "ټول بیلانسونه",
+    "All categories": "ټولې کټګورۍ",
+    "All methods": "ټولې طریقې",
+    "All products": "ټول محصولات",
+    "All statuses": "ټول حالتونه",
+    "All stock": "ټول ګدام",
+    "All suppliers": "ټول تأمین کوونکي",
+    "All time": "ټول وختونه",
+    Annual: "کلنی",
+    Custom: "د خوښې",
+    "Custom range": "د خوښې موده",
+    Expired: "تېر شوی",
+    "Expiring soon": "ژر پای ته رسېږي",
+    "In stock": "موجود",
+    Monthly: "میاشتنی",
+    Overdue: "ناوخته",
+    Paid: "ورکړل شوی",
+    Payable: "ورکول کېدونکی",
+    Pending: "په تمه",
+    Receivable: "ترلاسه کېدونکی",
+    Settled: "تصفیه شوی",
+    Today: "نن",
+    Weekly: "اونیز",
+    "Low stock": "کم موجودي",
+    "Out of stock": "ناموجود",
+  },
+};
+
+const normalizeLanguage = (language) => {
+  const value = String(language || "en").toLowerCase();
+  if (value.startsWith("fa") || value.includes("dari") || value === "prs") return "fa";
+  if (value.startsWith("ps") || value.includes("pashto")) return "ps";
+  return "en";
+};
+
+const currentLanguage = () => {
+  if (typeof document !== "undefined" && document.documentElement?.lang) {
+    return normalizeLanguage(document.documentElement.lang);
+  }
+  if (typeof localStorage !== "undefined") {
+    return normalizeLanguage(localStorage.getItem("isp-selected-language"));
+  }
+  return "en";
+};
+
+const translateSelectLabel = (label) => {
+  const text = String(label ?? "");
+  const language = currentLanguage();
+  return selectLabelTranslations[language]?.[text] || text;
+};
+
 function CustomSelect({
   ariaLabel,
   buttonClassName = "",
@@ -107,7 +187,7 @@ function CustomSelect({
           role="option"
           type="button"
         >
-          <span>{option.label}</span>
+          <span>{translateSelectLabel(option.label)}</span>
         </button>
       ))}
     </div>
@@ -123,7 +203,9 @@ function CustomSelect({
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
-        <span className="smooth-select-label">{selected?.label || "Select"}</span>
+        <span className="smooth-select-label">
+          {translateSelectLabel(selected?.label || "Select")}
+        </span>
         <ChevronDown className={open ? "rotate" : ""} size={16} />
       </button>
       {open && createPortal(menu, document.body)}

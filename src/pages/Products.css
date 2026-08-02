@@ -1131,6 +1131,10 @@ body.dark-mode .products-grand-total span {
 
 .product-report-paper.thermal{font-size:9px}.product-report-paper.thermal .product-report-header{min-height:18mm;padding:4mm;clip-path:none}.product-report-paper.thermal .product-report-header img,.product-report-paper.thermal .product-report-logo{width:30px;height:30px}.product-report-paper.thermal .product-report-header p{display:none}.product-report-paper.thermal .product-report-heading{display:block}.product-report-paper.thermal .product-report-heading>div:last-child{text-align:start;margin-top:6px}.product-report-paper.thermal .product-report-stats{grid-template-columns:1fr}.product-report-paper.thermal table th,.product-report-paper.thermal table td{padding:4px 2px}.product-report-paper.thermal table th:nth-child(3),.product-report-paper.thermal table td:nth-child(3),.product-report-paper.thermal table th:nth-child(5),.product-report-paper.thermal table td:nth-child(5){display:none}.product-report-paper.thermal footer{position:relative;margin:12px calc(var(--report-margin) * -1) calc(var(--report-margin) * -1);min-height:12mm;padding:4mm;display:block;text-align:center}
 
+.product-print-backdrop{overflow:hidden;padding:18px}.product-print-studio{width:min(1100px,94vw);height:min(900px,92vh);display:grid;grid-template-rows:50px minmax(0,1fr);border-radius:10px}.product-print-toolbar{height:50px;padding:0 12px}.product-print-titlebar{min-width:0;display:flex;align-items:center;gap:10px}.product-print-titlebar strong{min-width:0;display:flex;align-items:center;gap:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.product-print-settings-toggle{width:38px;height:38px;border:0;border-radius:11px;background:#e0f7ff;color:#0f172a;display:grid;place-items:center;cursor:pointer}.product-print-settings-toggle.active,.product-print-settings-toggle:hover{background:#38bdf8;color:#fff}.product-print-toolbar-actions{gap:7px}.product-print-toolbar-actions span{min-width:44px;text-align:center;color:#334155;font-weight:800}.product-print-body{position:relative;height:auto;min-height:0;display:block;overflow:hidden;background:#eef2f7}.product-print-controls{position:absolute;z-index:6;top:0;bottom:0;left:0;width:245px;border-right:1px solid #dce3ec;box-shadow:18px 0 46px rgba(15,23,42,.13);transform:translateX(-102%);transition:transform .18s ease;overflow:auto}.product-print-controls.open{transform:translateX(0)}.product-print-controls-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.product-print-controls-head strong{font-size:12px;color:#17233d}.product-print-controls-head button{width:28px;height:28px;border:1px solid #d7dfea;border-radius:7px;background:#fff;color:#475569;display:grid;place-items:center;cursor:pointer}.product-print-canvas{height:100%;overflow:hidden;display:grid;place-items:center;padding:14px;background:#eef2f7}.product-report-paper{transform:none;zoom:var(--report-scale);margin:0}.product-report-paper table{table-layout:fixed}.product-report-paper th,.product-report-paper td{word-break:break-word}.product-report-paper footer{bottom:0}@media print{.product-print-settings-toggle,.product-print-controls-head{display:none!important}.product-report-paper{zoom:1!important}}
+
+.product-print-toolbar-actions>button{height:34px;margin:0;font-weight:850}.product-print-toolbar-actions>button:first-child,.product-print-toolbar-actions>button:nth-child(3){width:32px;min-width:32px;padding:0;justify-content:center}.product-print-toolbar-actions>span{height:34px;min-width:56px;margin-left:-7px;margin-right:-7px;border-top:1px solid #d7dfea;border-bottom:1px solid #d7dfea;background:#fff;display:grid;place-items:center}.product-print-toolbar-actions>button:first-child{border-radius:8px 0 0 8px}.product-print-toolbar-actions>button:nth-child(3){border-radius:0 8px 8px 0}.product-print-settings-toggle{box-shadow:0 0 0 6px rgba(56,189,248,.12)}.product-report-paper{display:flex;flex-direction:column}.product-report-header{flex:0 0 auto;min-height:29mm;padding:8mm 12mm;margin-bottom:12px}.product-report-heading{flex:0 0 auto;margin:8px 0}.product-report-stats{flex:0 0 auto;margin:9px 0}.product-report-contents{flex:0 0 auto;margin:8px 0}.product-report-paper table{flex:0 0 auto;font-size:calc(var(--report-body) - 1px)}.product-report-paper th,.product-report-paper td{padding:6px 7px}.product-report-paper table th:nth-child(1){width:24%}.product-report-paper table th:nth-child(2){width:21%}.product-report-paper table th:nth-child(3){width:24%}.product-report-paper table th:nth-child(4){width:18%}.product-report-paper table th:nth-child(5){width:13%}.product-report-paper .table-pagination,.product-report-paper .pagination,.product-report-paper [class*="pagination"]{display:none!important}.product-report-paper footer{margin-top:auto;position:relative;left:auto;right:auto;bottom:auto;margin-left:calc(var(--report-margin) * -1);margin-right:calc(var(--report-margin) * -1);margin-bottom:calc(var(--report-margin) * -1)}
+
 body.dark-mode .products-stat-card,
 body.dark-mode .products-table-card,
 body.dark-mode .products-modal,
@@ -1226,4 +1230,73 @@ body.dark-mode .products-table-wrap tbody tr:hover td {
   .products-modal {
     max-height: calc(100vh - 20px);
   }
+}
+/* Fix Product Report toolbar settings button layout */
+
+.product-print-toolbar {
+  position: relative;
+  min-width: 0;
+  padding: 0 14px;
+  overflow: visible;
+}
+
+.product-print-titlebar {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.product-print-settings-toggle {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex: 0 0 34px;
+
+  margin: 0;
+
+  border: 1px solid #d7e2ec;
+  border-radius: 8px;
+
+  background: #f0f9ff;
+  color: #0f172a;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.product-print-settings-toggle:hover,
+.product-print-settings-toggle.active {
+  border-color: #38bdf8;
+  background: #e0f7ff;
+  color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+}
+
+.product-print-titlebar strong {
+  min-width: 0;
+  margin: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  color: #17233d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-print-toolbar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 14px;
 }

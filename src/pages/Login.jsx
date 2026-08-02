@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { notify } from "../utils/notify";
-import { todayDateValue } from "../utils/afghanDate";
 import "./Auth.css";
 
-function Login({ accounts, setAccounts, onLogin, company }) {
+function Login({ accounts, onLogin, company }) {
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -30,26 +29,6 @@ function Login({ accounts, setAccounts, onLogin, company }) {
           String(item.username || "").toLowerCase() === email) &&
         (item.password === form.password || item.secondaryPassword === form.password)
     );
-
-    if (!account && email === "admin@gmail.com" && form.password === "mynameisadmin") {
-      account = {
-        id: "default-admin",
-        fullName: "System Admin",
-        email: "admin@gmail.com",
-        password: "mynameisadmin",
-        secondaryPassword: "",
-        role: "Admin",
-        status: "Active",
-        permissions: {},
-        isDefaultAdmin: true,
-        createdAt: todayDateValue(),
-      };
-
-      if (!accounts.some((item) => String(item.id) === "default-admin")) {
-        const saved = await setAccounts([account, ...accounts]);
-        if (!saved) return;
-      }
-    }
 
     if (!account) {
       return notify("The email or password is incorrect.", "error");

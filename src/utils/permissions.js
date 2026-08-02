@@ -17,6 +17,7 @@ export const MODULE_KEYS = {
   expenses: "expenses",
   loans: "loans",
   financials: "financials",
+  partnerInvesting: "partnerInvesting",
 };
 
 export function isAdminUser(user) {

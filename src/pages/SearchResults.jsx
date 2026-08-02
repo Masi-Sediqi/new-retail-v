@@ -39,6 +39,7 @@ export default function SearchResults() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const query = params.get("q") || "";
+  const selectedPath = params.get("open") || "";
 
   const [assets] = useJsonCollection("assets");
   const [customers] = useJsonCollection("customers");
@@ -180,7 +181,10 @@ export default function SearchResults() {
               </thead>
               <tbody>
                 {group.items.map((item, index) => (
-                  <tr key={`${group.type}-${index}-${item.title}`}>
+                  <tr
+                    key={`${group.type}-${index}-${item.title}`}
+                    className={selectedPath && item.path === selectedPath ? "search-result-selected" : ""}
+                  >
                     <td><span className="search-result-type">{item.type}</span></td>
                     <td data-label="Record">
                       <strong>

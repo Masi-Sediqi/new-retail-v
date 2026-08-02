@@ -21,8 +21,10 @@ import {
 import CustomSelect from "../components/CustomSelect";
 import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
+import StandardPrintStudio from "../components/StandardPrintStudio";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
@@ -118,20 +120,13 @@ const getDateMatches = (dateValue, filter, customStartDate, customEndDate) => {
   );
 };
 
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
 function Customers() {
   const [customers, setCustomers] = useJsonCollection("customers");
   const [sales] = useJsonCollection("billingInvoices");
   const [products] = useJsonCollection("products");
   const [settings] = useJsonCollection("settings");
   const [, setDeletedItems] = useJsonCollection("deletedItems");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
@@ -147,6 +142,7 @@ function Customers() {
   const [dateFilter, setDateFilter] = useState("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  const [printReportOpen, setPrintReportOpen] = useState(false);
 
   const normalizedCustomers = useMemo(
     () =>
@@ -160,10 +156,18 @@ function Customers() {
     [customers]
   );
 
+  const currencyFilteredSales = useMemo(
+    () =>
+      sales.filter((sale) =>
+        currencyMatchesFilter(sale.currency || baseCurrency, businessCurrencyFilter)
+      ),
+    [baseCurrency, businessCurrencyFilter, sales]
+  );
+
   const customerSummaries = useMemo(
     () =>
       normalizedCustomers.map((customer) => {
-        const customerSales = getCustomerSales(customer, sales);
+        const customerSales = getCustomerSales(customer, currencyFilteredSales);
         const hasSales = customerSales.length > 0;
         const purchases = hasSales
           ? customerSales.reduce((sum, sale) => sum + parseNumber(sale.total), 0)
@@ -175,7 +179,7 @@ function Customers() {
         const latestDate = latestSale?.date || customer.createdAt?.slice(0, 10) || "";
         return { ...customer, purchases, pending, latestDate, salesCount: customerSales.length };
       }),
-    [normalizedCustomers, sales]
+    [currencyFilteredSales, normalizedCustomers]
   );
 
   const filteredCustomers = useMemo(
@@ -196,9 +200,13 @@ function Customers() {
           (paymentFilter === "paid" && !hasLoan) ||
           (paymentFilter === "loan" && hasLoan);
         const matchesDate = getDateMatches(customer.latestDate, dateFilter, customStartDate, customEndDate);
-        return matchesSearch && matchesStatus && matchesPayment && matchesDate;
+        const matchesCurrency =
+          businessCurrencyFilter === "all" ||
+          customer.salesCount > 0 ||
+          currencyMatchesFilter(customer.currency, businessCurrencyFilter);
+        return matchesCurrency && matchesSearch && matchesStatus && matchesPayment && matchesDate;
       }),
-    [customEndDate, customStartDate, customerSummaries, dateFilter, paymentFilter, search, statusFilter]
+    [businessCurrencyFilter, customEndDate, customStartDate, customerSummaries, dateFilter, paymentFilter, search, statusFilter]
   );
 
   const profileCustomer = customerSummaries.find((customer) => String(customer.id) === String(profileCustomerId));
@@ -280,9 +288,8 @@ function Customers() {
     setDeleteCustomer(null);
   };
 
-  const printCustomerReport = () => {
-    printRows(
-      "Customer Report",
+  const customerReportRows = useMemo(
+    () =>
       filteredCustomers.map((customer) => ({
         Name: customer.name,
         Phone: customer.phone || "-",
@@ -290,14 +297,15 @@ function Customers() {
         Purchases: formatCurrencyAmount(customer.purchases, baseCurrency),
         Pending: formatCurrencyAmount(customer.pending, baseCurrency),
         Status: customer.status,
-      }))
-    );
-  };
+      })),
+    [baseCurrency, filteredCustomers]
+  );
 
   if (profileCustomer) {
     return (
       <CustomerProfile
         baseCurrency={baseCurrency}
+        company={company}
         customer={profileCustomer}
         onBack={() => setProfileCustomerId("")}
         onEdit={(customer) => {
@@ -305,7 +313,7 @@ function Customers() {
           setModalOpen(true);
         }}
         products={products}
-        sales={sales}
+        sales={currencyFilteredSales}
       >
         {modalOpen && (
           <CustomerModal
@@ -330,9 +338,9 @@ function Customers() {
           <p>Manage customer profiles, purchases, payments, loans and account activity.</p>
         </div>
         <div className="customers-header-actions">
-          <button type="button" className="customer-light-btn" onClick={printCustomerReport}>
+          <button type="button" className="customer-light-btn" onClick={() => setPrintReportOpen(true)}>
             <Printer size={16} />
-            Print
+            Print Report
           </button>
           <button type="button" className="customer-primary-btn" onClick={() => setModalOpen(true)}>
             <Plus size={16} />
@@ -498,17 +506,36 @@ function Customers() {
           onConfirm={removeCustomer}
         />
       )}
+
+      {printReportOpen && (
+        <StandardPrintStudio
+          columns={["Name", "Phone", "Email", "Purchases", "Pending", "Status"]}
+          company={company}
+          filename="customer-report"
+          Icon={Users}
+          rows={customerReportRows}
+          stats={[
+            { label: "Customers", value: totals.customers },
+            { label: "VIP", value: totals.vip },
+            { label: "Pending", value: formatCurrencyAmount(totals.pending, baseCurrency) },
+          ]}
+          subtitle="All filtered customer records"
+          title="Customer Report"
+          onClose={() => setPrintReportOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
-function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, products, sales }) {
+function CustomerProfile({ baseCurrency, children, company, customer, onBack, onEdit, products, sales }) {
   const [activeTab, setActiveTab] = useState("orders");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  const [printOpen, setPrintOpen] = useState(false);
 
   const customerSales = useMemo(() => getCustomerSales(customer, sales), [customer, sales]);
 
@@ -578,6 +605,69 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
       : [];
   });
 
+  const ledgerRows = useMemo(() => {
+    const chronologicalRows = filteredSales.flatMap((sale) => {
+      const currency = sale.currency || baseCurrency;
+      const paymentHistory = sale.paymentHistory || [];
+      const laterPaid = paymentHistory.reduce((sum, payment) => sum + parseNumber(payment.amount), 0);
+      const initialPaid = Math.max(0, parseNumber(sale.paidAmount) - laterPaid);
+      const saleDate = sale.date || sale.createdAt?.slice(0, 10) || "";
+
+      return [
+        {
+          id: `${sale.id}-purchase`,
+          type: "Purchase",
+          invoice: sale.invoiceNumber,
+          description: `${getSaleItems(sale).length} item(s) purchased`,
+          debit: parseNumber(sale.total),
+          credit: 0,
+          currency,
+          date: saleDate,
+          timeSource: sale.createdAt || `${saleDate}T00:00:00`,
+        },
+        ...(initialPaid > 0
+          ? [
+              {
+                id: `${sale.id}-initial-payment`,
+                type: "Initial Payment",
+                invoice: sale.invoiceNumber,
+                description: sale.paymentMethod || "Payment recorded",
+                debit: 0,
+                credit: roundMoney(initialPaid),
+                currency,
+                date: saleDate,
+                timeSource: sale.createdAt || `${saleDate}T00:00:01`,
+              },
+            ]
+          : []),
+        ...paymentHistory.map((payment) => {
+          const paymentDate = payment.date || payment.createdAt?.slice(0, 10) || saleDate;
+          return {
+            id: payment.id || `${sale.id}-payment-${paymentDate}`,
+            type: "Payment",
+            invoice: sale.invoiceNumber,
+            description: payment.note || payment.notes || payment.method || "Payment received",
+            debit: 0,
+            credit: parseNumber(payment.amount),
+            currency: payment.currency || currency,
+            date: paymentDate,
+            timeSource: payment.createdAt || `${paymentDate}T00:00:02`,
+          };
+        }),
+      ];
+    });
+
+    const balances = {};
+    return chronologicalRows
+      .sort((a, b) => String(a.timeSource || a.date).localeCompare(String(b.timeSource || b.date)))
+      .map((row) => {
+        const currency = row.currency || baseCurrency;
+        balances[currency] = roundMoney((balances[currency] || 0) + parseNumber(row.debit) - parseNumber(row.credit));
+        return { ...row, balance: balances[currency] };
+      })
+      .sort((a, b) => String(b.timeSource || b.date).localeCompare(String(a.timeSource || a.date)));
+  }, [baseCurrency, filteredSales]);
+
   const loanRows = filteredSales.filter((sale) => parseNumber(sale.balance) > 0);
   const profitRows = filteredSales.map((sale) => {
     const cost = getSaleCost(sale, products);
@@ -614,8 +704,8 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
 
   const displayCurrency = customerSales[0]?.currency || baseCurrency;
 
-  const printProfile = () => {
-    const rows =
+  const statementRows = useMemo(
+    () =>
       activeTab === "payments"
         ? paymentRows.map((row) => ({
             Invoice: row.invoice,
@@ -623,6 +713,16 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
             Description: row.description,
             Date: getDateLabel(row.date),
           }))
+        : activeTab === "ledger"
+          ? ledgerRows.map((row) => ({
+              Date: getDateLabel(row.date),
+              Type: row.type,
+              Invoice: row.invoice,
+              Description: row.description,
+              Debit: row.debit > 0 ? formatCurrencyAmount(row.debit, row.currency || baseCurrency) : "-",
+              Credit: row.credit > 0 ? formatCurrencyAmount(row.credit, row.currency || baseCurrency) : "-",
+              Balance: formatCurrencyAmount(row.balance, row.currency || baseCurrency),
+            }))
         : activeTab === "loans"
           ? loanRows.map((sale) => ({
               Invoice: sale.invoiceNumber,
@@ -653,10 +753,9 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
                   Paid: formatCurrencyAmount(sale.paidAmount, sale.currency || baseCurrency),
                   Balance: formatCurrencyAmount(sale.balance, sale.currency || baseCurrency),
                   Date: getDateLabel(sale.date),
-                }));
-
-    printRows(`${customer.name} - Customer Statement`, rows);
-  };
+                })),
+    [activeTab, activityRows, baseCurrency, filteredSales, ledgerRows, loanRows, paymentRows, profitRows]
+  );
 
   return (
     <div className="customers-page customer-profile-page">
@@ -676,7 +775,7 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
             <UserRoundPen size={16} />
             Edit
           </button>
-          <button type="button" className="customer-primary-btn" onClick={printProfile}>
+          <button type="button" className="customer-primary-btn" onClick={() => setPrintOpen(true)}>
             <Printer size={16} />
             Print Statement
           </button>
@@ -732,6 +831,7 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
         <div className="customer-profile-tabs">
           {[
             { id: "orders", icon: ShoppingCart, label: "Orders", count: filteredSales.length },
+            { id: "ledger", icon: ReceiptText, label: "Ledger", count: ledgerRows.length },
             { id: "payments", icon: CreditCard, label: "Payment History", count: paymentRows.length },
             { id: "loans", icon: WalletCards, label: "Loans", count: loanRows.length },
             { id: "profit", icon: BarChart3, label: "Profit Analysis" },
@@ -752,6 +852,7 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
           activityRows={activityRows}
           baseCurrency={baseCurrency}
           filteredSales={filteredSales}
+          ledgerRows={ledgerRows}
           loanRows={loanRows}
           paymentRows={paymentRows}
           profitRows={profitRows}
@@ -760,11 +861,50 @@ function CustomerProfile({ baseCurrency, children, customer, onBack, onEdit, pro
       </section>
 
       {children}
+      {printOpen && (
+        <StandardPrintStudio
+          columns={Object.keys(statementRows[0] || {})}
+          company={company}
+          filename={`${customer.name}-customer-statement`}
+          Icon={Users}
+          rows={statementRows}
+          stats={[
+            { label: "Orders", value: totals.totalOrders },
+            { label: "Revenue", value: formatCurrencyAmount(totals.totalRevenue, displayCurrency) },
+            { label: "Pending", value: formatCurrencyAmount(totals.pendingBalance, displayCurrency) },
+          ]}
+          subtitle={`${customer.name} - ${activeTab}`}
+          title={`${customer.name} - Customer Statement`}
+          onClose={() => setPrintOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
-function ProfilePanel({ activeTab, activityRows, baseCurrency, filteredSales, loanRows, paymentRows, profitRows, totals }) {
+function ProfilePanel({ activeTab, activityRows, baseCurrency, filteredSales, ledgerRows, loanRows, paymentRows, profitRows, totals }) {
+  if (activeTab === "ledger") {
+    return (
+      <ProfileTable
+        columns={["Date", "Type", "Invoice", "Description", "Debit", "Credit", "Balance"]}
+        empty="No ledger entries."
+        rows={ledgerRows.map((row) => [
+          getDateLabel(row.date),
+          <span className={row.type === "Payment" || row.type === "Initial Payment" ? "customer-status active" : "customer-status warning"} key="type">
+            {row.type}
+          </span>,
+          row.invoice,
+          row.description,
+          row.debit > 0 ? formatCurrencyAmount(row.debit, row.currency || baseCurrency) : "-",
+          row.credit > 0 ? <span className="customer-success-text" key="credit">{formatCurrencyAmount(row.credit, row.currency || baseCurrency)}</span> : "-",
+          <span className={row.balance > 0 ? "customer-warning-text" : "customer-success-text"} key="balance">
+            {formatCurrencyAmount(row.balance, row.currency || baseCurrency)}
+          </span>,
+        ])}
+      />
+    );
+  }
+
   if (activeTab === "payments") {
     return (
       <div className="customer-payment-list">
@@ -1017,41 +1157,6 @@ function ConfirmModal({ message, onClose, onConfirm, title }) {
       </div>
     </div>
   );
-}
-
-function printRows(title, rows) {
-  const columns = Object.keys(rows[0] || {});
-  const bodyRows = rows
-    .map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}</tr>`)
-    .join("");
-  const printWindow = window.open("", "_blank", "width=900,height=1100");
-  if (!printWindow) return;
-
-  printWindow.document.write(`
-    <!doctype html>
-    <html>
-      <head>
-        <title>${escapeHtml(title)}</title>
-        <style>
-          body{font-family:Arial,sans-serif;margin:30px;color:#111827}
-          h1{margin:0 0 16px}
-          table{width:100%;border-collapse:collapse}
-          th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:12px}
-          th{background:#f8fafc;color:#475569}
-        </style>
-      </head>
-      <body>
-        <h1>${escapeHtml(title)}</h1>
-        <table>
-          <thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead>
-          <tbody>${bodyRows || `<tr><td colspan="${columns.length || 1}">No records found.</td></tr>`}</tbody>
-        </table>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  window.setTimeout(() => printWindow.print(), 250);
 }
 
 export default Customers;

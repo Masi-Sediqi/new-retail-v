@@ -88,6 +88,742 @@ const common = {
   },
 };
 
+const extraCommon = {
+  fa: {
+    "Agent": "دستیار",
+    "Business Currency Filter": "فیلتر ارز تجارت",
+    "Filter records by business currency": "فلتر ریکاردها به اساس ارز تجارت",
+    "All -- All Currencies": "همه -- تمام ارزها",
+    "Exchange Currency": "تبدیل ارز",
+    "Choose conversion display currency": "ارز نمایش برای تبدیل را انتخاب کنید",
+    "Original": "اصلی",
+    "Original (No Conversion)": "اصلی (بدون تبدیل)",
+    "Print Report": "چاپ گزارش",
+    "Print Receipt": "چاپ رسید",
+    "Save & Print": "ذخیره و چاپ",
+    "Discounts": "تخفیف‌ها",
+    "Total Revenue": "مجموع عاید",
+    "Current cash wallet": "کیف پول نقد فعلی",
+    "Net Profit (After Expenses & Refunds)": "سود خالص (پس از مصارف و برگشتی‌ها)",
+    "Pure Profit": "سود خالص واقعی",
+    "Total sales": "مجموع فروش",
+    "Total Expenses": "مجموع مصارف",
+    "Pending Payments": "پرداخت‌های باقی‌مانده",
+    "Total refunds": "مجموع برگشتی‌ها",
+    "Total customers": "مجموع مشتریان",
+    "Supplier / Katah": "تأمین‌کننده / کته",
+    "Supplier / Katah overview": "نمای کلی تأمین‌کننده / کته",
+    "Partner & Investing": "شریک و سرمایه‌گذاری",
+    "Total Payables": "مجموع پرداختنی‌ها",
+    "Total Receivables": "مجموع دریافتنی‌ها",
+    "Stock overview": "نمای کلی موجودی",
+    "Active products": "محصولات فعال",
+    "Stock Quantity": "تعداد موجودی",
+    "Global Stock Value": "ارزش کل موجودی",
+    "Staff overview": "نمای کلی کارمندان",
+    "Staff Paid": "پرداخت کارمندان",
+    "Staff Payable": "پرداختنی کارمندان",
+    "Product Inventory": "موجودی محصولات",
+    "Add Product": "افزودن محصول",
+    "Low Stock": "موجودی کم",
+    "Expiry Alerts": "هشدارهای تاریخ انقضا",
+    "Purchase Price": "قیمت خرید",
+    "Selling Price": "قیمت فروش",
+    "Low Stock Threshold": "حد هشدار موجودی کم",
+    "Expiry date": "تاریخ انقضا",
+    "Alert me before": "پیش از انقضا هشدار بده",
+    "Multi Product Purchase Bill": "بل خرید چند محصول",
+    "Rate": "نرخ",
+    "Rate (AFN)": "نرخ (افغانی)",
+    "Unit Cost": "قیمت واحد",
+    "Bill Number": "شماره بل",
+    "Add Row": "افزودن ردیف",
+    "Grand Total": "مجموع کل",
+    "Paid Now": "پرداخت فعلی",
+    "Save Purchase": "ذخیره خرید",
+    "Stock Entries": "ورودی‌های موجودی",
+    "Expected Profit": "سود پیش‌بینی‌شده",
+    "Payable To Suppliers": "پرداختنی به تأمین‌کنندگان",
+    "Imported": "واردشده",
+    "In Stock": "در موجودی",
+    "Sold": "فروخته‌شده",
+    "Sales / Bills": "فروش / بل‌ها",
+    "All bills": "تمام بل‌ها",
+    "Loan": "قرض",
+    "Loan / Partially paid": "قرض / پرداخت قسمی",
+    "Payment History": "تاریخچه پرداخت",
+    "Add payment": "افزودن پرداخت",
+    "Add Payment": "افزودن پرداخت",
+    "Record Payment": "ثبت پرداخت",
+    "Payment Amount": "مبلغ پرداخت",
+    "Mark as Paid": "ثبت به‌عنوان پرداخت‌شده",
+    "Refund": "برگشت",
+    "View Details": "مشاهده جزئیات",
+    "Print Invoice": "چاپ بل",
+    "Edit Bill": "ویرایش بل",
+    "Cash wallet payment": "پرداخت از کیف پول نقد",
+    "Adds this payment to Cash Wallet": "این پرداخت را به کیف پول نقد اضافه می‌کند",
+    "No payment entries yet": "هنوز پرداختی ثبت نشده است",
+    "Add a partial payment to start tracking.": "برای شروع پیگیری، یک پرداخت قسمی اضافه کنید.",
+    "Customer Account Ledger": "دفتر حساب مشتری",
+    "Ledger": "دفتر حساب",
+    "Orders": "سفارش‌ها",
+    "Total Spent": "مجموع مصرف‌شده",
+    "Total Orders": "مجموع سفارش‌ها",
+    "Pending Balance": "بیلانس باقی‌مانده",
+    "Total Discounts": "مجموع تخفیف‌ها",
+    "Profit Earned": "سود به‌دست‌آمده",
+    "Member since": "عضو از",
+    "Print Statement": "چاپ صورت‌حساب",
+    "Manage customer profiles, purchases, payments, loans and account activity.": "مشخصات مشتریان، خریدها، پرداخت‌ها، قرض‌ها و فعالیت حساب را مدیریت کنید.",
+    "VIP Customers": "مشتریان VIP",
+    "Total Purchases": "مجموع خریدها",
+    "Total Pending": "مجموع باقی‌مانده",
+    "Search customers...": "جستجوی مشتریان...",
+    "All statuses": "تمام وضعیت‌ها",
+    "All payments": "تمام پرداخت‌ها",
+    "Contact": "تماس",
+    "Purchases": "خریدها",
+    "No address": "بدون آدرس",
+    "No email": "بدون ایمیل",
+    "VIP customer": "مشتری VIP",
+    "Add Customer": "افزودن مشتری",
+    "Customer actions": "عملیات مشتری",
+    "Delete Customer": "حذف مشتری",
+    "Customer Report": "گزارش مشتریان",
+    "All filtered customer records": "تمام ریکاردهای فلترشده مشتریان",
+    "No customers found.": "مشتری یافت نشد.",
+    "Please enter customer name.": "لطفاً نام مشتری را وارد کنید.",
+    "A customer with this phone or email already exists.": "مشتری با این شماره یا ایمیل قبلاً موجود است.",
+    "Customer updated successfully.": "مشتری موفقانه به‌روزرسانی شد.",
+    "Customer added successfully.": "مشتری موفقانه اضافه شد.",
+    "Customer deleted successfully.": "مشتری موفقانه حذف شد.",
+    "Select your account to continue": "برای ادامه حساب خود را انتخاب کنید",
+    "Sign In to the System": "ورود به سیستم",
+    "Enter your account information to continue.": "برای ادامه معلومات حساب خود را وارد کنید.",
+    "Password": "رمز عبور",
+    "Enter your password": "رمز عبور خود را وارد کنید",
+    "Sign In": "ورود",
+    "Status": "وضعیت",
+    "Date filter": "فیلتر تاریخ",
+    "All time": "تمام زمان‌ها",
+    "Today": "امروز",
+    "Weekly": "هفتگی",
+    "Monthly": "ماهانه",
+    "Annual": "سالانه",
+    "Custom range": "بازه دلخواه",
+    "Pending": "باقی‌مانده",
+    "Paid": "پرداخت‌شده",
+    "Overdue": "سررسیدگذشته",
+    "Active": "فعال",
+    "pending": "باقی‌مانده",
+    "paid": "پرداخت‌شده",
+    "overdue": "سررسیدگذشته",
+    "active": "فعال",
+    "Loan actions": "عملیات قرضه",
+    "View": "مشاهده",
+    "Delete Loan Record": "حذف ریکارد قرضه",
+    "The related invoice will be removed.": "بل مربوط نیز حذف می‌شود.",
+    "Loan record": "ریکارد قرضه",
+    "Loan payment": "پرداخت قرضه",
+    "Created": "ایجادشده",
+    "Payment Progress": "پیشرفت پرداخت",
+    "Already Paid": "قبلاً پرداخت‌شده",
+    "Payment reference...": "مرجع پرداخت...",
+    "Payment cannot exceed the remaining balance.": "پرداخت نمی‌تواند از بیلانس باقی‌مانده بیشتر باشد.",
+    "All filtered loan records": "تمام ریکاردهای فلترشده قرضه‌ها",
+    "Loan Report": "گزارش قرضه‌ها",
+    "Filter financials by date": "فیلتر امور مالی بر اساس تاریخ",
+    "Last 7 days": "۷ روز گذشته",
+    "Last 30 days": "۳۰ روز گذشته",
+    "Last 12 months": "۱۲ ماه گذشته",
+    "Start date": "تاریخ شروع",
+    "End date": "تاریخ ختم",
+    "Financials": "امور مالی",
+    "Paid and pending customer amounts.": "مبالغ پرداخت‌شده و باقی‌مانده مشتریان.",
+    "Received from sales": "دریافت‌شده از فروش",
+    "Remaining customer balance": "بیلانس باقی‌مانده مشتری",
+    "Sales plus manual income": "فروش به اضافه عاید دستی",
+    "Revenue, cost, expenses, and profit.": "عاید، هزینه، مصارف و سود.",
+    "All income in this period": "تمام عایدات در این دوره",
+    "COGS": "بهای تمام‌شده کالا",
+    "Estimated product cost": "هزینه تخمینی محصول",
+    "Business expenses": "مصارف تجارت",
+    "Revenue minus COGS and expenses": "عاید منهای بهای کالا و مصارف",
+    "Sales, expenses, and manual financial transactions.": "فروش، مصارف و تراکنش‌های مالی دستی.",
+    "Customer sale": "فروش مشتری",
+    "Manual transaction": "تراکنش دستی",
+    "Income": "عاید",
+    "Item": "مورد",
+    "Note": "یادداشت",
+    "Financials Report": "گزارش امور مالی",
+    "Sales, expenses, and manual financial transactions": "فروش، مصارف و تراکنش‌های مالی دستی",
+    "Reporting": "گزارش‌دهی",
+    "Analyze revenue, expenses, sales mix, payment status, customers, staff, and stock value.": "عاید، مصارف، ترکیب فروش، وضعیت پرداخت، مشتریان، کارمندان و ارزش موجودی را تحلیل کنید.",
+    "Filter reports by date": "فیلتر گزارش‌ها بر اساس تاریخ",
+    "Profit & Loss": "سود و زیان",
+    "Revenue, expenses and net profit": "عاید، مصارف و سود خالص",
+    "Balance Sheet": "بیلانس شیت",
+    "Stock value and receivables as of now": "ارزش موجودی و دریافتنی‌ها تا اکنون",
+    "Cash Flow": "جریان نقدی",
+    "Paid revenue minus expenses": "عاید پرداخت‌شده منهای مصارف",
+    "Expense category": "دسته‌بندی مصرف",
+    "sale(s), paid": "فروش، پرداخت‌شده",
+    "Revenue, costs and profitability for the selected period": "عاید، هزینه‌ها و سودآوری برای دوره انتخاب‌شده",
+    "Assets, stock value and receivables as of today": "دارایی‌ها، ارزش موجودی و دریافتنی‌ها تا امروز",
+    "Paid revenue and outgoing expenses grouped by activity": "عاید پرداخت‌شده و مصارف خروجی بر اساس فعالیت",
+    "Paid vs Pending": "پرداخت‌شده در برابر باقی‌مانده",
+    "Statements, top customers and expense categories.": "صورت‌حساب‌ها، مشتریان برتر و دسته‌بندی‌های مصارف.",
+    "Statements, top customers and expense categories": "صورت‌حساب‌ها، مشتریان برتر و دسته‌بندی‌های مصارف",
+    "Reports Summary": "خلاصه گزارش‌ها",
+    "Local reporting agent": "دستیار گزارش‌دهی محلی",
+    "Ask questions about customers, debts, sales, inventory, expenses, alerts and reports.": "درباره مشتریان، قرض‌ها، فروش، موجودی، مصارف، هشدارها و گزارش‌ها سوال بپرسید.",
+    "New chat": "چت جدید",
+    "Conversations": "مکالمه‌ها",
+    "Rename": "تغییر نام",
+    "Business chat": "چت تجارتی",
+    "Ask your business agent": "از دستیار تجارتی خود بپرسید",
+    "Try: Which customers owe me money?": "مثال: کدام مشتریان به من بدهکار هستند؟",
+    "Ask about your business...": "درباره تجارت خود بپرسید...",
+    "Suggested questions": "سوال‌های پیشنهادی",
+    "Search questions...": "جستجوی سوال‌ها...",
+    "Delete chat?": "چت حذف شود؟",
+    "This action cannot be undone.": "این عمل قابل برگشت نیست.",
+    "Like": "پسندیدن",
+    "Dislike": "نپسندیدن",
+    "How many customers do I have?": "چند مشتری دارم؟",
+    "Which customers owe me money?": "کدام مشتریان به من بدهکار هستند؟",
+    "How many products are out of stock?": "چند محصول ناموجود است؟",
+    "Show my low stock products.": "محصولات با موجودی کم را نشان بده.",
+    "What is my total sales amount?": "مجموع مبلغ فروش من چقدر است؟",
+    "How much payment is pending?": "چقدر پرداخت باقی مانده است؟",
+    "What is my cash wallet balance?": "بیلانس کیف پول نقد من چقدر است؟",
+    "Which suppliers do I owe?": "به کدام تأمین‌کنندگان بدهکار هستم؟",
+    "Show today sales.": "فروش امروز را نشان بده.",
+    "Show monthly sales.": "فروش ماهانه را نشان بده.",
+    "How much expense do I have?": "چقدر مصرف دارم؟",
+    "What is my net profit?": "سود خالص من چقدر است؟",
+    "Which products expire soon?": "کدام محصولات به زودی منقضی می‌شوند؟",
+    "How many staff members do I have?": "چند کارمند دارم؟",
+    "What is my total stock quantity?": "مجموع تعداد موجودی من چقدر است؟",
+    "What is my stock value?": "ارزش موجودی من چقدر است؟",
+    "Show refunded sales.": "فروش‌های برگشتی را نشان بده.",
+    "Show loan invoices.": "بل‌های قرضه را نشان بده.",
+    "Who are my top customers?": "مشتریان برتر من چه کسانی هستند؟",
+    "Give me a quick business summary.": "یک خلاصه سریع تجارت بده.",
+    "Show system alerts.": "هشدارهای سیستم را نشان بده.",
+    "How many invoices are paid?": "چند بل پرداخت شده است؟",
+    "How many invoices are unpaid?": "چند بل پرداخت نشده است؟",
+    "What is total supplier payable?": "مجموع پرداختنی به تأمین‌کنندگان چقدر است؟",
+    "What is total customer receivable?": "مجموع دریافتنی از مشتریان چقدر است؟",
+    "Show active products.": "محصولات فعال را نشان بده.",
+    "Show expired products.": "محصولات منقضی‌شده را نشان بده.",
+    "Show sales count.": "تعداد فروش را نشان بده.",
+    "Show product categories.": "دسته‌بندی‌های محصول را نشان بده.",
+    "Show expense categories.": "دسته‌بندی‌های مصارف را نشان بده.",
+    "Show staff payable.": "پرداختنی کارمندان را نشان بده.",
+    "Show staff paid.": "پرداخت‌شده کارمندان را نشان بده.",
+    "Show cash deposits.": "واریزی‌های نقدی را نشان بده.",
+    "Show cash withdrawals.": "برداشت‌های نقدی را نشان بده.",
+    "What should I check first today?": "امروز اول چه چیزی را بررسی کنم؟",
+    "Prepare advanced report.": "گزارش پیشرفته آماده کن.",
+    "Show inventory health.": "وضعیت موجودی را نشان بده.",
+    "Show customer debt report.": "گزارش بدهی مشتریان را نشان بده.",
+    "Show financial health.": "وضعیت مالی را نشان بده.",
+    "Show recent activity summary.": "خلاصه فعالیت‌های اخیر را نشان بده.",
+    "No customer debt found.": "بدهی مشتری یافت نشد.",
+    "No supplier payable found.": "پرداختنی تأمین‌کننده یافت نشد.",
+    "No important alerts right now.": "فعلاً هشدار مهمی وجود ندارد.",
+    "No out of stock products.": "محصول ناموجود وجود ندارد.",
+    "No low stock products.": "محصول با موجودی کم وجود ندارد.",
+    "No products expiring soon.": "محصولی به زودی منقضی نمی‌شود.",
+    "No categories": "بدون دسته‌بندی",
+    "No loan invoices found.": "بل قرضه یافت نشد.",
+    "No customer ranking available yet.": "هنوز رتبه‌بندی مشتریان موجود نیست.",
+    "No product categories found.": "دسته‌بندی محصول یافت نشد.",
+    "I can answer questions about customers, debts, sales, inventory, expenses, staff, suppliers, alerts and reports. Try one of the suggested questions.": "من می‌توانم درباره مشتریان، بدهی‌ها، فروش، موجودی، مصارف، کارمندان، تأمین‌کنندگان، هشدارها و گزارش‌ها پاسخ بدهم. یکی از سوال‌های پیشنهادی را امتحان کنید.",
+    "Manage stock purchases, supplier balances, product quantity and warehouse value.": "خریدهای موجودی، حساب تأمین‌کنندگان، تعداد محصولات و ارزش گدام را مدیریت کنید.",
+    "Add Purchase": "افزودن خرید",
+    "Total Quantity": "مجموع تعداد",
+    "Stock Value": "ارزش موجودی",
+    "Search product or supplier...": "جستجوی محصول یا تأمین‌کننده...",
+    "Product filter": "فیلتر محصول",
+    "Supplier filter": "فیلتر تأمین‌کننده",
+    "Stock status": "وضعیت موجودی",
+    "All stock": "تمام موجودی",
+    "In stock": "در موجودی",
+    "Out of stock": "ناموجود",
+    "Expiring soon": "نزدیک به انقضا",
+    "Expired": "منقضی‌شده",
+    "Entries": "ورودی‌ها",
+    "Hide sold out": "پنهان‌کردن فروخته‌شده‌ها",
+    "All filtered godown products": "تمام محصولات فلترشده گدام",
+    "All filtered godown stock entries": "تمام ورودی‌های فلترشده گدام",
+    "Godown Products Report": "گزارش محصولات گدام",
+    "Godown Stock Entries Report": "گزارش ورودی‌های موجودی گدام",
+    "Value": "ارزش",
+    "History": "تاریخچه",
+    "purchases": "خرید",
+    "Qty": "تعداد",
+    "No purchase history for this product yet.": "هنوز تاریخچه خرید برای این محصول ثبت نشده است.",
+    "Bill": "بل",
+    "Imported from Products": "واردشده از محصولات",
+    "line(s)": "ردیف",
+    "Godown actions": "عملیات گدام",
+    "No products found.": "محصولی یافت نشد.",
+    "No stock entries found.": "ورودی موجودی یافت نشد.",
+    "Delete Stock Entry": "حذف ورودی موجودی",
+    "Delete this purchase entry? Product stock will be adjusted.": "این ورودی خرید حذف شود؟ موجودی محصول اصلاح خواهد شد.",
+    "Add one bill with one or more product rows.": "یک بل با یک یا چند ردیف محصول اضافه کنید.",
+    "New product": "محصول جدید",
+    "Select supplier": "انتخاب تأمین‌کننده",
+    "USD/EUR rate in AFN": "نرخ دالر/یورو به افغانی",
+    "Optional": "اختیاری",
+    "Product name": "نام محصول",
+    "New category": "دسته‌بندی جدید",
+    "rows": "ردیف",
+    "Paid amount cannot exceed grand total.": "مبلغ پرداخت‌شده نمی‌تواند از مجموع کل بیشتر باشد.",
+    "Please add at least one valid product.": "لطفاً حداقل یک محصول معتبر اضافه کنید.",
+    "Edit Purchase Entry": "ویرایش ورودی خرید",
+    "Update this stock entry and product quantity.": "این ورودی موجودی و تعداد محصول را به‌روزرسانی کنید.",
+    "Product Name": "نام محصول",
+    "Stock Entry": "ورودی موجودی",
+    "Purchase details": "جزئیات خرید",
+    "Manage supplier accounts, purchases, balances and ledgers.": "حساب‌های تأمین‌کنندگان، خریدها، بیلانس‌ها و دفتر حساب را مدیریت کنید.",
+    "Create Account": "ایجاد حساب",
+    "All balances": "تمام بیلانس‌ها",
+    "Receivable": "دریافتنی",
+    "Settled": "تصفیه‌شده",
+    "Balance filter": "فیلتر بیلانس",
+    "Last Activity": "آخرین فعالیت",
+    "No contact": "بدون تماس",
+    "Supplier actions": "عملیات تأمین‌کننده",
+    "View Profile": "مشاهده پروفایل",
+    "Please enter supplier name.": "لطفاً نام تأمین‌کننده را وارد کنید.",
+    "Supplier updated successfully.": "تأمین‌کننده موفقانه به‌روزرسانی شد.",
+    "Supplier saved successfully.": "تأمین‌کننده موفقانه ذخیره شد.",
+    "Supplier deleted successfully.": "تأمین‌کننده موفقانه حذف شد.",
+    "Adjustment saved successfully.": "اصلاحیه موفقانه ذخیره شد.",
+    "Amount cannot be negative.": "مبلغ نمی‌تواند منفی باشد.",
+    "Paid amount cannot be greater than total amount.": "مبلغ پرداخت‌شده نمی‌تواند از مبلغ کل بیشتر باشد.",
+    "Ledger record updated successfully.": "ریکارد دفتر حساب موفقانه به‌روزرسانی شد.",
+    "Ledger record deleted successfully.": "ریکارد دفتر حساب موفقانه حذف شد.",
+    "Delete Ledger Record": "حذف ریکارد دفتر حساب",
+    "This record will be removed from the supplier ledger.": "این ریکارد از دفتر حساب تأمین‌کننده حذف می‌شود.",
+    "Supplier Ledger": "دفتر حساب تأمین‌کننده",
+    "Goods": "اجناس",
+    "Activity Log": "گزارش فعالیت",
+    "No goods recorded yet.": "هنوز جنسی ثبت نشده است.",
+    "No profit records.": "ریکارد سود وجود ندارد.",
+    "No ledger entries.": "ورودی دفتر حساب وجود ندارد.",
+    "Supplier Statement": "صورت‌حساب تأمین‌کننده",
+    "Edit Ledger Record": "ویرایش ریکارد دفتر حساب",
+    "Update amount and paid value for this supplier ledger row.": "مبلغ و مقدار پرداخت‌شده این ردیف دفتر حساب تأمین‌کننده را به‌روزرسانی کنید.",
+    "Total Amount": "مبلغ کل",
+    "Paid Amount": "مبلغ پرداخت‌شده",
+    "Remaining Amount": "مبلغ باقی‌مانده",
+    "Create and manage supplier account information.": "معلومات حساب تأمین‌کننده را ایجاد و مدیریت کنید.",
+    "Example: Rice, Oil, Electronics": "مثال: برنج، روغن، الکترونیک",
+    "Add Adjustment": "افزودن اصلاحیه",
+    "Record a manual change to": "ثبت تغییر دستی برای",
+    "Debit / Payment": "برداشت / پرداخت",
+    "Credit / New payable": "اعتبار / پرداختنی جدید",
+    "Please enter amount and reason.": "لطفاً مبلغ و دلیل را وارد کنید.",
+    "Please enter description.": "لطفاً توضیحات را وارد کنید.",
+    "Reason": "دلیل",
+    "Track business expenses, payment methods, categories and monthly spend.": "مصارف تجارت، روش‌های پرداخت، دسته‌بندی‌ها و مصرف ماهانه را پیگیری کنید.",
+    "All categories": "تمام دسته‌بندی‌ها",
+    "All methods": "تمام روش‌ها",
+    "Method": "روش",
+    "No notes": "بدون یادداشت",
+    "Expense actions": "عملیات مصرف",
+    "Delete Expense": "حذف مصرف",
+    "Related financial transaction will also be removed.": "تراکنش مالی مربوط نیز حذف می‌شود.",
+    "Records": "ریکاردها",
+    "Categories": "دسته‌بندی‌ها",
+    "All filtered expense records": "تمام ریکاردهای فلترشده مصارف",
+    "Expense Report": "گزارش مصارف",
+    "Record category, payment method and expense amount.": "دسته‌بندی، روش پرداخت و مبلغ مصرف را ثبت کنید.",
+    "Category name": "نام دسته‌بندی",
+    "Custom": "دلخواه",
+    "This field is required.": "این فیلد ضروری است.",
+  },
+  ps: {
+    "Agent": "مرستیال",
+    "Business Currency Filter": "د سوداګرۍ اسعارو فلټر",
+    "Filter records by business currency": "ریکارډونه د سوداګرۍ د اسعارو له مخې فلټر کړئ",
+    "All -- All Currencies": "ټول -- ټول اسعار",
+    "Exchange Currency": "د اسعارو بدلول",
+    "Choose conversion display currency": "د بدلون د ښودلو اسعار وټاکئ",
+    "Original": "اصلي",
+    "Original (No Conversion)": "اصلي (بې له بدلون)",
+    "Print Report": "راپور چاپ کړئ",
+    "Print Receipt": "رسید چاپ کړئ",
+    "Save & Print": "خوندي او چاپ",
+    "Discounts": "تخفیفونه",
+    "Total Revenue": "ټول عواید",
+    "Current cash wallet": "اوسنی نغدي بټوه",
+    "Net Profit (After Expenses & Refunds)": "خالصه ګټه (له لګښتونو او بېرته ورکړو وروسته)",
+    "Pure Profit": "سوچه ګټه",
+    "Total sales": "ټول پلور",
+    "Total Expenses": "ټول لګښتونه",
+    "Pending Payments": "پاتې تادیات",
+    "Total refunds": "ټولې بېرته ورکړې",
+    "Total customers": "ټول پېرودونکي",
+    "Supplier / Katah": "عرضه کوونکی / کته",
+    "Supplier / Katah overview": "د عرضه کوونکي / کته لنډیز",
+    "Partner & Investing": "شریک او پانګونه",
+    "Total Payables": "ټول ورکړني",
+    "Total Receivables": "ټول ترلاسه کېدونکي",
+    "Stock overview": "د موجودۍ لنډیز",
+    "Active products": "فعال محصولات",
+    "Stock Quantity": "د موجودۍ شمېر",
+    "Global Stock Value": "د ټولې موجودۍ ارزښت",
+    "Staff overview": "د کارکوونکو لنډیز",
+    "Staff Paid": "کارکوونکو ته ورکړل شوي",
+    "Staff Payable": "کارکوونکو ته پاتې ورکړه",
+    "Product Inventory": "د محصولاتو موجودي",
+    "Add Product": "محصول زیات کړئ",
+    "Low Stock": "کمه موجودي",
+    "Expiry Alerts": "د ختمېدو خبرتیاوې",
+    "Purchase Price": "د پېرود بیه",
+    "Selling Price": "د پلور بیه",
+    "Low Stock Threshold": "د کمې موجودۍ حد",
+    "Expiry date": "د ختمېدو نېټه",
+    "Alert me before": "مخکې خبرتیا راکړه",
+    "Multi Product Purchase Bill": "د څو محصولاتو د پېرود بل",
+    "Rate": "نرخ",
+    "Rate (AFN)": "نرخ (افغانۍ)",
+    "Unit Cost": "د واحد بیه",
+    "Bill Number": "د بل شمېره",
+    "Add Row": "کتار زیات کړئ",
+    "Grand Total": "ټولیزه مجموعه",
+    "Paid Now": "اوس ورکړل شوي",
+    "Save Purchase": "پېرود خوندي کړئ",
+    "Stock Entries": "د موجودۍ داخلې",
+    "Expected Profit": "اټکل شوې ګټه",
+    "Payable To Suppliers": "عرضه کوونکو ته ورکړني",
+    "Imported": "وارد شوی",
+    "In Stock": "په موجودۍ کې",
+    "Sold": "پلورل شوی",
+    "Sales / Bills": "پلور / بلونه",
+    "All bills": "ټول بلونه",
+    "Loan": "پور",
+    "Loan / Partially paid": "پور / نیمه ورکړه",
+    "Payment History": "د تادیې تاریخچه",
+    "Add payment": "تادیه زیاته کړئ",
+    "Add Payment": "تادیه زیاته کړئ",
+    "Record Payment": "تادیه ثبت کړئ",
+    "Payment Amount": "د تادیې مبلغ",
+    "Mark as Paid": "د ورکړل شوي په توګه ثبت",
+    "Refund": "بېرته ورکړه",
+    "View Details": "جزئیات وګورئ",
+    "Print Invoice": "بل چاپ کړئ",
+    "Edit Bill": "بل سم کړئ",
+    "Cash wallet payment": "د نغدي بټوې تادیه",
+    "Adds this payment to Cash Wallet": "دا تادیه نغدي بټوې ته زیاتوي",
+    "No payment entries yet": "تر اوسه تادیه نه ده ثبت شوې",
+    "Add a partial payment to start tracking.": "د څارلو لپاره یوه جزوي تادیه زیاته کړئ.",
+    "Customer Account Ledger": "د پېرودونکي حساب دفتر",
+    "Ledger": "دفتر",
+    "Orders": "سپارښتنې",
+    "Total Spent": "ټول مصرف",
+    "Total Orders": "ټولې سپارښتنې",
+    "Pending Balance": "پاتې بیلانس",
+    "Total Discounts": "ټول تخفیفونه",
+    "Profit Earned": "ترلاسه شوې ګټه",
+    "Member since": "غړی له",
+    "Print Statement": "صورت حساب چاپ کړئ",
+    "Manage customer profiles, purchases, payments, loans and account activity.": "د پېرودونکو معلومات، پېرودونه، تادیات، پورونه او د حساب فعالیت مدیریت کړئ.",
+    "VIP Customers": "VIP پېرودونکي",
+    "Total Purchases": "ټول پېرودونه",
+    "Total Pending": "ټول پاتې",
+    "Search customers...": "پېرودونکي ولټوئ...",
+    "All statuses": "ټول حالتونه",
+    "All payments": "ټولې تادیې",
+    "Contact": "اړیکه",
+    "Purchases": "پېرودونه",
+    "No address": "پته نشته",
+    "No email": "ایمیل نشته",
+    "VIP customer": "VIP پېرودونکی",
+    "Add Customer": "پېرودونکی زیات کړئ",
+    "Customer actions": "د پېرودونکي کړنې",
+    "Delete Customer": "پېرودونکی ړنګ کړئ",
+    "Customer Report": "د پېرودونکو راپور",
+    "All filtered customer records": "ټول فلټر شوي د پېرودونکو ریکارډونه",
+    "No customers found.": "پېرودونکی ونه موندل شو.",
+    "Please enter customer name.": "مهرباني وکړئ د پېرودونکي نوم ولیکئ.",
+    "A customer with this phone or email already exists.": "په دې تلیفون یا ایمیل پېرودونکی مخکې شته.",
+    "Customer updated successfully.": "پېرودونکی په بریالیتوب تازه شو.",
+    "Customer added successfully.": "پېرودونکی په بریالیتوب زیات شو.",
+    "Customer deleted successfully.": "پېرودونکی په بریالیتوب ړنګ شو.",
+    "Select your account to continue": "د دوام لپاره خپل حساب وټاکئ",
+    "Sign In to the System": "سیستم ته ننوتل",
+    "Enter your account information to continue.": "د دوام لپاره د خپل حساب معلومات دننه کړئ.",
+    "Password": "پټ نوم",
+    "Enter your password": "خپل پټ نوم دننه کړئ",
+    "Sign In": "ننوتل",
+    "Status": "حالت",
+    "Date filter": "د نېټې فلټر",
+    "All time": "ټول وخت",
+    "Today": "نن",
+    "Weekly": "اونیز",
+    "Monthly": "میاشتنی",
+    "Annual": "کلنی",
+    "Custom range": "ځانګړی موده",
+    "Pending": "پاتې",
+    "Paid": "ورکړل شوی",
+    "Overdue": "ځنډېدلی",
+    "Active": "فعال",
+    "pending": "پاتې",
+    "paid": "ورکړل شوی",
+    "overdue": "ځنډېدلی",
+    "active": "فعال",
+    "Loan actions": "د پور کړنې",
+    "View": "کتل",
+    "Delete Loan Record": "د پور ریکارډ ړنګول",
+    "The related invoice will be removed.": "اړوند بل به هم لرې شي.",
+    "Loan record": "د پور ریکارډ",
+    "Loan payment": "د پور تادیه",
+    "Created": "جوړ شوی",
+    "Payment Progress": "د تادیې پرمختګ",
+    "Already Paid": "مخکې ورکړل شوی",
+    "Payment reference...": "د تادیې حواله...",
+    "Payment cannot exceed the remaining balance.": "تادیه له پاتې بیلانس څخه زیاته نشي کېدای.",
+    "All filtered loan records": "ټول فلټر شوي د پور ریکارډونه",
+    "Loan Report": "د پورونو راپور",
+    "Filter financials by date": "مالي چارې د نېټې له مخې فلټر کړئ",
+    "Last 7 days": "وروستۍ ۷ ورځې",
+    "Last 30 days": "وروستۍ ۳۰ ورځې",
+    "Last 12 months": "وروستۍ ۱۲ میاشتې",
+    "Start date": "د پیل نېټه",
+    "End date": "د ختم نېټه",
+    "Financials": "مالي چارې",
+    "Paid and pending customer amounts.": "د پېرودونکو ورکړل شوي او پاتې مبلغونه.",
+    "Received from sales": "له پلور څخه ترلاسه شوی",
+    "Remaining customer balance": "د پېرودونکي پاتې بیلانس",
+    "Sales plus manual income": "پلور جمع لاسي عاید",
+    "Revenue, cost, expenses, and profit.": "عاید، لګښت، مصارف او ګټه.",
+    "All income in this period": "په دې موده کې ټول عاید",
+    "COGS": "د توکو تمام شوی قیمت",
+    "Estimated product cost": "اټکلي د محصول لګښت",
+    "Business expenses": "د سوداګرۍ لګښتونه",
+    "Revenue minus COGS and expenses": "عاید منفي د توکو قیمت او لګښتونه",
+    "Sales, expenses, and manual financial transactions.": "پلور، لګښتونه او لاسي مالي معاملې.",
+    "Customer sale": "د پېرودونکي پلور",
+    "Manual transaction": "لاسي معامله",
+    "Income": "عاید",
+    "Item": "مورد",
+    "Note": "یادښت",
+    "Financials Report": "د مالي چارو راپور",
+    "Sales, expenses, and manual financial transactions": "پلور، لګښتونه او لاسي مالي معاملې",
+    "Reporting": "راپور ورکول",
+    "Analyze revenue, expenses, sales mix, payment status, customers, staff, and stock value.": "عاید، لګښتونه، د پلور ترکیب، د تادیې حالت، پېرودونکي، کارکوونکي او د موجودۍ ارزښت تحلیل کړئ.",
+    "Filter reports by date": "راپورونه د نېټې له مخې فلټر کړئ",
+    "Profit & Loss": "ګټه او تاوان",
+    "Revenue, expenses and net profit": "عاید، لګښتونه او خالصه ګټه",
+    "Balance Sheet": "بیلانس شیت",
+    "Stock value and receivables as of now": "د موجودۍ ارزښت او ترلاسه کېدونکي تر اوسه",
+    "Cash Flow": "نغدي جریان",
+    "Paid revenue minus expenses": "ورکړل شوی عاید منفي لګښتونه",
+    "Expense category": "د لګښت کټګوري",
+    "sale(s), paid": "پلور، ورکړل شوی",
+    "Revenue, costs and profitability for the selected period": "د ټاکل شوې مودې عاید، لګښتونه او ګټه",
+    "Assets, stock value and receivables as of today": "شتمنۍ، د موجودۍ ارزښت او ترلاسه کېدونکي تر نن پورې",
+    "Paid revenue and outgoing expenses grouped by activity": "ورکړل شوی عاید او وتلي لګښتونه د فعالیت له مخې",
+    "Paid vs Pending": "ورکړل شوي او پاتې",
+    "Statements, top customers and expense categories.": "صورت حسابونه، غوره پېرودونکي او د لګښت کټګورۍ.",
+    "Statements, top customers and expense categories": "صورت حسابونه، غوره پېرودونکي او د لګښت کټګورۍ",
+    "Reports Summary": "د راپورونو لنډیز",
+    "Local reporting agent": "محلي د راپور ورکولو مرستیال",
+    "Ask questions about customers, debts, sales, inventory, expenses, alerts and reports.": "د پېرودونکو، پورونو، پلور، موجودۍ، لګښتونو، خبرتیاوو او راپورونو په اړه پوښتنې وکړئ.",
+    "New chat": "نوی چټ",
+    "Conversations": "خبرې اترې",
+    "Rename": "نوم بدلول",
+    "Business chat": "سوداګریز چټ",
+    "Ask your business agent": "له خپل سوداګریز مرستیال څخه وپوښتئ",
+    "Try: Which customers owe me money?": "مثال: کوم پېرودونکي زما پوروړي دي؟",
+    "Ask about your business...": "د خپلې سوداګرۍ په اړه وپوښتئ...",
+    "Suggested questions": "وړاندیز شوې پوښتنې",
+    "Search questions...": "پوښتنې ولټوئ...",
+    "Delete chat?": "چټ ړنګ شي؟",
+    "This action cannot be undone.": "دا عمل بېرته نه راګرځي.",
+    "Like": "خوښول",
+    "Dislike": "نه خوښول",
+    "How many customers do I have?": "زه څو پېرودونکي لرم؟",
+    "Which customers owe me money?": "کوم پېرودونکي زما پوروړي دي؟",
+    "How many products are out of stock?": "څو محصولات موجود نه دي؟",
+    "Show my low stock products.": "زما د کمې موجودۍ محصولات وښیه.",
+    "What is my total sales amount?": "زما ټول د پلور مبلغ څومره دی؟",
+    "How much payment is pending?": "څومره تادیه پاتې ده؟",
+    "What is my cash wallet balance?": "زما د نغدي بټوې بیلانس څومره دی؟",
+    "Which suppliers do I owe?": "زه کومو عرضه کوونکو ته پوروړی یم؟",
+    "Show today sales.": "د نن ورځې پلور وښیه.",
+    "Show monthly sales.": "میاشتنی پلور وښیه.",
+    "How much expense do I have?": "زه څومره لګښت لرم؟",
+    "What is my net profit?": "زما خالصه ګټه څومره ده؟",
+    "Which products expire soon?": "کوم محصولات ژر ختمېږي؟",
+    "How many staff members do I have?": "زه څو کارکوونکي لرم؟",
+    "What is my total stock quantity?": "زما ټول د موجودۍ شمېر څومره دی؟",
+    "What is my stock value?": "زما د موجودۍ ارزښت څومره دی؟",
+    "Show refunded sales.": "بېرته ورکړل شوي پلورونه وښیه.",
+    "Show loan invoices.": "د پور بلونه وښیه.",
+    "Who are my top customers?": "زما غوره پېرودونکي څوک دي؟",
+    "Give me a quick business summary.": "د سوداګرۍ لنډ چټک راپور راکړه.",
+    "Show system alerts.": "د سیستم خبرتیاوې وښیه.",
+    "How many invoices are paid?": "څو بلونه ورکړل شوي؟",
+    "How many invoices are unpaid?": "څو بلونه نه دي ورکړل شوي؟",
+    "What is total supplier payable?": "عرضه کوونکو ته ټول ورکړنی څومره ده؟",
+    "What is total customer receivable?": "له پېرودونکو ټول ترلاسه کېدونکی څومره دی؟",
+    "Show active products.": "فعال محصولات وښیه.",
+    "Show expired products.": "ختم شوي محصولات وښیه.",
+    "Show sales count.": "د پلور شمېر وښیه.",
+    "Show product categories.": "د محصول کټګورۍ وښیه.",
+    "Show expense categories.": "د لګښت کټګورۍ وښیه.",
+    "Show staff payable.": "کارکوونکو ته ورکړنی وښیه.",
+    "Show staff paid.": "کارکوونکو ته ورکړل شوی وښیه.",
+    "Show cash deposits.": "نغدي جمع شوې وښیه.",
+    "Show cash withdrawals.": "نغدي ایستل شوې وښیه.",
+    "What should I check first today?": "نن باید لومړی څه وګورم؟",
+    "Prepare advanced report.": "پرمختللی راپور تیار کړه.",
+    "Show inventory health.": "د موجودۍ حالت وښیه.",
+    "Show customer debt report.": "د پېرودونکو د پور راپور وښیه.",
+    "Show financial health.": "مالي حالت وښیه.",
+    "Show recent activity summary.": "د وروستیو فعالیتونو لنډیز وښیه.",
+    "No customer debt found.": "د پېرودونکي پور ونه موندل شو.",
+    "No supplier payable found.": "عرضه کوونکي ته ورکړنی ونه موندل شوه.",
+    "No important alerts right now.": "اوس مهمه خبرتیا نشته.",
+    "No out of stock products.": "ناموجود محصولات نشته.",
+    "No low stock products.": "د کمې موجودۍ محصولات نشته.",
+    "No products expiring soon.": "ژر ختمېدونکي محصولات نشته.",
+    "No categories": "کټګورۍ نشته",
+    "No loan invoices found.": "د پور بلونه ونه موندل شول.",
+    "No customer ranking available yet.": "تر اوسه د پېرودونکو درجه بندي نشته.",
+    "No product categories found.": "د محصول کټګورۍ ونه موندل شوه.",
+    "I can answer questions about customers, debts, sales, inventory, expenses, staff, suppliers, alerts and reports. Try one of the suggested questions.": "زه د پېرودونکو، پورونو، پلور، موجودۍ، لګښتونو، کارکوونکو، عرضه کوونکو، خبرتیاوو او راپورونو په اړه ځواب درکولی شم. له وړاندیز شوو پوښتنو څخه یوه وازمویئ.",
+    "Manage stock purchases, supplier balances, product quantity and warehouse value.": "د موجودۍ پېرودونه، د عرضه کوونکو حسابونه، د محصولاتو شمېر او د ګدام ارزښت مدیریت کړئ.",
+    "Add Purchase": "پېرود زیات کړئ",
+    "Total Quantity": "ټول شمېر",
+    "Stock Value": "د موجودۍ ارزښت",
+    "Search product or supplier...": "محصول یا عرضه کوونکی ولټوئ...",
+    "Product filter": "د محصول فلټر",
+    "Supplier filter": "د عرضه کوونکي فلټر",
+    "Stock status": "د موجودۍ حالت",
+    "All stock": "ټوله موجودي",
+    "In stock": "په موجودۍ کې",
+    "Out of stock": "موجود نه دی",
+    "Expiring soon": "ژر ختمېدونکی",
+    "Expired": "ختم شوی",
+    "Entries": "داخلې",
+    "Hide sold out": "پلورل شوي پټ کړئ",
+    "All filtered godown products": "ټول فلټر شوي د ګدام محصولات",
+    "All filtered godown stock entries": "ټولې فلټر شوې د ګدام موجودۍ داخلې",
+    "Godown Products Report": "د ګدام محصولاتو راپور",
+    "Godown Stock Entries Report": "د ګدام موجودۍ داخلو راپور",
+    "Value": "ارزښت",
+    "History": "تاریخچه",
+    "purchases": "پېرودونه",
+    "Qty": "شمېر",
+    "No purchase history for this product yet.": "تر اوسه د دې محصول د پېرود تاریخچه نشته.",
+    "Bill": "بل",
+    "Imported from Products": "له محصولاتو وارد شوی",
+    "line(s)": "کرښې",
+    "Godown actions": "د ګدام کړنې",
+    "No products found.": "محصول ونه موندل شو.",
+    "No stock entries found.": "د موجودۍ داخله ونه موندل شوه.",
+    "Delete Stock Entry": "د موجودۍ داخله ړنګول",
+    "Delete this purchase entry? Product stock will be adjusted.": "دا د پېرود داخله ړنګه شي؟ د محصول موجودي به برابره شي.",
+    "Add one bill with one or more product rows.": "یو بل د یو یا څو محصولي ردیفونو سره زیات کړئ.",
+    "New product": "نوی محصول",
+    "Select supplier": "عرضه کوونکی وټاکئ",
+    "USD/EUR rate in AFN": "د ډالر/یورو نرخ په افغانۍ",
+    "Optional": "اختیاري",
+    "Product name": "د محصول نوم",
+    "New category": "نوې کټګوري",
+    "rows": "ردیفونه",
+    "Paid amount cannot exceed grand total.": "ورکړل شوی مبلغ له ټولیزې مجموعې زیات نشي کېدای.",
+    "Please add at least one valid product.": "مهرباني وکړئ لږ تر لږه یو معتبر محصول زیات کړئ.",
+    "Edit Purchase Entry": "د پېرود داخله سمول",
+    "Update this stock entry and product quantity.": "دا د موجودۍ داخله او د محصول شمېر تازه کړئ.",
+    "Product Name": "د محصول نوم",
+    "Stock Entry": "د موجودۍ داخله",
+    "Purchase details": "د پېرود جزئیات",
+    "Manage supplier accounts, purchases, balances and ledgers.": "د عرضه کوونکو حسابونه، پېرودونه، بیلانسونه او دفترونه مدیریت کړئ.",
+    "Create Account": "حساب جوړ کړئ",
+    "All balances": "ټول بیلانسونه",
+    "Receivable": "ترلاسه کېدونکی",
+    "Settled": "تصفیه شوی",
+    "Balance filter": "د بیلانس فلټر",
+    "Last Activity": "وروستی فعالیت",
+    "No contact": "اړیکه نشته",
+    "Supplier actions": "د عرضه کوونکي کړنې",
+    "View Profile": "پروفایل وګورئ",
+    "Please enter supplier name.": "مهرباني وکړئ د عرضه کوونکي نوم ولیکئ.",
+    "Supplier updated successfully.": "عرضه کوونکی په بریالیتوب تازه شو.",
+    "Supplier saved successfully.": "عرضه کوونکی په بریالیتوب خوندي شو.",
+    "Supplier deleted successfully.": "عرضه کوونکی په بریالیتوب ړنګ شو.",
+    "Adjustment saved successfully.": "اصلاحیه په بریالیتوب خوندي شوه.",
+    "Amount cannot be negative.": "مبلغ منفي نشي کېدای.",
+    "Paid amount cannot be greater than total amount.": "ورکړل شوی مبلغ له ټول مبلغ څخه زیات نشي کېدای.",
+    "Ledger record updated successfully.": "د دفتر ریکارډ په بریالیتوب تازه شو.",
+    "Ledger record deleted successfully.": "د دفتر ریکارډ په بریالیتوب ړنګ شو.",
+    "Delete Ledger Record": "د دفتر ریکارډ ړنګول",
+    "This record will be removed from the supplier ledger.": "دا ریکارډ به د عرضه کوونکي له دفتر څخه لرې شي.",
+    "Supplier Ledger": "د عرضه کوونکي دفتر",
+    "Goods": "توکي",
+    "Activity Log": "د فعالیت راپور",
+    "No goods recorded yet.": "تر اوسه توکي نه دي ثبت شوي.",
+    "No profit records.": "د ګټې ریکارډ نشته.",
+    "No ledger entries.": "د دفتر داخلې نشته.",
+    "Supplier Statement": "د عرضه کوونکي صورت حساب",
+    "Edit Ledger Record": "د دفتر ریکارډ سمول",
+    "Update amount and paid value for this supplier ledger row.": "د دې عرضه کوونکي د دفتر ردیف مبلغ او ورکړل شوی ارزښت تازه کړئ.",
+    "Total Amount": "ټول مبلغ",
+    "Paid Amount": "ورکړل شوی مبلغ",
+    "Remaining Amount": "پاتې مبلغ",
+    "Create and manage supplier account information.": "د عرضه کوونکي د حساب معلومات جوړ او مدیریت کړئ.",
+    "Example: Rice, Oil, Electronics": "بېلګه: وريجې، تېل، الکترونیک",
+    "Add Adjustment": "اصلاحیه زیاته کړئ",
+    "Record a manual change to": "لاسي بدلون ثبت کړئ د",
+    "Debit / Payment": "ایستل / تادیه",
+    "Credit / New payable": "کریډیټ / نوې ورکړنی",
+    "Please enter amount and reason.": "مهرباني وکړئ مبلغ او دلیل ولیکئ.",
+    "Please enter description.": "مهرباني وکړئ تشریح ولیکئ.",
+    "Reason": "دلیل",
+    "Track business expenses, payment methods, categories and monthly spend.": "د سوداګرۍ لګښتونه، د تادیې طریقې، کټګورۍ او میاشتنی مصرف وڅارئ.",
+    "All categories": "ټولې کټګورۍ",
+    "All methods": "ټولې طریقې",
+    "Method": "طریقه",
+    "No notes": "یادښت نشته",
+    "Expense actions": "د لګښت کړنې",
+    "Delete Expense": "لګښت ړنګول",
+    "Related financial transaction will also be removed.": "اړونده مالي معامله به هم لرې شي.",
+    "Records": "ریکارډونه",
+    "Categories": "کټګورۍ",
+    "All filtered expense records": "ټول فلټر شوي د لګښت ریکارډونه",
+    "Expense Report": "د لګښتونو راپور",
+    "Record category, payment method and expense amount.": "کټګوري، د تادیې طریقه او د لګښت مبلغ ثبت کړئ.",
+    "Category name": "د کټګورۍ نوم",
+    "Custom": "ځانګړی",
+    "This field is required.": "دا فیلډ اړین دی.",
+  },
+};
+
+function repairMojibake(value) {
+  if (typeof value !== "string" || !/[ØÙÛÚÃÂ]/.test(value)) return value;
+  try {
+    const bytes = Uint8Array.from(Array.from(value, (char) => char.charCodeAt(0) & 0xff));
+    const decoded = new TextDecoder("utf-8").decode(bytes);
+    return /[\u0600-\u06ff]/.test(decoded) ? decoded : value;
+  } catch {
+    return value;
+  }
+}
+
+function cleanDictionary(source = {}) {
+  return Object.fromEntries(Object.entries(source).map(([key, value]) => [key, repairMojibake(value)]));
+}
+
 const textState = new WeakMap();
 const attributeState = new WeakMap();
 let activeCleanup;
@@ -96,9 +832,30 @@ function makeDictionary(language) {
   const target = translations[language] || translations.en;
   const result = {};
   for (const [key, english] of Object.entries(translations.en)) {
-    if (typeof english === "string" && typeof target[key] === "string") result[english.trim()] = target[key];
+    if (typeof english === "string" && typeof target[key] === "string") result[english.trim()] = repairMojibake(target[key]);
   }
-  return { ...result, ...(common[language] || {}) };
+  return { ...result, ...cleanDictionary(common[language] || {}), ...(extraCommon[language] || {}) };
+}
+
+function makeRestoreDictionary() {
+  const result = {};
+  for (const language of ["fa", "ps"]) {
+    const target = translations[language] || {};
+    for (const [key, english] of Object.entries(translations.en)) {
+      const localized = repairMojibake(target[key]);
+      if (typeof english === "string" && typeof localized === "string") {
+        result[localized.trim()] = english.trim();
+      }
+    }
+    for (const [english, localized] of Object.entries({
+      ...(common[language] || {}),
+      ...(extraCommon[language] || {}),
+    })) {
+      const cleanLocalized = repairMojibake(localized);
+      if (typeof cleanLocalized === "string") result[cleanLocalized.trim()] = english.trim();
+    }
+  }
+  return result;
 }
 
 function dynamicTranslation(text, language) {
@@ -106,54 +863,94 @@ function dynamicTranslation(text, language) {
   if (match) return language === "fa" ? `نمایش ${match[1]} تا ${match[2]} از ${match[3]} مورد` : `له ${match[3]} ریکارډونو څخه ${match[1]} تر ${match[2]} ښودل کېږي`;
   match = text.match(/^Page (\d+) of (\d+)$/i);
   if (match) return language === "fa" ? `صفحه ${match[1]} از ${match[2]}` : `پاڼه ${match[1]} له ${match[2]}`;
+  match = text.match(/^(\d+) record(?:\(s\)|s)?$/i);
+  if (match) return language === "fa" ? `${match[1]} ریکارد` : `${match[1]} ریکارډ`;
+  match = text.match(/^(\d+) payment entries$/i);
+  if (match) return language === "fa" ? `${match[1]} پرداخت ثبت‌شده` : `${match[1]} ثبت شوې تادیې`;
+  match = text.match(/^(\d+) conversation\(s\)$/i);
+  if (match) return language === "fa" ? `${match[1]} مکالمه` : `${match[1]} خبرې اترې`;
+  match = text.match(/^(\d+) sale\(s\), paid (.+)$/i);
+  if (match) return language === "fa" ? `${match[1]} فروش، پرداخت‌شده ${match[2]}` : `${match[1]} پلور، ورکړل شوی ${match[2]}`;
+  match = text.match(/^Are you sure you want to delete "(.+)"\? This action cannot be undone\.$/i);
+  if (match) return language === "fa" ? `آیا مطمئن هستید که "${match[1]}" حذف شود؟ این عمل قابل برگشت نیست.` : `ایا ډاډه یاست چې "${match[1]}" ړنګ شي؟ دا عمل بېرته نه راګرځي.`;
   return null;
+}
+
+function restoreEnglish(raw, restoreDictionary) {
+  const trimmed = String(raw ?? "").trim();
+  if (!trimmed) return raw;
+  let value = restoreDictionary[trimmed];
+  if (!value && trimmed.endsWith(":")) {
+    const base = trimmed.slice(0, -1).trim();
+    if (restoreDictionary[base]) value = `${restoreDictionary[base]}:`;
+  }
+  return value ? String(raw).replace(trimmed, value) : raw;
 }
 
 function translate(raw, language, dictionary) {
   const trimmed = String(raw ?? "").trim();
   if (!trimmed) return raw;
-  const value = dictionary[trimmed] || dynamicTranslation(trimmed, language);
-  return value ? String(raw).replace(trimmed, value) : raw;
+  let value = dictionary[trimmed] || dynamicTranslation(trimmed, language);
+  if (!value && trimmed.endsWith(":")) {
+    const base = trimmed.slice(0, -1).trim();
+    const localizedBase = dictionary[base] || dynamicTranslation(base, language);
+    if (localizedBase) value = `${localizedBase}:`;
+  }
+  return value ? String(raw).replace(trimmed, repairMojibake(value)) : raw;
 }
 
 function excluded(element) {
   return !element || element.closest("script,style,[data-no-translate]") || element.matches("textarea,input[type=password],input[type=file]");
 }
 
-function translateTextNode(node, language, dictionary) {
+function translateTextNode(node, language, dictionary, restoreDictionary) {
   if (excluded(node.parentElement)) return;
   const current = node.nodeValue;
   let state = textState.get(node);
-  if (!state || (current !== state.source && current !== state.output)) state = { source: current, output: current };
-  const output = language === "en" ? state.source : translate(state.source, language, dictionary);
+  if (!state || (current !== state.source && current !== state.output)) {
+    state = {
+      source: language === "en" ? restoreEnglish(current, restoreDictionary) : current,
+      output: current,
+    };
+  }
+  const output = language === "en" ? restoreEnglish(state.source, restoreDictionary) : translate(state.source, language, dictionary);
   state.output = output;
   textState.set(node, state);
   if (current !== output) node.nodeValue = output;
 }
 
-function translateElement(element, language, dictionary) {
+function translateElement(element, language, dictionary, restoreDictionary) {
   if (!(element instanceof Element) || excluded(element)) return;
   let states = attributeState.get(element);
   if (!states) { states = {}; attributeState.set(element, states); }
-  for (const name of ["placeholder", "title", "aria-label"]) {
+  const attributeNames = ["placeholder", "title", "aria-label"];
+  if (element.tagName === "INPUT" && ["button", "submit", "reset"].includes(String(element.getAttribute("type") || "").toLowerCase())) {
+    attributeNames.push("value");
+  }
+  for (const name of attributeNames) {
     if (!element.hasAttribute(name)) continue;
     const current = element.getAttribute(name);
     const old = states[name];
-    if (!old || (current !== old.source && current !== old.output)) states[name] = { source: current, output: current };
+    if (!old || (current !== old.source && current !== old.output)) {
+      states[name] = {
+        source: language === "en" ? restoreEnglish(current, restoreDictionary) : current,
+        output: current,
+      };
+    }
     const state = states[name];
-    const output = language === "en" ? state.source : translate(state.source, language, dictionary);
+    const output = language === "en" ? restoreEnglish(state.source, restoreDictionary) : translate(state.source, language, dictionary);
     state.output = output;
     if (current !== output) element.setAttribute(name, output);
   }
 }
 
-function scan(language, dictionary) {
+function scan(language, dictionary, restoreDictionary) {
   if (!document.body) return;
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
   let node = walker.currentNode;
   while (node) {
-    if (node.nodeType === Node.TEXT_NODE) translateTextNode(node, language, dictionary);
-    else translateElement(node, language, dictionary);
+    if (node.nodeType === Node.TEXT_NODE) translateTextNode(node, language, dictionary, restoreDictionary);
+    else translateElement(node, language, dictionary, restoreDictionary);
     node = walker.nextNode();
   }
 }
@@ -161,16 +958,17 @@ function scan(language, dictionary) {
 export function installRuntimeI18n(language) {
   activeCleanup?.();
   const dictionary = makeDictionary(language);
+  const restoreDictionary = makeRestoreDictionary();
   let queued = false;
-  const run = () => { queued = false; scan(language, dictionary); };
+  const run = () => { queued = false; scan(language, dictionary, restoreDictionary); };
   const queue = () => {
     if (queued) return;
     queued = true;
     window.requestAnimationFrame(run);
   };
   const observer = new MutationObserver(queue);
-  observer.observe(document.body, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["placeholder", "title", "aria-label"] });
-  const interval = window.setInterval(scan, 350, language, dictionary);
+  observer.observe(document.body, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["placeholder", "title", "aria-label", "value"] });
+  const interval = window.setInterval(scan, 350, language, dictionary, restoreDictionary);
   run();
   const cleanup = () => { observer.disconnect(); window.clearInterval(interval); };
   activeCleanup = cleanup;

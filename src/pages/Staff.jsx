@@ -1,12 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   BriefcaseBusiness,
   CreditCard,
   DollarSign,
   Eye,
+  FileDown,
+  FileSpreadsheet,
   Plus,
   Printer,
   Search,
+  SlidersHorizontal,
   Trash2,
   UserPlus,
   X,
@@ -16,10 +19,12 @@ import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { currencies, formatCurrencyAmount } from "../utils/currencyExchange";
 import { createRecycleEntry } from "../utils/recycleBin";
+import { normalizePrintSettings } from "../utils/printStudio";
 import "./Staff.css";
 
 const employmentTypes = ["Full-time", "Part-time", "Contract"];
@@ -105,6 +110,7 @@ function Staff() {
   const [settings] = useJsonCollection("settings");
   const [, setTransactions] = useJsonCollection("transactions");
   const [, setDeletedItems] = useJsonCollection("deletedItems");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showStaffModal, setShowStaffModal] = useState(false);
@@ -113,6 +119,7 @@ function Staff() {
   const [profileStaff, setProfileStaff] = useState(null);
   const [deleteStaff, setDeleteStaff] = useState(null);
   const [deletePayrollEntry, setDeletePayrollEntry] = useState(null);
+  const [printReportOpen, setPrintReportOpen] = useState(false);
   const staffCustomFields = settings[0]?.customFields?.staffMembers || [];
 
   const normalizedStaff = useMemo(
@@ -126,7 +133,19 @@ function Staff() {
     [staffMembers]
   );
 
-  const filteredStaff = normalizedStaff.filter((staff) => {
+  const currencyFilteredStaff = useMemo(
+    () =>
+      normalizedStaff.filter(
+        (staff) =>
+          currencyMatchesFilter(staff.currency, businessCurrencyFilter) ||
+          staff.payrollHistory.some((entry) =>
+            currencyMatchesFilter(entry.currency || staff.currency, businessCurrencyFilter)
+          )
+      ),
+    [businessCurrencyFilter, normalizedStaff]
+  );
+
+  const filteredStaff = currencyFilteredStaff.filter((staff) => {
     const keyword = search.trim().toLowerCase();
     const matchesSearch =
       !keyword ||
@@ -146,18 +165,19 @@ function Staff() {
   const pagination = useTablePagination(filteredStaff, `${search}-${statusFilter}`);
 
   const stats = useMemo(() => {
-    const active = normalizedStaff.filter((staff) => staff.status === "Active").length;
-    const monthlySalary = normalizedStaff.reduce((sum, staff) => sum + parseNumber(staff.salary), 0);
-    const paid = normalizedStaff.reduce(
+    const active = currencyFilteredStaff.filter((staff) => staff.status === "Active").length;
+    const monthlySalary = currencyFilteredStaff.reduce((sum, staff) => sum + parseNumber(staff.salary), 0);
+    const paid = currencyFilteredStaff.reduce(
       (sum, staff) => sum + getPayrollPaidTotal(staff.payrollHistory),
       0
     );
-    const payable = normalizedStaff.reduce(
+    const payable = currencyFilteredStaff.reduce(
       (sum, staff) => sum + getPayrollPayableTotal(staff.payrollHistory),
       0
     );
-    return { total: normalizedStaff.length, active, monthlySalary, paid, payable };
-  }, [normalizedStaff]);
+    return { total: currencyFilteredStaff.length, active, monthlySalary, paid, payable };
+  }, [currencyFilteredStaff]);
+  const statCurrency = businessCurrencyFilter === "all" ? "AFN" : businessCurrencyFilter;
 
   const openCreate = () => {
     setEditingStaff(null);
@@ -302,36 +322,6 @@ function Staff() {
     setDeletePayrollEntry(null);
   };
 
-  const printStaffReport = () => {
-    const rows = filteredStaff
-      .map(
-        (staff) => `
-          <tr>
-            <td>${staff.name}</td>
-            <td>${staff.role || "-"}</td>
-            <td>${staff.department || "-"}</td>
-            <td>${formatCurrencyAmount(staff.salary, staff.currency)}</td>
-            <td>${formatCurrencyAmount(getPayrollPaidTotal(staff.payrollHistory), staff.currency)}</td>
-            <td>${formatCurrencyAmount(getPayrollPayableTotal(staff.payrollHistory), staff.currency)}</td>
-          </tr>
-        `
-      )
-      .join("");
-    const printWindow = window.open("", "_blank", "width=900,height=1100");
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <!doctype html>
-      <html><head><title>Staff Report</title><style>
-      body{font-family:Arial,sans-serif;margin:30px;color:#111827} h1{margin:0 0 16px}
-      table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:12px}
-      th{background:#f8fafc;color:#475569}
-      </style></head><body><h1>Staff Report</h1><table><thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Salary</th><th>Paid</th><th>Payable</th></tr></thead><tbody>${rows}</tbody></table></body></html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    window.setTimeout(() => printWindow.print(), 250);
-  };
-
   return (
     <div className="staff-page">
       <div className="staff-header">
@@ -340,9 +330,9 @@ function Staff() {
           <p>Manage staff profiles, monthly salary, payroll payments and payable balances.</p>
         </div>
         <div className="staff-header-actions">
-          <button type="button" className="staff-light-btn" onClick={printStaffReport}>
+          <button type="button" className="staff-light-btn" onClick={() => setPrintReportOpen(true)}>
             <Printer size={16} />
-            Print
+            Print Report
           </button>
           <button type="button" className="staff-primary-btn" onClick={openCreate}>
             <UserPlus size={16} />
@@ -354,9 +344,9 @@ function Staff() {
       <section className="staff-stats">
         <StatCard icon={BriefcaseBusiness} label="Total Staff" value={stats.total} />
         <StatCard icon={UserPlus} label="Active Staff" value={stats.active} />
-        <StatCard icon={DollarSign} label="Monthly Salary" value={formatCurrencyAmount(stats.monthlySalary, "AFN")} />
-        <StatCard icon={CreditCard} label="Paid Payroll" value={formatCurrencyAmount(stats.paid, "AFN")} />
-        <StatCard icon={WalletIcon} label="Payable" value={formatCurrencyAmount(stats.payable, "AFN")} tone="warning" />
+        <StatCard icon={DollarSign} label="Monthly Salary" value={formatCurrencyAmount(stats.monthlySalary, statCurrency)} />
+        <StatCard icon={CreditCard} label="Paid Payroll" value={formatCurrencyAmount(stats.paid, statCurrency)} />
+        <StatCard icon={WalletIcon} label="Payable" value={formatCurrencyAmount(stats.payable, statCurrency)} tone="warning" />
       </section>
 
       <section className="staff-card">
@@ -500,6 +490,16 @@ function Staff() {
           onConfirm={removePayroll}
         />
       )}
+
+      {printReportOpen && (
+        <StaffPrintStudio
+          company={settings[0] || {}}
+          staffMembers={filteredStaff}
+          stats={stats}
+          statCurrency={statCurrency}
+          onClose={() => setPrintReportOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -518,6 +518,95 @@ function StatCard({ icon: Icon, label, value, tone = "" }) {
       <Icon size={20} />
     </div>
   );
+}
+
+function StaffPrintStudio({ company, staffMembers, stats, statCurrency = "AFN", onClose }) {
+  const reportRef = useRef(null);
+  const saved = normalizePrintSettings(company.printSettings || {}, company);
+  const [paper, setPaper] = useState(saved.paperSize || "A4");
+  const [orientation, setOrientation] = useState("portrait");
+  const [margin, setMargin] = useState("normal");
+  const [rowsPerPage, setRowsPerPage] = useState(Number(saved.rowsPerPage || 25));
+  const [scale, setScale] = useState(73);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sizes, setSizes] = useState({ title: saved.titleSize, subtitle: saved.subtitleSize, header: saved.headerTextSize, body: saved.bodyTextSize, footer: saved.footerTextSize });
+  const marginSize = { narrow: 7, normal: 14, wide: 22 }[margin];
+  const basePaperSize = { A4: [210, 297], A5: [148, 210], Letter: [216, 279], Legal: [216, 356], T80: [80, 220], T58: [58, 190], Custom: [210, 297] }[paper] || [210, 297];
+  const isThermal = paper === "T80" || paper === "T58";
+  const paperSize = orientation === "landscape" && !isThermal ? [basePaperSize[1], basePaperSize[0]] : basePaperSize;
+  const reportRows = staffMembers.slice(0, Math.max(1, rowsPerPage));
+  const printNow = () => window.print();
+  const exportPdf = async () => {
+    if (!reportRef.current) return;
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
+    const originalScale = reportRef.current.style.getPropertyValue("--report-scale");
+    reportRef.current.style.setProperty("--report-scale", "1");
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const canvas = await html2canvas(reportRef.current, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
+    reportRef.current.style.setProperty("--report-scale", originalScale || String(scale / 100));
+    const pdf = new jsPDF({ orientation, unit: "mm", format: [paperSize[0], paperSize[1]], compress: true });
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, paperSize[0], paperSize[1]);
+    pdf.save("staff-report.pdf");
+  };
+  const exportExcel = () => {
+    const headers = ["Name", "Role", "Department", "Type", "Salary", "Paid", "Payable", "Status"];
+    const rows = staffMembers.map((staff) => [staff.name, staff.role, staff.department, staff.employmentType, formatCurrencyAmount(staff.salary, staff.currency), formatCurrencyAmount(getPayrollPaidTotal(staff.payrollHistory), staff.currency), formatCurrencyAmount(getPayrollPayableTotal(staff.payrollHistory), staff.currency), staff.status || "Active"]);
+    const quote = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const blob = new Blob([`\ufeff${[headers, ...rows].map((row) => row.map(quote).join(",")).join("\n")}`], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "staff-report.xls";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="standard-print-backdrop">
+      <style>{`@media print { @page { size: ${paperSize[0]}mm ${paperSize[1]}mm; margin: 0; } }`}</style>
+      <section className="standard-print-studio">
+        <header className="standard-print-toolbar">
+          <div className="standard-print-titlebar">
+            <button type="button" className={`standard-print-settings-toggle${settingsOpen ? " active" : ""}`} onClick={() => setSettingsOpen((current) => !current)} title="Print settings"><SlidersHorizontal size={17} /></button>
+            <strong><Printer size={16} /> Staff Report</strong>
+          </div>
+          <div className="standard-print-toolbar-actions">
+            <button type="button" onClick={() => setScale((value) => Math.max(55, value - 8))}>-</button><span>{scale}%</span><button type="button" onClick={() => setScale((value) => Math.min(110, value + 8))}>+</button>
+            <button type="button" onClick={exportPdf}><FileDown size={15} /> PDF</button>
+            <button type="button" onClick={exportExcel}><FileSpreadsheet size={15} /> Excel</button>
+            <button type="button" className="primary" onClick={printNow}><Printer size={15} /> Print</button>
+            <button type="button" className="close" onClick={onClose}><X size={17} /></button>
+          </div>
+        </header>
+        <div className="standard-print-body">
+          <aside className={`standard-print-controls${settingsOpen ? " open" : ""}`}>
+            <div className="standard-print-controls-head"><strong>Print setup</strong><button type="button" onClick={() => setSettingsOpen(false)}><X size={15} /></button></div>
+            <StandardControl title="Paper" values={["A4", "A5", "Letter", "Legal", "T80", "T58", "Custom"]} value={paper} onChange={setPaper} />
+            <StandardControl title="Orientation" values={["Portrait", "Landscape"]} value={orientation === "portrait" ? "Portrait" : "Landscape"} onChange={(value) => setOrientation(value.toLowerCase())} />
+            <StandardControl title="Page Margin" values={["Narrow", "Normal", "Wide"]} value={margin[0].toUpperCase() + margin.slice(1)} onChange={(value) => setMargin(value.toLowerCase())} />
+            <h4>Rows / Page</h4><input type="number" min="5" max="100" value={rowsPerPage} onChange={(event) => setRowsPerPage(Number(event.target.value) || 5)} />
+            <h4>Live Typography</h4>{Object.entries(sizes).map(([key, value]) => <label className="standard-print-range" key={key}><span>{key}<b>{value}px</b></span><input type="range" min="7" max={key === "title" ? 34 : 20} value={value} onChange={(event) => setSizes((current) => ({ ...current, [key]: Number(event.target.value) }))} /></label>)}
+            <small>{paper} - {orientation} - {marginSize}mm</small>
+          </aside>
+          <main className="standard-print-canvas">
+            <article ref={reportRef} className={`standard-report-paper ${orientation}${isThermal ? " thermal" : ""}`} style={{ width: `${paperSize[0]}mm`, minHeight: `${paperSize[1]}mm`, "--report-scale": scale / 100, "--report-margin": `${isThermal ? Math.min(marginSize, 5) : marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
+              <div className="standard-report-header">{saved.showLogo && saved.logo ? <img src={saved.logo} alt="" /> : <div className="standard-report-logo"><BriefcaseBusiness size={28} /></div>}<div><strong>{saved.businessNameEn}</strong><span>{saved.subtitleEn}</span></div><p>{[saved.phone, saved.email, saved.address].filter(Boolean).join(" - ")}</p></div>
+              {saved.watermark && <img className="standard-report-watermark" src={saved.watermark} alt="" style={{ opacity: Number(saved.watermarkOpacity || 0) / 100 }} />}
+              <div className="standard-report-heading"><div><small>REPORT</small><h1>Staff Report</h1><p>All filtered staff records</p></div><div><b>{new Date().toLocaleString()}</b><span>Records {staffMembers.length}</span><span>Page 1 of 1</span></div></div>
+              <div className="standard-report-stats"><div><span>TOTAL STAFF</span><b>{stats.total}</b></div><div><span>PAID PAYROLL</span><b>{formatCurrencyAmount(stats.paid, statCurrency)}</b></div><div><span>PAYABLE</span><b>{formatCurrencyAmount(stats.payable, statCurrency)}</b></div></div>
+              <p className="standard-report-contents">Contents: <span>1 - {Math.min(reportRows.length, staffMembers.length)} Records</span></p>
+              <table data-table-enhancer="off"><thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Type</th><th>Salary</th><th>Paid</th><th>Payable</th><th>Status</th></tr></thead><tbody>{reportRows.map((staff) => <tr key={staff.id || staff.name}><td>{staff.name}</td><td>{staff.role || "-"}</td><td>{staff.department || "-"}</td><td>{staff.employmentType || "-"}</td><td>{formatCurrencyAmount(staff.salary, staff.currency)}</td><td>{formatCurrencyAmount(getPayrollPaidTotal(staff.payrollHistory), staff.currency)}</td><td>{formatCurrencyAmount(getPayrollPayableTotal(staff.payrollHistory), staff.currency)}</td><td>{staff.status || "Active"}</td></tr>)}</tbody></table>
+              <footer><span>{saved.footerText || "Powered by Smart Office"}</span>{saved.showTimestamp && <span>{new Date().toLocaleString()}</span>}</footer>
+            </article>
+          </main>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function StandardControl({ title, values, value, onChange }) {
+  return <><h4>{title}</h4><div className="standard-print-choices">{values.map((item) => <button type="button" className={value === item ? "active" : ""} key={item} onClick={() => onChange(item)}>{item}</button>)}</div></>;
 }
 
 function StaffModal({ customFields = [], initialStaff, onClose, onSave }) {

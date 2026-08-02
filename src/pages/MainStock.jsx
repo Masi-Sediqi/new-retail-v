@@ -15,8 +15,10 @@ import {
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
 import FloatingActionMenu from "../components/FloatingActionMenu";
+import StandardPrintStudio from "../components/StandardPrintStudio";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
@@ -119,14 +121,6 @@ const getDateMatches = (dateValue, filter, start, end) => {
   return true;
 };
 
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
 function MainStock() {
   const [products, setProducts] = useJsonCollection("products");
   const [suppliers] = useJsonCollection("suppliers");
@@ -135,6 +129,7 @@ function MainStock() {
   const [sales] = useJsonCollection("billingInvoices");
   const [settings] = useJsonCollection("settings");
   const [, setTransactions] = useJsonCollection("transactions");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
@@ -153,6 +148,7 @@ function MainStock() {
   const [detailEntry, setDetailEntry] = useState(null);
   const [editEntry, setEditEntry] = useState(null);
   const [deleteEntry, setDeleteEntry] = useState(null);
+  const [printReportOpen, setPrintReportOpen] = useState(false);
 
   const categoryList = useMemo(() => {
     const custom = categories.map((item) => item.name || item).filter(Boolean);
@@ -192,6 +188,7 @@ function MainStock() {
             entryDate: entry.date,
             entryId: entry.id,
             paid: rowPaid,
+            rate: parseNumber(row.rate || entry.rate),
             remaining: Math.max(0, rowTotal - rowPaid),
             rowIndex: index,
             rowTotal,
@@ -246,6 +243,14 @@ function MainStock() {
     [entries, normalizedProducts, soldQuantityByProduct]
   );
 
+  const currencyFilteredProductRows = useMemo(
+    () =>
+      productRows.filter((product) =>
+        currencyMatchesFilter(product.currency, businessCurrencyFilter)
+      ),
+    [businessCurrencyFilter, productRows]
+  );
+
   const stockEntryRows = useMemo(() => {
     const purchaseRows = godownEntries
       .map((purchase) => {
@@ -265,6 +270,7 @@ function MainStock() {
           kind: "purchase",
           name: rows.length > 1 ? `Purchase Bill (${rows.length} items)` : rows[0].name,
           paid,
+          rate: parseNumber(purchase.rate || rows[0]?.rate),
           remaining,
           rows,
           source: purchase,
@@ -309,10 +315,12 @@ function MainStock() {
       })
       .filter(Boolean);
 
-    return [...purchaseRows, ...autoRows].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-  }, [baseCurrency, entries, godownEntries, productRows]);
+    return [...purchaseRows, ...autoRows]
+      .filter((row) => currencyMatchesFilter(row.currency, businessCurrencyFilter))
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  }, [baseCurrency, businessCurrencyFilter, entries, godownEntries, productRows]);
 
-  const filteredProducts = productRows.filter((product) => {
+  const filteredProducts = currencyFilteredProductRows.filter((product) => {
     const needle = search.trim().toLowerCase();
     const supplierIds = new Set([product.supplierId, ...product.entries.map((entry) => entry.supplierId)].filter(Boolean).map(String));
     const supplierNames = [...supplierIds].map((id) => getSupplierName(suppliers.find((supplier) => String(supplier.id) === id))).join(" ");
@@ -344,7 +352,7 @@ function MainStock() {
     const matchesSearch = !needle || rowText.includes(needle);
     const matchesProduct = productFilter === "all" || String(row.actionEntry?.productId) === String(productFilter) || row.rows.some((item) => String(item.productId) === String(productFilter));
     const matchesSupplier = supplierFilter === "all" || String(row.supplierId) === String(supplierFilter) || row.rows.some((item) => String(item.supplierId) === String(supplierFilter));
-    const relatedProduct = productRows.find((product) => String(product.id) === String(row.actionEntry?.productId) || row.rows.some((item) => String(item.productId) === String(product.id)));
+    const relatedProduct = currencyFilteredProductRows.find((product) => String(product.id) === String(row.actionEntry?.productId) || row.rows.some((item) => String(item.productId) === String(product.id)));
     const currentQuantity = parseNumber(relatedProduct?.quantity ?? row.quantity);
     const threshold = parseNumber(relatedProduct?.lowStockThreshold || relatedProduct?.lowStock);
     const matchesStock =
@@ -365,15 +373,16 @@ function MainStock() {
 
   const summary = {
     imports: stockEntryRows.length,
-    stockValue: productRows.reduce((sum, product) => sum + product.stockValue, 0),
-    expectedProfit: productRows.reduce((sum, product) => sum + product.expectedProfit, 0),
+    stockValue: currencyFilteredProductRows.reduce((sum, product) => sum + product.stockValue, 0),
+    expectedProfit: currencyFilteredProductRows.reduce((sum, product) => sum + product.expectedProfit, 0),
     payable: stockEntryRows.reduce((sum, row) => sum + parseNumber(row.remaining), 0),
-    quantity: productRows.reduce((sum, product) => sum + parseNumber(product.quantity), 0),
+    quantity: currencyFilteredProductRows.reduce((sum, product) => sum + parseNumber(product.quantity), 0),
   };
+  const summaryCurrency = businessCurrencyFilter === "all" ? baseCurrency : businessCurrencyFilter;
 
   const productOptions = [
     { value: "all", label: "All products" },
-    ...productRows.map((product) => ({ value: product.id, label: product.name })),
+    ...currencyFilteredProductRows.map((product) => ({ value: product.id, label: product.name })),
   ];
   const supplierOptions = [
     { value: "all", label: "All suppliers" },
@@ -443,6 +452,7 @@ function MainStock() {
         ...row,
         id: `entry-row-${crypto.randomUUID()}`,
         productId,
+        rate: parseNumber(row.rate || purchaseRecord.rate),
         supplierId: row.supplierId || purchaseRecord.supplierId,
       };
     });
@@ -491,6 +501,7 @@ function MainStock() {
               unit: form.unit,
               purchase: roundMoney(form.purchase),
               selling: roundMoney(form.selling),
+              rate: roundMoney(form.rate),
               category: form.category,
               supplierId: form.supplierId,
               date: form.date,
@@ -563,8 +574,8 @@ function MainStock() {
     setDeleteEntry(null);
   };
 
-  const printGodownReport = () => {
-    const rows =
+  const godownReportRows = useMemo(
+    () =>
       viewMode === "product"
         ? filteredProducts.map((product) => ({
             Product: product.name,
@@ -585,9 +596,13 @@ function MainStock() {
             Paid: formatCurrencyAmount(entry.paid, entry.currency),
             Remaining: formatCurrencyAmount(entry.remaining, entry.currency),
             Total: formatCurrencyAmount(entry.total, entry.currency),
-          }));
-    printRows(`Godown ${viewMode === "product" ? "Products" : "Stock Entries"}`, rows);
-  };
+          })),
+    [filteredProducts, filteredStockEntries, suppliers, viewMode]
+  );
+  const godownReportColumns =
+    viewMode === "product"
+      ? ["Product", "Supplier", "Imported", "In Stock", "Sold", "Purchase", "Selling", "Value"]
+      : ["Date", "Bill", "Product", "Supplier", "Quantity", "Paid", "Remaining", "Total"];
 
   return (
     <div className="main-stock-page">
@@ -597,9 +612,9 @@ function MainStock() {
           <p>Manage stock purchases, supplier balances, product quantity and warehouse value.</p>
         </div>
         <div className="main-stock-header-actions">
-          <button type="button" className="main-stock-light-btn" onClick={printGodownReport}>
+          <button type="button" className="main-stock-light-btn" onClick={() => setPrintReportOpen(true)}>
             <Printer size={16} />
-            Print
+            Print Report
           </button>
           <button type="button" className="main-stock-primary-btn" onClick={() => setPurchaseOpen(true)}>
             <Plus size={16} />
@@ -611,9 +626,9 @@ function MainStock() {
       <section className="main-stock-stats">
         <StatCard icon={Archive} label="Stock Entries" value={summary.imports} />
         <StatCard icon={ShoppingCart} label="Total Quantity" value={summary.quantity} />
-        <StatCard icon={ReceiptText} label="Stock Value" value={formatCurrencyAmount(summary.stockValue, baseCurrency)} />
-        <StatCard icon={BarChart3} label="Expected Profit" value={formatCurrencyAmount(summary.expectedProfit, baseCurrency)} tone="success" />
-        <StatCard icon={WalletCards} label="Payable To Suppliers" value={formatCurrencyAmount(summary.payable, baseCurrency)} tone="warning" />
+        <StatCard icon={ReceiptText} label="Stock Value" value={formatCurrencyAmount(summary.stockValue, summaryCurrency)} />
+        <StatCard icon={BarChart3} label="Expected Profit" value={formatCurrencyAmount(summary.expectedProfit, summaryCurrency)} tone="success" />
+        <StatCard icon={WalletCards} label="Payable To Suppliers" value={formatCurrencyAmount(summary.payable, summaryCurrency)} tone="warning" />
       </section>
 
       <section className="main-stock-card">
@@ -718,6 +733,24 @@ function MainStock() {
           onConfirm={confirmDeleteEntry}
         />
       )}
+
+      {printReportOpen && (
+        <StandardPrintStudio
+          columns={godownReportColumns}
+          company={company}
+          filename={`godown-${viewMode === "product" ? "products" : "stock-entries"}-report`}
+          Icon={Archive}
+          rows={godownReportRows}
+          stats={[
+            { label: "Entries", value: summary.imports },
+            { label: "Quantity", value: summary.quantity },
+            { label: "Stock Value", value: formatCurrencyAmount(summary.stockValue, summaryCurrency) },
+          ]}
+          subtitle={viewMode === "product" ? "All filtered godown products" : "All filtered godown stock entries"}
+          title={`Godown ${viewMode === "product" ? "Products" : "Stock Entries"} Report`}
+          onClose={() => setPrintReportOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -765,16 +798,38 @@ function ProductTable({ expandedProduct, pageItems, setDetailEntry, setExpandedP
               {expandedProduct === product.id && (
                 <tr className="main-stock-nested-row">
                   <td colSpan="10">
-                    <div className="main-stock-entry-list">
-                      {product.entries.map((entry) => (
-                        <button key={entry.id} type="button" onClick={() => setDetailEntry(entry)}>
-                          <span>{getDateLabel(entry.date || entry.entryDate)}</span>
-                          <strong>{entry.name}</strong>
-                          <em>{entry.quantity} {entry.unit} / {formatCurrencyAmount(entry.total, entry.currency)}</em>
-                        </button>
-                      ))}
-                      {!product.entries.length && <p>No purchase history for this product yet.</p>}
-                    </div>
+                    {product.entries.length ? (
+                      <div className="main-stock-history-table">
+                        <table data-table-enhancer="off">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Supplier</th>
+                              <th>Qty</th>
+                              <th>Unit Cost</th>
+                              <th>Selling Price</th>
+                              <th>Rate (AFN)</th>
+                              <th>Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {product.entries.map((entry) => (
+                              <tr key={entry.id} onClick={() => setDetailEntry(entry)}>
+                                <td>{getDateLabel(entry.date || entry.entryDate)}</td>
+                                <td>{getSupplierName(suppliers.find((supplier) => String(supplier.id) === String(entry.supplierId)))}</td>
+                                <td><strong>{entry.quantity} {entry.unit}</strong></td>
+                                <td>{formatCurrencyAmount(entry.purchase, entry.currency)}</td>
+                                <td>{formatCurrencyAmount(entry.selling, entry.currency)}</td>
+                                <td>{parseNumber(entry.rate) > 0 ? `${roundMoney(entry.rate)} AFN` : "-"}</td>
+                                <td><strong>{formatCurrencyAmount(entry.total, entry.currency)}</strong></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p>No purchase history for this product yet.</p>
+                    )}
                   </td>
                 </tr>
               )}
@@ -823,7 +878,7 @@ function EntryTable({ pageItems, setDeleteEntry, setDetailEntry, setEditEntry, s
                 <FloatingActionMenu
                   ariaLabel="Godown actions"
                   actions={[
-                    { icon: <Eye size={15} />, label: "View Details", onClick: () => setDetailEntry(entry.actionEntry || entry) },
+                    { icon: <Eye size={15} />, label: "View Details", onClick: () => setDetailEntry(entry.kind === "purchase" ? entry : entry.actionEntry || entry) },
                     ...(entry.kind === "purchase"
                       ? [
                           { icon: <Plus size={15} />, label: "Edit", onClick: () => setEditEntry(entry.actionEntry) },
@@ -850,6 +905,7 @@ function PurchaseModal({ baseCurrency, categories, onAddCategory, onClose, onSav
   const [supplierId, setSupplierId] = useState("");
   const [currency, setCurrency] = useState(baseCurrency);
   const [date, setDate] = useState(todayInput());
+  const [rate, setRate] = useState("");
   const [billNumber, setBillNumber] = useState("");
   const [paid, setPaid] = useState("");
   const [rows, setRows] = useState([emptyLine()]);
@@ -908,6 +964,7 @@ function PurchaseModal({ baseCurrency, categories, onAddCategory, onClose, onSav
         supplierId: row.supplierId || supplierId,
         date: row.date || date,
         purchase: roundMoney(row.purchase),
+        rate: roundMoney(row.rate || rate),
         selling: roundMoney(row.selling),
         quantity: roundMoney(row.quantity),
       }))
@@ -923,6 +980,7 @@ function PurchaseModal({ baseCurrency, categories, onAddCategory, onClose, onSav
       currency,
       date,
       paid: roundMoney(paid),
+      rate: roundMoney(rate),
       remaining: roundMoney(remaining),
       supplierId,
       total: roundMoney(total),
@@ -951,6 +1009,9 @@ function PurchaseModal({ baseCurrency, categories, onAddCategory, onClose, onSav
           </Field>
           <Field label="Currency">
             <CustomSelect ariaLabel="Currency" options={currencyCodes.map((code) => ({ value: code, label: code }))} value={currency} onChange={setCurrency} />
+          </Field>
+          <Field label="Rate">
+            <input type="number" min="0" step="any" value={rate} onChange={(event) => setRate(event.target.value)} placeholder="USD/EUR rate in AFN" />
           </Field>
           <Field label="Bill Number">
             <input value={billNumber} onChange={(event) => setBillNumber(event.target.value)} placeholder="Optional" />
@@ -1066,6 +1127,7 @@ function EditEntryModal({ categories, entry, onClose, onSave, suppliers }) {
           </Field>
           <Field label="Purchase"><input type="number" min="0" value={form.purchase || ""} onChange={(event) => update("purchase", event.target.value)} /></Field>
           <Field label="Selling"><input type="number" min="0" value={form.selling || ""} onChange={(event) => update("selling", event.target.value)} /></Field>
+          <Field label="Rate (AFN)"><input type="number" min="0" step="any" value={form.rate || ""} onChange={(event) => update("rate", event.target.value)} /></Field>
           <Field label="Category">
             <CustomSelect
               ariaLabel="Category"
@@ -1087,6 +1149,7 @@ function EditEntryModal({ categories, entry, onClose, onSave, suppliers }) {
 
 function EntryDetailModal({ entry, onClose, suppliers }) {
   const supplier = suppliers.find((item) => String(item.id) === String(entry.supplierId));
+  const rows = Array.isArray(entry.rows) && entry.rows.length ? entry.rows : [];
   return (
     <div className="main-stock-modal-backdrop">
       <div className="main-stock-detail-modal">
@@ -1100,8 +1163,45 @@ function EntryDetailModal({ entry, onClose, suppliers }) {
           <DetailBox label="Quantity" value={`${entry.quantity || 0} ${entry.unit || "Piece"}`} />
           <DetailBox label="Purchase" value={formatCurrencyAmount(entry.purchase || 0, entry.currency || "AFN")} />
           <DetailBox label="Selling" value={formatCurrencyAmount(entry.selling || 0, entry.currency || "AFN")} />
+          <DetailBox label="Rate (AFN)" value={parseNumber(entry.rate) > 0 ? `${roundMoney(entry.rate)} AFN` : "-"} />
           <DetailBox label="Total" value={formatCurrencyAmount(entry.total || entry.rowTotal || 0, entry.currency || "AFN")} />
         </div>
+        {rows.length > 0 && (
+          <div className="main-stock-history-table detail">
+            <table data-table-enhancer="off">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Supplier</th>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Unit Cost</th>
+                  <th>Selling Price</th>
+                  <th>Rate (AFN)</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const rowSupplier = suppliers.find((item) => String(item.id) === String(row.supplierId || entry.supplierId));
+                  const rowTotal = parseNumber(row.total || row.rowTotal) || parseNumber(row.quantity) * parseNumber(row.purchase);
+                  return (
+                    <tr key={row.id || `${row.name}-${row.rowIndex}`}>
+                      <td>{getDateLabel(row.date || entry.date || entry.entryDate)}</td>
+                      <td>{getSupplierName(rowSupplier)}</td>
+                      <td><strong>{row.name}</strong></td>
+                      <td>{row.quantity} {row.unit}</td>
+                      <td>{formatCurrencyAmount(row.purchase, entry.currency || row.currency || "AFN")}</td>
+                      <td>{formatCurrencyAmount(row.selling, entry.currency || row.currency || "AFN")}</td>
+                      <td>{parseNumber(row.rate || entry.rate) > 0 ? `${roundMoney(row.rate || entry.rate)} AFN` : "-"}</td>
+                      <td><strong>{formatCurrencyAmount(rowTotal, entry.currency || row.currency || "AFN")}</strong></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
         {entry.notes && <p className="main-stock-detail-note">{entry.notes}</p>}
       </div>
     </div>
@@ -1151,26 +1251,6 @@ function ConfirmModal({ message, onClose, onConfirm, title }) {
       </div>
     </div>
   );
-}
-
-function printRows(title, rows) {
-  const columns = Object.keys(rows[0] || {});
-  const tableRows = rows
-    .map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}</tr>`)
-    .join("");
-  const printWindow = window.open("", "_blank", "width=950,height=1100");
-  if (!printWindow) return;
-  printWindow.document.write(`
-    <!doctype html>
-    <html><head><title>${escapeHtml(title)}</title><style>
-    body{font-family:Arial,sans-serif;margin:30px;color:#111827} h1{margin:0 0 16px}
-    table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:12px}
-    th{background:#f8fafc;color:#475569}
-    </style></head><body><h1>${escapeHtml(title)}</h1><table><thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead><tbody>${tableRows || `<tr><td colspan="${columns.length || 1}">No records found.</td></tr>`}</tbody></table></body></html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  window.setTimeout(() => printWindow.print(), 250);
 }
 
 export default MainStock;

@@ -19,6 +19,7 @@ function shouldSkipTable(table) {
   return table.closest("form") ||
     table.closest(".receipt-page") ||
     table.closest(".invoice-report-paper") ||
+    table.closest(".product-report-paper") ||
     table.matches("[data-table-enhancer='off']");
 }
 

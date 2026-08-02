@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Camera,
   CreditCard,
+  FileDown,
   Mail,
   MessageCircle,
   Minus,
@@ -25,6 +26,7 @@ import {
   currencies,
   formatCurrencyAmount,
 } from "../utils/currencyExchange";
+import { normalizePrintSettings } from "../utils/printStudio";
 import "./Billing.css";
 
 const parseMoney = (value) => Number.parseFloat(value || 0) || 0;
@@ -182,6 +184,105 @@ function ScannerModal({ onClose, onScan }) {
   );
 }
 
+function BillingPrintControl({ title, values, value, onChange }) {
+  return (
+    <>
+      <h4>{title}</h4>
+      <div className="billing-print-choices">
+        {values.map((item) => (
+          <button type="button" className={value === item ? "active" : ""} key={item} onClick={() => onChange(item)}>
+            {item}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ReceiptPrintStudio({ sale, company, onClose }) {
+  const saved = normalizePrintSettings(company.printSettings || {}, company);
+  const [paper, setPaper] = useState("T80");
+  const [scale, setScale] = useState(140);
+  const [sizes, setSizes] = useState({ title: 12, subtitle: 8, header: 9, body: 7, footer: 7 });
+  const width = { A4: 210, A5: 148, Letter: 216, Legal: 216, T80: 80, T58: 58, Custom: 80 }[paper] || 80;
+  const thermal = paper === "T80" || paper === "T58";
+  const subtotal = parseMoney(sale.subtotal) || sale.items.reduce((sum, item) => sum + parseMoney(item.lineTotal), 0);
+
+  return (
+    <div className="billing-print-backdrop">
+      <style>{`@media print{@page{size:${thermal ? `${width}mm auto` : paper};margin:${thermal ? "4mm" : "10mm"}}}`}</style>
+      <section className="billing-print-studio receipt-print-studio">
+        <header className="billing-print-toolbar">
+          <strong><ReceiptText size={16} /> Receipt - {sale.invoiceNumber}</strong>
+          <div className="billing-print-toolbar-actions">
+            <button type="button" onClick={() => setScale((value) => Math.max(70, value - 10))}>-</button>
+            <span>{scale}%</span>
+            <button type="button" onClick={() => setScale((value) => Math.min(180, value + 10))}>+</button>
+            <button type="button" onClick={() => window.print()}><FileDown size={15} /> PDF</button>
+            <button type="button" className="primary" onClick={() => window.print()}><Printer size={15} /> Print</button>
+            <button type="button" className="close" onClick={onClose}><X size={17} /></button>
+          </div>
+        </header>
+        <div className="billing-print-body">
+          <aside className="billing-print-controls">
+            <BillingPrintControl title="Paper" values={["A4", "A5", "Letter", "Legal", "T80", "T58", "Custom"]} value={paper} onChange={setPaper} />
+            <h4>Live Typography</h4>
+            {Object.entries(sizes).map(([key, value]) => (
+              <label className="billing-print-range" key={key}>
+                <span>{key}<b>{value}px</b></span>
+                <input type="range" min="6" max={key === "title" ? 20 : 14} value={value} onChange={(event) => setSizes((current) => ({ ...current, [key]: Number(event.target.value) }))} />
+              </label>
+            ))}
+            <small>{thermal ? `Thermal ${width}mm - roll` : `${paper} receipt`}</small>
+          </aside>
+          <main className="billing-print-canvas receipt-print-canvas">
+            <article className={`receipt-report-paper ${thermal ? "thermal" : "sheet"}`} style={{ width: `${width}mm`, "--receipt-scale": scale / 100, "--receipt-title": `${sizes.title}px`, "--receipt-subtitle": `${sizes.subtitle}px`, "--receipt-header": `${sizes.header}px`, "--receipt-body": `${sizes.body}px`, "--receipt-footer": `${sizes.footer}px`, "--invoice-primary": saved.primaryColor }}>
+              <header>
+                {saved.showLogo && saved.logo ? <img src={saved.logo} alt="" /> : <div className="receipt-logo"><ReceiptText size={24} /></div>}
+                <h1>{saved.businessNameEn}</h1>
+                <p>{saved.subtitleEn}</p>
+              </header>
+              <div className="receipt-divider" />
+              <section className="receipt-meta">
+                <span>Receipt #</span><b>{sale.invoiceNumber}</b>
+                <span>Date</span><b>{sale.date}</b>
+                <span>Customer</span><b>{sale.customerName || "Walk-in Customer"}</b>
+              </section>
+              <table data-table-enhancer="off">
+                <thead><tr><th>ITEM</th><th>QTY</th><th>PRICE</th><th>TOTAL</th></tr></thead>
+                <tbody>
+                  {sale.items.map((item, index) => (
+                    <tr key={`${item.productId}-${index}`}>
+                      <td>{item.name}<small>{item.code}</small></td>
+                      <td>{item.quantity}{item.unit ? ` ${item.unit}` : ""}</td>
+                      <td>{formatCurrencyAmount(item.price, sale.currency)}</td>
+                      <td>{formatCurrencyAmount(item.lineTotal, sale.currency)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="receipt-divider" />
+              <section className="receipt-totals">
+                <span>Subtotal</span><b>{formatCurrencyAmount(subtotal, sale.currency)}</b>
+                {parseMoney(sale.discountTotal) > 0 && <><span>Discount</span><b>{formatCurrencyAmount(sale.discountTotal, sale.currency)}</b></>}
+                <strong>TOTAL</strong><strong>{formatCurrencyAmount(sale.total, sale.currency)}</strong>
+                <span>Paid ({sale.paymentMethod || "Cash"})</span><b>{formatCurrencyAmount(sale.paidAmount, sale.currency)}</b>
+                {parseMoney(sale.balance) > 0 && <><span>Remaining</span><b>{formatCurrencyAmount(sale.balance, sale.currency)}</b></>}
+              </section>
+              <div className="receipt-divider" />
+              <footer>
+                <b>Thank you for your purchase!</b>
+                <span>{saved.footerText || "Powered by Smart Office"}</span>
+                {saved.showTimestamp && <small>{new Date().toLocaleString()}</small>}
+              </footer>
+            </article>
+          </main>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Billing() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -210,6 +311,7 @@ function Billing() {
   const [paidAmountInput, setPaidAmountInput] = useState("");
   const [invoiceCustomFields, setInvoiceCustomFields] = useState({});
   const [previewInvoice, setPreviewInvoice] = useState(null);
+  const [receiptInvoice, setReceiptInvoice] = useState(null);
   const [scannerEnabled, setScannerEnabled] = useState(true);
   const [scannerOpen, setScannerOpen] = useState(false);
   const searchInputRef = useRef(null);
@@ -613,7 +715,7 @@ function Billing() {
       }));
 
       notify("Bill updated successfully.");
-      if (shouldPrint) setPreviewInvoice(invoice);
+      if (shouldPrint) setReceiptInvoice(invoice);
       loadedEditRef.current = "";
       if (!shouldPrint) navigate("/sales-bills");
       return;
@@ -685,7 +787,7 @@ function Billing() {
     }
 
     notify("Invoice saved successfully.");
-    if (shouldPrint) setPreviewInvoice(invoice);
+    if (shouldPrint) setReceiptInvoice(invoice);
     resetBill();
   };
 
@@ -1084,22 +1186,13 @@ function Billing() {
           </div>
 
           <div className="billing-save-actions">
-            <button
-              type="button"
-              className="billing-light-btn"
-              onClick={() => {
-                if (!items.length) {
-                  notify("Please add at least one product.", "error");
-                  return;
-                }
-                setPreviewInvoice(createInvoice());
-              }}
-            >
-              Preview
-            </button>
             <button type="button" className="billing-primary-btn" onClick={() => saveInvoice(false)}>
               <CreditCard size={16} />
               {editingSale ? "Update Bill" : "Save Bill"}
+            </button>
+            <button type="button" className="billing-primary-btn" onClick={() => saveInvoice(true)}>
+              <Printer size={16} />
+              {editingSale ? "Update & Print" : "Save & Print"}
             </button>
           </div>
         </aside>
@@ -1111,6 +1204,17 @@ function Billing() {
           invoice={previewInvoice}
           onClose={() => setPreviewInvoice(null)}
           onPrint={() => openPrintableInvoice(previewInvoice)}
+        />
+      )}
+
+      {receiptInvoice && (
+        <ReceiptPrintStudio
+          sale={receiptInvoice}
+          company={company}
+          onClose={() => {
+            setReceiptInvoice(null);
+            if (editingSale) navigate("/sales-bills");
+          }}
         />
       )}
 

@@ -341,6 +341,11 @@ function Dashboard({ t = {} }) {
     );
     const grossRevenue = filteredInvoices.reduce((sum, invoice) => sum + toBase(invoiceTotal(invoice), invoice.currency), 0);
     const paidRevenue = filteredInvoices.reduce((sum, invoice) => sum + toBase(invoicePaid(invoice), invoice.currency), 0);
+    const pendingByCurrency = filteredInvoices.reduce(
+      (totals, invoice) =>
+        addCurrencyTotal(totals, invoice.currency || baseCurrency, invoiceBalance(invoice)),
+      {}
+    );
     const pendingPayments = filteredInvoices.reduce((sum, invoice) => sum + toBase(invoiceBalance(invoice), invoice.currency), 0);
     const expenseByCurrency = filteredExpenses.reduce((totals, expense) => {
       const currency = expense.currency || baseCurrency;
@@ -517,9 +522,11 @@ const netProfitByCurrency = subtractCurrencyTotals(
     const stockValueConversion = convertCurrencyTotals(stockValueByCurrency, displayCurrency);
     const stockSaleValueConversion = convertCurrencyTotals(stockSaleValueByCurrency, displayCurrency);
     const expenseConversion = convertCurrencyTotals(expenseByCurrency, displayCurrency);
+    const refundConversion = convertCurrencyTotals(refundByCurrency, displayCurrency);
     const revenueConversion = convertCurrencyTotals(revenueByCurrency, displayCurrency);
     const pureProfitConversion = convertCurrencyTotals(pureProfitByCurrency, displayCurrency);
     const netProfitConversion = convertCurrencyTotals(netProfitByCurrency, displayCurrency);
+    const pendingConversion = convertCurrencyTotals(pendingByCurrency, displayCurrency);
     const stockValue = Object.entries(stockValueByCurrency).reduce((sum, [currency, amount]) => {
       const converted = convertCurrencyAmount(amount, {
         baseCurrency,
@@ -660,11 +667,17 @@ const supplierNetBalance =
   grossRevenue,
   operatingExpenseTotal,
   pendingPayments,
+  pendingByCurrency,
+  pendingConvertedTotal: pendingConversion.total,
+  pendingMissingCurrencies: [...pendingConversion.missing],
   pureProfit,
   pureProfitByCurrency,
   pureProfitConvertedTotal: pureProfitConversion.total,
   pureProfitMissingCurrencies: [...pureProfitConversion.missing],
   refundTotal,
+  refundByCurrency,
+  refundConvertedTotal: refundConversion.total,
+  refundMissingCurrencies: [...refundConversion.missing],
   revenue,
   revenueByCurrency,
   revenueConvertedTotal: revenueConversion.total,
@@ -930,7 +943,17 @@ const statCards = [
   {
     group: "Financial overview",
     label: t.pendingPayments || "Pending Payments",
-    value: money(metrics.pendingPayments, baseCurrency),
+    value:
+      displayCurrency === "original" ||
+      displayCurrency === "all" ||
+      metrics.pendingMissingCurrencies?.length
+        ? compactCurrencyTotals(metrics.pendingByCurrency, baseCurrency)
+        : compactWalletMoney(metrics.pendingConvertedTotal, displayCurrency),
+    subValue: compactCurrencyTotals(metrics.pendingByCurrency, baseCurrency),
+    hideSubValue:
+      displayCurrency === "original" ||
+      displayCurrency === "all" ||
+      metrics.pendingMissingCurrencies?.length,
     icon: Clock3,
     tone: "orange",
     key: "pending-payments",
@@ -938,7 +961,17 @@ const statCards = [
   {
     group: "Financial overview",
     label: t.totalRefunds || "Total refunds",
-    value: money(metrics.refundTotal, baseCurrency),
+    value:
+      displayCurrency === "original" ||
+      displayCurrency === "all" ||
+      metrics.refundMissingCurrencies?.length
+        ? compactCurrencyTotals(metrics.refundByCurrency, baseCurrency)
+        : compactWalletMoney(metrics.refundConvertedTotal, displayCurrency),
+    subValue: compactCurrencyTotals(metrics.refundByCurrency, baseCurrency),
+    hideSubValue:
+      displayCurrency === "original" ||
+      displayCurrency === "all" ||
+      metrics.refundMissingCurrencies?.length,
     icon: Redo2,
     tone: "red",
     key: "total-refunds",
@@ -1191,6 +1224,13 @@ const statGroups = [
                 ? `Exchange rate is not set for Pure Profit conversion to ${displayCurrency}. Missing: ${[
                     ...new Set([
                       ...metrics.pureProfitMissingCurrencies,
+                      ...missingExchangeCurrencies,
+                    ]),
+                  ].join(", ")}`
+              : metrics.pendingMissingCurrencies?.length
+                ? `Exchange rate is not set for Pending Payments conversion to ${displayCurrency}. Missing: ${[
+                    ...new Set([
+                      ...metrics.pendingMissingCurrencies,
                       ...missingExchangeCurrencies,
                     ]),
                   ].join(", ")}`

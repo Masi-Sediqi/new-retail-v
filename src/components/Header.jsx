@@ -674,7 +674,7 @@ const saveCashWalletTransaction = async (event) => {
               <small>Outstanding deposits: {visibleNotificationGroups.find((group) => group.key === "deposit")?.count || 0}</small>
             </div>
 
-            <button className="dropdown-logout" onClick={() => openAccountLockScreen({ logout:true })} type="button">
+            <button className="dropdown-logout" onClick={() => (onLogout ? onLogout() : openAccountLockScreen({ logout:true }))} type="button">
               <LogOut size={15} />
               Logout
             </button>
@@ -1263,9 +1263,9 @@ function Header({ currentUser, language = "en", onLanguageChange, onLogout, onLo
   ]);
 
   const openResult = (path) => {
+    const keyword = query.trim();
     setOpenSearch(false);
-    setQuery("");
-    navigate(path);
+    navigate(`/search-results?q=${encodeURIComponent(keyword)}&open=${encodeURIComponent(path)}`);
   };
 
   const openSearchResultsPage = () => {

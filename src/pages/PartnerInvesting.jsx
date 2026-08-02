@@ -18,8 +18,10 @@ import {
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
 import FloatingActionMenu from "../components/FloatingActionMenu";
+import StandardPrintStudio from "../components/StandardPrintStudio";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import {
@@ -119,6 +121,7 @@ function PartnerInvesting() {
   const [transactions, setTransactions] =
     useJsonCollection("transactions");
   const [settings] = useJsonCollection("settings");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
@@ -133,6 +136,7 @@ function PartnerInvesting() {
   const [paymentDraft, setPaymentDraft] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [printReportOpen, setPrintReportOpen] = useState(false);
 
   const normalizedAccounts = useMemo(
     () =>
@@ -153,9 +157,11 @@ function PartnerInvesting() {
   const tabAccounts = useMemo(
     () =>
       normalizedAccounts.filter(
-        (account) => account.accountType === activeTab
+        (account) =>
+          account.accountType === activeTab &&
+          currencyMatchesFilter(account.currency, businessCurrencyFilter)
       ),
-    [activeTab, normalizedAccounts]
+    [activeTab, businessCurrencyFilter, normalizedAccounts]
   );
 
   const filteredAccounts = useMemo(() => {
@@ -349,9 +355,33 @@ function PartnerInvesting() {
     setDeleteAccount(null);
   };
 
-  const printReport = () => {
-    window.print();
-  };
+  const reportRows = useMemo(
+    () =>
+      filteredAccounts.map((account) =>
+        activeTab === "partner"
+          ? {
+              Name: account.name,
+              Contact: account.phone || account.email || "-",
+              "Partner Share": `${parseNumber(account.partnerPercent)}%`,
+              "Partner Capital": formatCurrencyAmount(account.partnerAmount, account.currency),
+              Currency: account.currency,
+              Status: account.status,
+            }
+          : {
+              Name: account.name,
+              Contact: account.phone || account.email || "-",
+              "Monthly Investment": formatCurrencyAmount(account.monthlyInvestment, account.currency),
+              "Monthly Share": `${parseNumber(account.monthlySharePercent)}%`,
+              Currency: account.currency,
+              Status: account.status,
+            }
+      ),
+    [activeTab, filteredAccounts]
+  );
+  const reportColumns =
+    activeTab === "partner"
+      ? ["Name", "Contact", "Partner Share", "Partner Capital", "Currency", "Status"]
+      : ["Name", "Contact", "Monthly Investment", "Monthly Share", "Currency", "Status"];
 
   const openPaymentDraft = () => {
     if (!paymentAccount) return;
@@ -499,10 +529,10 @@ function PartnerInvesting() {
           <button
             type="button"
             className="partner-investing-light-btn"
-            onClick={printReport}
+            onClick={() => setPrintReportOpen(true)}
           >
             <Printer size={16} />
-            Print
+            Print Report
           </button>
 
           <button
@@ -772,6 +802,30 @@ function PartnerInvesting() {
           message={`Delete ${deleteAccount.name}? This account will be permanently removed.`}
           onClose={() => setDeleteAccount(null)}
           onConfirm={removeAccount}
+        />
+      )}
+
+      {printReportOpen && (
+        <StandardPrintStudio
+          columns={reportColumns}
+          company={company}
+          filename={`${activeTab}-investing-report`}
+          Icon={activeTab === "partner" ? Handshake : TrendingUp}
+          rows={reportRows}
+          stats={[
+            { label: "Accounts", value: filteredAccounts.length },
+            {
+              label: activeTab === "partner" ? "Capital" : "Monthly",
+              value: formatCurrencyAmount(
+                activeTab === "partner" ? totals.partnerCapital : totals.monthlyInvestment,
+                baseCurrency
+              ),
+            },
+            { label: "Active", value: totals.activeCount },
+          ]}
+          subtitle={`All filtered ${activeTab} records`}
+          title={`${activeTab === "partner" ? "Partner" : "Investing"} Report`}
+          onClose={() => setPrintReportOpen(false)}
         />
       )}
     </div>

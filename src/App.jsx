@@ -125,29 +125,6 @@ function getAutoBackupIntervalMs(mode, customDays) {
   return 0;
 }
 
-function ModulePlaceholder({ title, description, items = [] }) {
-  return (
-    <div className="module-placeholder">
-      <div className="module-placeholder-card">
-        <span className="module-kicker">Module</span>
-        <h1>{title}</h1>
-        <p>{description}</p>
-
-        {!!items.length && (
-          <div className="module-feature-grid">
-            {items.map((item) => (
-              <div className="module-feature" key={item}>
-                <span></span>
-                <p>{item}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function PermissionDenied() {
   return (
     <div className="module-placeholder">
@@ -350,6 +327,12 @@ function App() {
   };
 
   const logout = () => {
+    if (!currentUser?.password || currentUser.password === "mynameisadmin") {
+      window.alert("Please set a new password before logging out.");
+      notify("Please set a new password before logging out.", "error");
+      window.location.hash = "/settings";
+      return;
+    }
     localStorage.removeItem("smart-office-system-session");
     localStorage.removeItem("isp-system-session");
     localStorage.setItem("smart-office-locked", "1");
@@ -446,9 +429,9 @@ const menuItems = [
   },
   {
     to: "/partner-investing",
-    label: "Partner Investing",
+    label: "Partner & Investing",
     labelKey: "partnerInvesting",
-    moduleKey: "dashboard",
+    moduleKey: "partnerInvesting",
     icon: BriefcaseBusiness,
   },
   {
@@ -686,7 +669,7 @@ const menuItems = [
 />
 <Route
   path="/partner-investing"
-  element={<PartnerInvesting />}
+  element={protect("partnerInvesting", <PartnerInvesting />)}
 />
 <Route
   path="/dashboard"
@@ -769,16 +752,6 @@ const menuItems = [
 />
 
 <Route
-  path="/partner-investing"
-  element={
-    <ModulePlaceholder
-      title="Partner Investing"
-      description="Partner investment management will be connected here."
-    />
-  }
-/>
-
-<Route
   path="/expenses"
   element={protect("expenses", <Expenses />)}
 />
@@ -801,6 +774,11 @@ const menuItems = [
 <Route
   path="/recycle-bin"
   element={protect("dashboard", <RecycleBin />)}
+/>
+
+<Route
+  path="/search-results"
+  element={<SearchResults />}
 />
 
 <Route path="/help-center" element={<HelpCenter />} />

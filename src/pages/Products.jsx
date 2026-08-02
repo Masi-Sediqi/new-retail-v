@@ -12,6 +12,7 @@ import {
   Plus,
   Printer,
   Search,
+  SlidersHorizontal,
   Trash2,
   Upload,
   X,
@@ -21,6 +22,7 @@ import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import {
   productCategories,
@@ -162,6 +164,7 @@ function Products({ language = "en" }) {
   const [, setExpenses] = useJsonCollection("expenses");
   const [, setTransactions] = useJsonCollection("transactions");
   const [, setDeletedItems] = useJsonCollection("deletedItems");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
 
 
   const [formData, setFormData] = useState(emptyProduct);
@@ -183,7 +186,11 @@ function Products({ language = "en" }) {
   const [unitQuery, setUnitQuery] = useState("");
   const [customUnits, setCustomUnits] = useState([]);
   const imageInputRef = useRef(null);
-  const productCustomFields = systemSettings[0]?.customFields?.products || [];
+  const productCustomFields =
+    systemSettings[0]?.customFields?.products ||
+    systemSettings[0]?.customFields?.Products ||
+    systemSettings[0]?.customFields?.Product ||
+    [];
 
   
 
@@ -221,6 +228,14 @@ const unitList = useMemo(() => {
     [products]
   );
 
+  const currencyFilteredProducts = useMemo(
+    () =>
+      normalizedProducts.filter((product) =>
+        currencyMatchesFilter(product.currency, businessCurrencyFilter)
+      ),
+    [businessCurrencyFilter, normalizedProducts]
+  );
+
   const today = formatDateInput(new Date());
 
   const productStatus = useCallback((product) => {
@@ -241,39 +256,39 @@ const unitList = useMemo(() => {
   }, [today]);
 
   const stats = useMemo(() => {
-    const totalQuantity = normalizedProducts.reduce(
+    const totalQuantity = currencyFilteredProducts.reduce(
       (sum, product) => sum + parseNumber(product.quantity),
       0
     );
-    const stockValue = normalizedProducts.reduce(
+    const stockValue = currencyFilteredProducts.reduce(
       (sum, product) =>
         sum + parseNumber(product.quantity) * parseNumber(product.purchase),
       0
     );
-    const retailValue = normalizedProducts.reduce(
+    const retailValue = currencyFilteredProducts.reduce(
       (sum, product) =>
         sum + parseNumber(product.quantity) * parseNumber(product.selling),
       0
     );
-    const lowStock = normalizedProducts.filter(
+    const lowStock = currencyFilteredProducts.filter(
       (product) => productStatus(product) === "low" || productStatus(product) === "out"
     ).length;
-    const expiring = normalizedProducts.filter(
+    const expiring = currencyFilteredProducts.filter(
       (product) =>
         productStatus(product) === "expiring" || productStatus(product) === "expired"
     ).length;
 
     return {
-      totalProducts: normalizedProducts.length,
+      totalProducts: currencyFilteredProducts.length,
       totalQuantity,
       stockValue,
       retailValue,
       lowStock,
       expiring,
     };
-  }, [normalizedProducts, productStatus]);
+  }, [currencyFilteredProducts, productStatus]);
 
-  const filteredProducts = normalizedProducts.filter((product) => {
+  const filteredProducts = currencyFilteredProducts.filter((product) => {
     const keyword = search.trim().toLowerCase();
     const status = productStatus(product);
     const supplier = suppliers.find((item) => String(item.id) === String(product.supplierId));
@@ -723,6 +738,7 @@ const unitList = useMemo(() => {
     { value: "low", label: tx.lowOrOut },
     { value: "expiry", label: tx.expiryAlerts },
   ];
+  const statCurrency = businessCurrencyFilter === "all" ? "AFN" : businessCurrencyFilter;
 
   return (
     <div className="products-page">
@@ -745,7 +761,7 @@ const unitList = useMemo(() => {
       <section className="products-stats">
         <StatCard icon={Package} label={tx.active} value={stats.totalProducts} />
         <StatCard icon={Archive} label={tx.quantity} value={stats.totalQuantity} />
-        <StatCard icon={Boxes} label={tx.value} value={money(stats.stockValue)} />
+        <StatCard icon={Boxes} label={tx.value} value={money(stats.stockValue, statCurrency)} />
         <StatCard icon={AlertTriangle} label={tx.low} value={stats.lowStock} tone="warning" />
         <StatCard icon={AlertTriangle} label={tx.expiryAlerts} value={stats.expiring} tone="danger" />
       </section>
@@ -1593,12 +1609,14 @@ function DetailItem({ icon: Icon, label, value }) {
 }
 
 function ProductPrintStudio({ company, language, products, onClose }) {
+  const reportRef = useRef(null);
   const saved = normalizePrintSettings(company.printSettings || {}, company);
   const [paper, setPaper] = useState(saved.paperSize || "A4");
   const [orientation, setOrientation] = useState("portrait");
   const [margin, setMargin] = useState("normal");
   const [rowsPerPage, setRowsPerPage] = useState(Number(saved.rowsPerPage || 25));
-  const [scale, setScale] = useState(82);
+  const [scale, setScale] = useState(73);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [sizes, setSizes] = useState({ title: saved.titleSize, subtitle: saved.subtitleSize, header: saved.headerTextSize, body: saved.bodyTextSize, footer: saved.footerTextSize });
   const rtl = language === "fa" || language === "ps";
   const labels = language === "fa"
@@ -1620,22 +1638,80 @@ function ProductPrintStudio({ company, language, products, onClose }) {
   const businessName = rtl ? (language === "fa" ? saved.businessNameFa : saved.businessNamePs) || saved.businessNameEn : saved.businessNameEn;
   const subtitle = rtl ? (language === "fa" ? saved.subtitleFa : saved.subtitlePs) || saved.subtitleEn : saved.subtitleEn;
   const printNow = () => window.print();
+  const exportPdf = async () => {
+    if (!reportRef.current) return;
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
+    const originalScale = reportRef.current.style.getPropertyValue("--report-scale");
+    reportRef.current.style.setProperty("--report-scale", "1");
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const canvas = await html2canvas(reportRef.current, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+    });
+    reportRef.current.style.setProperty("--report-scale", originalScale || String(scale / 100));
+    const pdf = new jsPDF({
+      orientation,
+      unit: "mm",
+      format: [paperSize[0], paperSize[1]],
+      compress: true,
+    });
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, paperSize[0], paperSize[1]);
+    pdf.save("product-inventory-report.pdf");
+  };
+  const exportExcel = () => {
+    const headers = [labels.product, labels.code, labels.category, labels.quantity, labels.value];
+    const rows = products.map((product) => [
+      getProductName(product),
+      getProductCode(product) || "-",
+      product.category || "-",
+      `${parseNumber(product.quantity)} ${product.unit || ""}`.trim(),
+      money(parseNumber(product.purchase) * parseNumber(product.quantity), product.currency),
+    ]);
+    const escapeCell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const csv = [headers, ...rows].map((row) => row.map(escapeCell).join(",")).join("\n");
+    const blob = new Blob([`\ufeff${csv}`], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "product-inventory-report.xls";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="product-print-backdrop">
       <style>{`@media print { @page { size: ${paperSize[0]}mm ${paperSize[1]}mm; margin: 0; } }`}</style>
       <section className="product-print-studio" dir={rtl ? "rtl" : "ltr"}>
         <header className="product-print-toolbar">
-          <strong><Printer size={16} /> {labels.title}</strong>
+          <div className="product-print-titlebar">
+            <button
+              type="button"
+              className={`product-print-settings-toggle${settingsOpen ? " active" : ""}`}
+              onClick={() => setSettingsOpen((current) => !current)}
+              title="Print settings"
+            >
+              <SlidersHorizontal size={17} />
+            </button>
+            <strong><Printer size={16} /> {labels.title}</strong>
+          </div>
           <div className="product-print-toolbar-actions">
             <button type="button" onClick={() => setScale((value) => Math.max(55, value - 8))}>−</button><span>{scale}%</span><button type="button" onClick={() => setScale((value) => Math.min(110, value + 8))}>+</button>
-            <button type="button" onClick={printNow}><FileDown size={15} /> {labels.pdf}</button>
+            <button type="button" onClick={exportPdf}><FileDown size={15} /> {labels.pdf}</button>
+            <button type="button" onClick={exportExcel}><Boxes size={15} /> Excel</button>
             <button type="button" className="primary" onClick={printNow}><Printer size={15} /> {labels.print}</button>
             <button type="button" className="close" onClick={onClose}><X size={17} /></button>
           </div>
         </header>
-        <div className="product-print-body">
-          <aside className="product-print-controls">
+        <div className={`product-print-body${settingsOpen ? " controls-open" : ""}`}>
+          <aside className={`product-print-controls${settingsOpen ? " open" : ""}`}>
+            <div className="product-print-controls-head">
+              <strong>Print setup</strong>
+              <button type="button" onClick={() => setSettingsOpen(false)}><X size={15} /></button>
+            </div>
             <ControlTitle>{labels.paper}</ControlTitle><ChoiceGrid values={["A4", "A5", "Letter", "Legal", "T80", "T58", "Custom"]} value={paper} onChange={setPaper} />
             <ControlTitle>{labels.orientation}</ControlTitle><ChoiceGrid values={[labels.portrait, labels.landscape]} value={orientation === "portrait" ? labels.portrait : labels.landscape} onChange={(value) => setOrientation(value === labels.portrait ? "portrait" : "landscape")} />
             <ControlTitle>{labels.margin}</ControlTitle><ChoiceGrid values={[labels.narrow, labels.normal, labels.wide]} value={labels[margin]} onChange={(value) => setMargin(value === labels.narrow ? "narrow" : value === labels.wide ? "wide" : "normal")} />
@@ -1645,13 +1721,13 @@ function ProductPrintStudio({ company, language, products, onClose }) {
             <small>{paper} · {orientation} · {marginSize}mm</small>
           </aside>
           <main className="product-print-canvas">
-            <article className={`product-report-paper ${orientation}${isThermal ? " thermal" : ""}`} style={{ width: `${paperSize[0]}mm`, minHeight: `${paperSize[1]}mm`, "--report-scale": scale / 100, "--report-margin": `${isThermal ? Math.min(marginSize, 5) : marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
+            <article ref={reportRef} className={`product-report-paper ${orientation}${isThermal ? " thermal" : ""}`} style={{ width: `${paperSize[0]}mm`, minHeight: `${paperSize[1]}mm`, "--report-scale": scale / 100, "--report-margin": `${isThermal ? Math.min(marginSize, 5) : marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
               <div className="product-report-header">{saved.showLogo && saved.logo ? <img src={saved.logo} alt="" /> : <div className="product-report-logo"><Package size={28} /></div>}<div><strong>{businessName}</strong><span>{subtitle}</span></div><p>{[saved.phone, saved.email, saved.address].filter(Boolean).join(" · ")}</p></div>
               {saved.watermark && <img className="product-report-watermark" src={saved.watermark} alt="" style={{ opacity: Number(saved.watermarkOpacity || 0) / 100 }} />}
               <div className="product-report-heading"><div><small>REPORT</small><h1>{labels.title}</h1><p>{labels.all}</p></div><div><b>{new Date().toLocaleString()}</b><span>{labels.records} {products.length}</span><span>{labels.page}</span></div></div>
               <div className="product-report-stats"><div><span>{labels.total}</span><b>{products.length}</b></div><div><span>{labels.stock}</span><b>{inStock}</b></div><div><span>{labels.out}</span><b>{products.length - inStock}</b></div></div>
               <p className="product-report-contents">{labels.contents}: <span>1 — {Math.min(reportRows.length, products.length)} {labels.records}</span></p>
-              {!!reportRows.length && <table><thead><tr><th>{labels.product}</th><th>{labels.code}</th><th>{labels.category}</th><th>{labels.quantity}</th><th>{labels.value}</th></tr></thead><tbody>{reportRows.map((product, index) => <tr key={product.id || index}><td>{getProductName(product)}</td><td>{getProductCode(product) || "-"}</td><td>{product.category || "-"}</td><td>{parseNumber(product.quantity)} {product.unit || ""}</td><td>{money(parseNumber(product.purchase) * parseNumber(product.quantity), product.currency)}</td></tr>)}</tbody></table>}
+              {!!reportRows.length && <table data-table-enhancer="off"><thead><tr><th>{labels.product}</th><th>{labels.code}</th><th>{labels.category}</th><th>{labels.quantity}</th><th>{labels.value}</th></tr></thead><tbody>{reportRows.map((product, index) => <tr key={product.id || index}><td>{getProductName(product)}</td><td>{getProductCode(product) || "-"}</td><td>{product.category || "-"}</td><td>{parseNumber(product.quantity)} {product.unit || ""}</td><td>{money(parseNumber(product.purchase) * parseNumber(product.quantity), product.currency)}</td></tr>)}</tbody></table>}
               <footer><span>{saved.footerText || "Powered by Smart Office"}</span>{saved.showTimestamp && <span>{new Date().toLocaleString()}</span>}</footer>
             </article>
           </main>

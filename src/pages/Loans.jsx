@@ -12,8 +12,10 @@ import {
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
 import FloatingActionMenu from "../components/FloatingActionMenu";
+import StandardPrintStudio from "../components/StandardPrintStudio";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
@@ -23,6 +25,7 @@ const parseNumber = (value) => Number.parseFloat(value || 0) || 0;
 const roundMoney = (value) => Math.round((parseNumber(value) + Number.EPSILON) * 100) / 100;
 const todayInput = () => new Date().toISOString().slice(0, 10);
 const parseDateInput = (value) => (value ? new Date(`${String(value).slice(0, 10)}T12:00:00`) : null);
+const hasStoredBalance = (value) => value !== undefined && value !== null && value !== "";
 
 const getDateLabel = (value) => {
   const date = parseDateInput(value);
@@ -74,19 +77,12 @@ const getDateMatches = (dateValue, filter, customStartDate, customEndDate) => {
   );
 };
 
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
 function Loans() {
   const [sales, setSales] = useJsonCollection("billingInvoices");
   const [, setCustomers] = useJsonCollection("customers");
   const [settings] = useJsonCollection("settings");
   const [, setTransactions] = useJsonCollection("transactions");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
@@ -99,6 +95,7 @@ function Loans() {
   const [viewLoan, setViewLoan] = useState(null);
   const [paymentLoan, setPaymentLoan] = useState(null);
   const [deleteLoan, setDeleteLoan] = useState(null);
+  const [printReportOpen, setPrintReportOpen] = useState(false);
 
   const loans = useMemo(
     () =>
@@ -106,7 +103,7 @@ function Loans() {
         .map((sale) => {
           const total = parseNumber(sale.total);
           const paidAmount = parseNumber(sale.paidAmount);
-          const balance = Math.max(0, parseNumber(sale.balance || total - paidAmount));
+          const balance = Math.max(0, hasStoredBalance(sale.balance) ? parseNumber(sale.balance) : total - paidAmount);
           return {
             ...sale,
             total,
@@ -116,7 +113,7 @@ function Loans() {
             currency: sale.currency || baseCurrency,
           };
         })
-        .filter((sale) => sale.balance > 0 || sale.paymentStatus === "loan" || (sale.paymentHistory || []).length > 0),
+        .filter((sale) => sale.balance > 0),
     [baseCurrency, sales]
   );
 
@@ -129,9 +126,10 @@ function Loans() {
           [loan.invoiceNumber, loan.customerName, loan.customerId].join(" ").toLowerCase().includes(needle);
         const matchesStatus = statusFilter === "all" || loan.status === statusFilter;
         const matchesDate = getDateMatches(loan.date, dateFilter, customStartDate, customEndDate);
-        return matchesSearch && matchesStatus && matchesDate;
+        const matchesCurrency = currencyMatchesFilter(loan.currency, businessCurrencyFilter);
+        return matchesCurrency && matchesSearch && matchesStatus && matchesDate;
       }),
-    [customEndDate, customStartDate, dateFilter, loans, search, statusFilter]
+    [businessCurrencyFilter, customEndDate, customStartDate, dateFilter, loans, search, statusFilter]
   );
 
   const pagination = useTablePagination(filteredLoans, `${search}-${statusFilter}-${dateFilter}-${customStartDate}-${customEndDate}`);
@@ -235,9 +233,8 @@ function Loans() {
     setViewLoan(null);
   };
 
-  const printReport = () => {
-    printRows(
-      "Loan Report",
+  const loanReportRows = useMemo(
+    () =>
       filteredLoans.map((loan) => ({
         Invoice: loan.invoiceNumber,
         Customer: loan.customerName,
@@ -246,9 +243,10 @@ function Loans() {
         Remaining: formatCurrencyAmount(loan.balance, loan.currency),
         Status: loan.status,
         Date: getDateLabel(loan.date),
-      }))
-    );
-  };
+      })),
+    [filteredLoans]
+  );
+  const loanCurrency = businessCurrencyFilter === "all" ? baseCurrency : businessCurrencyFilter;
 
   return (
     <section className="loans-page">
@@ -257,9 +255,9 @@ function Loans() {
           <h1>Loans</h1>
           <p>Track customer loan invoices, balances, overdue records and payments.</p>
         </div>
-        <button className="loan-primary-btn" type="button" onClick={printReport}>
+        <button className="loan-primary-btn" type="button" onClick={() => setPrintReportOpen(true)}>
           <Printer size={16} />
-          Print
+          Print Report
         </button>
       </div>
 
@@ -390,6 +388,23 @@ function Loans() {
           onConfirm={deleteSelectedLoan}
         />
       )}
+      {printReportOpen && (
+        <StandardPrintStudio
+          columns={["Invoice", "Customer", "Total", "Paid", "Remaining", "Status", "Date"]}
+          company={company}
+          filename="loan-report"
+          Icon={CreditCard}
+          rows={loanReportRows}
+          stats={[
+            { label: "Records", value: filteredLoans.length },
+            { label: "Active", value: formatCurrencyAmount(stats.active, loanCurrency) },
+            { label: "Pending", value: formatCurrencyAmount(stats.pending, loanCurrency) },
+          ]}
+          subtitle="All filtered loan records"
+          title="Loan Report"
+          onClose={() => setPrintReportOpen(false)}
+        />
+      )}
     </section>
   );
 }
@@ -446,6 +461,14 @@ function LoanPaymentModal({ loan, onClose, onRecord }) {
   const remaining = parseNumber(loan.balance);
   const amountValue = parseNumber(amount);
   const invalid = amountValue <= 0 || amountValue > remaining;
+  const updateAmount = (value) => {
+    if (value === "") {
+      setAmount("");
+      return;
+    }
+    const nextAmount = parseNumber(value);
+    setAmount(String(nextAmount > remaining ? remaining : nextAmount));
+  };
 
   return (
     <div className="loan-modal-backdrop">
@@ -468,7 +491,16 @@ function LoanPaymentModal({ loan, onClose, onRecord }) {
         <div className="loan-form-grid">
           <label className={invalid && amount ? "invalid" : ""}>
             <span>Payment Amount</span>
-            <input autoFocus inputMode="decimal" placeholder={`Max: ${remaining}`} value={amount} onChange={(event) => setAmount(event.target.value)} />
+            <input
+              autoFocus
+              inputMode="decimal"
+              max={remaining}
+              min="0"
+              placeholder={`Max: ${remaining}`}
+              type="number"
+              value={amount}
+              onChange={(event) => updateAmount(event.target.value)}
+            />
             {amountValue > remaining && <small>Payment cannot exceed the remaining balance.</small>}
           </label>
           <label>
@@ -516,26 +548,6 @@ function ConfirmModal({ message, onClose, onConfirm, title }) {
       </div>
     </div>
   );
-}
-
-function printRows(title, rows) {
-  const columns = Object.keys(rows[0] || {});
-  const tableRows = rows
-    .map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}</tr>`)
-    .join("");
-  const printWindow = window.open("", "_blank", "width=900,height=1100");
-  if (!printWindow) return;
-  printWindow.document.write(`
-    <!doctype html>
-    <html><head><title>${escapeHtml(title)}</title><style>
-    body{font-family:Arial,sans-serif;margin:30px;color:#111827} h1{margin:0 0 16px}
-    table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:12px}
-    th{background:#f8fafc;color:#475569}
-    </style></head><body><h1>${escapeHtml(title)}</h1><table><thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead><tbody>${tableRows || `<tr><td colspan="${columns.length || 1}">No records found.</td></tr>`}</tbody></table></body></html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  window.setTimeout(() => printWindow.print(), 250);
 }
 
 export default Loans;

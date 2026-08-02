@@ -11,8 +11,10 @@ import {
   WalletCards,
 } from "lucide-react";
 import CustomSelect from "../components/CustomSelect";
+import StandardPrintStudio from "../components/StandardPrintStudio";
 import TablePagination from "../components/TablePagination";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
 import "./Reports.css";
@@ -75,14 +77,6 @@ const getStockValue = (product) => {
   const cost = parseNumber(product.costPrice || product.purchasePrice || product.buyingPrice || product.cost || product.selling);
   return quantity * cost;
 };
-
-const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 
 function ReportMetric({ icon: Icon, label, tone = "green", value }) {
   return (
@@ -206,59 +200,6 @@ function PaymentDonut({ paidCount, pendingCount }) {
   );
 }
 
-const printReport = ({ baseCurrency, company, metrics, rows }) => {
-  const printRows = [
-    ["Revenue", formatCurrencyAmount(metrics.revenue, baseCurrency)],
-    ["Expenses", formatCurrencyAmount(metrics.expenseTotal, baseCurrency)],
-    ["Total Sales", metrics.totalSales],
-    ["Net Profit", formatCurrencyAmount(metrics.netProfit, baseCurrency)],
-    ["Stock", formatCurrencyAmount(metrics.stockValue, baseCurrency)],
-  ];
-
-  const reportRows = rows
-    .map(
-      (row) => `
-        <tr>
-          <td>${escapeHtml(row.name)}</td>
-          <td>${escapeHtml(row.detail)}</td>
-          <td>${escapeHtml(row.value)}</td>
-        </tr>
-      `
-    )
-    .join("");
-
-  const printWindow = window.open("", "_blank", "width=1100,height=760");
-  if (!printWindow) return;
-
-  printWindow.document.write(`
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Reports</title>
-        <style>
-          body{font-family:Arial,sans-serif;color:#0f172a;padding:28px}
-          h1{margin:0 0 4px} p{margin:0 0 20px;color:#64748b}
-          table{width:100%;border-collapse:collapse;margin-top:16px}
-          th,td{border:1px solid #e2e8f0;padding:10px;text-align:left;font-size:13px}
-          th{background:#f8fafc}.summary{max-width:560px}
-        </style>
-      </head>
-      <body>
-        <h1>${escapeHtml(company.companyName || "Reports")}</h1>
-        <p>Business report</p>
-        <table class="summary"><tbody>${printRows.map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`).join("")}</tbody></table>
-        <table>
-          <thead><tr><th>Report</th><th>Detail</th><th>Value</th></tr></thead>
-          <tbody>${reportRows || '<tr><td colspan="3">No records found.</td></tr>'}</tbody>
-        </table>
-        <script>window.print(); window.close();</script>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
-};
-
 function Reports() {
   const [sales] = useJsonCollection("billingInvoices");
   const [expenses] = useJsonCollection("expenses");
@@ -266,6 +207,7 @@ function Reports() {
   const [staffMembers] = useJsonCollection("staff");
   const [settings] = useJsonCollection("settings");
   const [transactions] = useJsonCollection("transactions");
+  const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
   const baseCurrency = company.baseCurrency || "AFN";
@@ -274,15 +216,26 @@ function Reports() {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [search, setSearch] = useState("");
+  const [printReportOpen, setPrintReportOpen] = useState(false);
 
   const filteredSales = useMemo(
-    () => sales.filter((sale) => matchesDate(sale.date || sale.billDate || sale.createdAt, dateFilter, customStartDate, customEndDate)),
-    [customEndDate, customStartDate, dateFilter, sales]
+    () =>
+      sales.filter(
+        (sale) =>
+          currencyMatchesFilter(sale.currency || baseCurrency, businessCurrencyFilter) &&
+          matchesDate(sale.date || sale.billDate || sale.createdAt, dateFilter, customStartDate, customEndDate)
+      ),
+    [baseCurrency, businessCurrencyFilter, customEndDate, customStartDate, dateFilter, sales]
   );
 
   const filteredExpenses = useMemo(
-    () => expenses.filter((expense) => matchesDate(expense.date || expense.createdAt, dateFilter, customStartDate, customEndDate)),
-    [customEndDate, customStartDate, dateFilter, expenses]
+    () =>
+      expenses.filter(
+        (expense) =>
+          currencyMatchesFilter(expense.currency || baseCurrency, businessCurrencyFilter) &&
+          matchesDate(expense.date || expense.createdAt, dateFilter, customStartDate, customEndDate)
+      ),
+    [baseCurrency, businessCurrencyFilter, customEndDate, customStartDate, dateFilter, expenses]
   );
 
   const manualTransactions = useMemo(
@@ -290,9 +243,10 @@ function Reports() {
       transactions.filter(
         (transaction) =>
           transaction.source === "manual" &&
+          currencyMatchesFilter(transaction.currency || baseCurrency, businessCurrencyFilter) &&
           matchesDate(transaction.date || transaction.createdAt, dateFilter, customStartDate, customEndDate)
       ),
-    [customEndDate, customStartDate, dateFilter, transactions]
+    [baseCurrency, businessCurrencyFilter, customEndDate, customStartDate, dateFilter, transactions]
   );
 
   const metrics = useMemo(() => {
@@ -312,12 +266,18 @@ function Reports() {
       .reduce((sum, transaction) => sum + parseNumber(transaction.amount), 0);
     const revenue = salesRevenue + manualIncome;
     const expensesWithManual = expenseTotal + manualExpense;
-    const stockValue = products.reduce((sum, product) => sum + getStockValue(product), 0);
-    const staffPaid = staffMembers.reduce(
+    const filteredProducts = products.filter((product) =>
+      currencyMatchesFilter(product.currency || baseCurrency, businessCurrencyFilter)
+    );
+    const filteredStaff = staffMembers.filter((staff) =>
+      currencyMatchesFilter(staff.currency || baseCurrency, businessCurrencyFilter)
+    );
+    const stockValue = filteredProducts.reduce((sum, product) => sum + getStockValue(product), 0);
+    const staffPaid = filteredStaff.reduce(
       (sum, staff) => sum + parseNumber(staff.paidAmount || staff.totalPaid || staff.salaryPaid),
       0
     );
-    const staffPayable = staffMembers.reduce(
+    const staffPayable = filteredStaff.reduce(
       (sum, staff) => sum + Math.max(0, parseNumber(staff.salary || staff.monthlySalary) - parseNumber(staff.paidAmount || staff.totalPaid)),
       0
     );
@@ -335,7 +295,7 @@ function Reports() {
       stockValue,
       totalSales: filteredSales.length,
     };
-  }, [filteredExpenses, filteredSales, manualTransactions, products, staffMembers]);
+  }, [baseCurrency, businessCurrencyFilter, filteredExpenses, filteredSales, manualTransactions, products, staffMembers]);
 
   const expenseBreakdown = useMemo(() => {
     const grouped = new Map();
@@ -389,6 +349,16 @@ function Reports() {
     `${dateFilter}-${customStartDate}-${customEndDate}-${search}`,
     10
   );
+  const reportCurrency = businessCurrencyFilter === "all" ? baseCurrency : businessCurrencyFilter;
+  const standardReportRows = useMemo(
+    () =>
+      reportRows.map((row) => ({
+        Report: row.name,
+        Detail: row.detail,
+        Value: row.value,
+      })),
+    [reportRows]
+  );
 
   return (
     <div className="reports-page">
@@ -412,9 +382,9 @@ function Reports() {
               }
             }}
           />
-          <button type="button" onClick={() => printReport({ baseCurrency, company, metrics, rows: reportRows })}>
+          <button type="button" onClick={() => setPrintReportOpen(true)}>
             <Printer size={17} />
-            Print
+            Print Report
           </button>
         </div>
       </div>
@@ -546,6 +516,23 @@ function Reports() {
           totalPages={pagination.totalPages}
         />
       </section>
+      {printReportOpen && (
+        <StandardPrintStudio
+          columns={["Report", "Detail", "Value"]}
+          company={company}
+          filename="reports-summary"
+          Icon={ReceiptText}
+          rows={standardReportRows}
+          stats={[
+            { label: "Revenue", value: formatCurrencyAmount(metrics.revenue, reportCurrency) },
+            { label: "Expenses", value: formatCurrencyAmount(metrics.expenseTotal, reportCurrency) },
+            { label: "Net Profit", value: formatCurrencyAmount(metrics.netProfit, reportCurrency) },
+          ]}
+          subtitle="Statements, top customers and expense categories"
+          title="Reports Summary"
+          onClose={() => setPrintReportOpen(false)}
+        />
+      )}
     </div>
   );
 }

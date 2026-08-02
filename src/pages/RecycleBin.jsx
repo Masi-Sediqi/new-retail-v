@@ -9,21 +9,47 @@ import "./RecycleBin.css";
 const moduleOptions = [
   { value: "all", label: "All" },
   { value: "products", label: "Products" },
+  { value: "billingInvoices", label: "Sales / Bills" },
   { value: "suppliers", label: "Suppliers" },
   { value: "customers", label: "Customers" },
   { value: "expenses", label: "Expenses" },
   { value: "staffMembers", label: "Staff Members" },
+  { value: "godownEntries", label: "Godown" },
+  { value: "supplierPurchases", label: "Supplier Purchases" },
+  { value: "supplierPayments", label: "Supplier Payments" },
+  { value: "transactions", label: "Cash Wallet / Financials" },
+  { value: "accounts", label: "Users" },
+  { value: "assets", label: "Assets" },
+  { value: "assetMovements", label: "Asset Movements" },
+  { value: "towerAssets", label: "Towers" },
+  { value: "deviceTransfers", label: "Transfers" },
+  { value: "customerPayments", label: "Customer Payments" },
+  { value: "customerPackages", label: "Customer Packages" },
+  { value: "packages", label: "Packages" },
   { value: "bundles", label: "Bundles" },
 ];
 
 const collectionByModule = {
+  accounts: "accounts",
+  assetMovements: "assetMovements",
+  assets: "assets",
   bundles: "bundles",
+  billingInvoices: "billingInvoices",
   customers: "customers",
+  customerPackages: "customerPackages",
+  customerPayments: "customerPayments",
+  deviceTransfers: "deviceTransfers",
   expenses: "expenses",
+  godownEntries: "godownEntries",
+  packages: "packages",
   products: "products",
   staff: "staff",
   staffMembers: "staff",
+  supplierPayments: "supplierPayments",
+  supplierPurchases: "supplierPurchases",
   suppliers: "suppliers",
+  towerAssets: "towerAssets",
+  transactions: "transactions",
 };
 
 const moduleLabel = (module) =>
@@ -61,23 +87,88 @@ const getDaysLeft = (item) => {
 function RecycleBin() {
   const [deletedItems, setDeletedItems] = useJsonCollection("deletedItems");
   const [products, setProducts] = useJsonCollection("products");
+  const [sales, setSales] = useJsonCollection("billingInvoices");
+  const [transactions, setTransactions] = useJsonCollection("transactions");
   const [suppliers, setSuppliers] = useJsonCollection("suppliers");
   const [customers, setCustomers] = useJsonCollection("customers");
   const [expenses, setExpenses] = useJsonCollection("expenses");
   const [staff, setStaff] = useJsonCollection("staff");
   const [bundles, setBundles] = useJsonCollection("bundles");
+  const [godownEntries, setGodownEntries] = useJsonCollection("godownEntries");
+  const [supplierPurchases, setSupplierPurchases] = useJsonCollection("supplierPurchases");
+  const [supplierPayments, setSupplierPayments] = useJsonCollection("supplierPayments");
+  const [accounts, setAccounts] = useJsonCollection("accounts");
+  const [assets, setAssets] = useJsonCollection("assets");
+  const [assetMovements, setAssetMovements] = useJsonCollection("assetMovements");
+  const [towerAssets, setTowerAssets] = useJsonCollection("towerAssets");
+  const [deviceTransfers, setDeviceTransfers] = useJsonCollection("deviceTransfers");
+  const [customerPayments, setCustomerPayments] = useJsonCollection("customerPayments");
+  const [customerPackages, setCustomerPackages] = useJsonCollection("customerPackages");
+  const [packages, setPackages] = useJsonCollection("packages");
 
   const collections = useMemo(
     () => ({
+      accounts: [accounts, setAccounts],
+      assetMovements: [assetMovements, setAssetMovements],
+      assets: [assets, setAssets],
       bundles: [bundles, setBundles],
+      billingInvoices: [sales, setSales],
       customers: [customers, setCustomers],
+      customerPackages: [customerPackages, setCustomerPackages],
+      customerPayments: [customerPayments, setCustomerPayments],
+      deviceTransfers: [deviceTransfers, setDeviceTransfers],
       expenses: [expenses, setExpenses],
+      godownEntries: [godownEntries, setGodownEntries],
+      packages: [packages, setPackages],
       products: [products, setProducts],
       staff: [staff, setStaff],
       staffMembers: [staff, setStaff],
+      supplierPayments: [supplierPayments, setSupplierPayments],
+      supplierPurchases: [supplierPurchases, setSupplierPurchases],
       suppliers: [suppliers, setSuppliers],
+      towerAssets: [towerAssets, setTowerAssets],
+      transactions: [transactions, setTransactions],
     }),
-    [bundles, customers, expenses, products, setBundles, setCustomers, setExpenses, setProducts, setStaff, setSuppliers, staff, suppliers]
+    [
+      accounts,
+      assetMovements,
+      assets,
+      bundles,
+      customers,
+      customerPackages,
+      customerPayments,
+      deviceTransfers,
+      expenses,
+      godownEntries,
+      packages,
+      products,
+      sales,
+      setAccounts,
+      setAssetMovements,
+      setAssets,
+      setBundles,
+      setCustomers,
+      setCustomerPackages,
+      setCustomerPayments,
+      setDeviceTransfers,
+      setExpenses,
+      setGodownEntries,
+      setPackages,
+      setProducts,
+      setSales,
+      setStaff,
+      setSupplierPayments,
+      setSupplierPurchases,
+      setSuppliers,
+      setTowerAssets,
+      setTransactions,
+      staff,
+      supplierPayments,
+      supplierPurchases,
+      suppliers,
+      towerAssets,
+      transactions,
+    ]
   );
 
   const [filter, setFilter] = useState("all");
@@ -133,16 +224,52 @@ function RecycleBin() {
       return;
     }
 
-    const recordId = restoredRecord.id || restoredRecord.productId || restoredRecord.customerId || restoredRecord.supplierId;
+    const recordId =
+      restoredRecord.id ||
+      restoredRecord.productId ||
+      restoredRecord.customerId ||
+      restoredRecord.supplierId ||
+      restoredRecord.staffId ||
+      restoredRecord.invoiceNumber ||
+      restoredRecord.billNumber ||
+      restoredRecord.code;
     const nextRecord = {
       ...restoredRecord,
       restoredAt: new Date().toISOString(),
     };
     const withoutDuplicate = recordId
-      ? records.filter((record) => String(record.id || record.productId || record.customerId || record.supplierId) !== String(recordId))
+      ? records.filter((record) => String(record.id || record.productId || record.customerId || record.supplierId || record.staffId || record.invoiceNumber || record.billNumber || record.code) !== String(recordId))
       : records;
     const restored = await setRecords([nextRecord, ...withoutDuplicate]);
     if (!restored) return;
+
+    if (item.module === "billingInvoices") {
+      const restoredTransactions = Array.isArray(item.relatedTransactions) ? item.relatedTransactions : [];
+      if (restoredTransactions.length) {
+        const existingIds = new Set(transactions.map((transaction) => String(transaction.id)));
+        const transactionsRestored = await setTransactions([
+          ...restoredTransactions.filter((transaction) => !existingIds.has(String(transaction.id))),
+          ...transactions,
+        ]);
+        if (!transactionsRestored) return;
+      }
+
+      const stockRestored = await setProducts((currentProducts) =>
+        currentProducts.map((product) => {
+          const soldQuantity = (restoredRecord.items || [])
+            .filter((line) => String(line.productId) === String(product.id))
+            .reduce((sum, line) => sum + (Number.parseFloat(line.quantity || 0) || 0), 0);
+          return soldQuantity
+            ? {
+                ...product,
+                quantity: Math.max(0, (Number.parseFloat(product.quantity || 0) || 0) - soldQuantity),
+                updatedAt: new Date().toISOString(),
+              }
+            : product;
+        })
+      );
+      if (!stockRestored) return;
+    }
 
     const removed = await removeFromBin(item.recycleId);
     if (!removed) return;

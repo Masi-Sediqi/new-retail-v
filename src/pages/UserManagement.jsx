@@ -21,6 +21,7 @@ const permissionModules = [
   { key: "mainStock", label: "Main Stock" },
   { key: "deviceTransfer", label: "Device Transfer Management" },
   { key: "customers", label: "Customers" },
+  { key: "partnerInvesting", label: "Partner & Investing" },
   { key: "towerAssets", label: "Tower Assets" },
   { key: "reports", label: "Reports" },
   { key: "repair", label: "Repair" },

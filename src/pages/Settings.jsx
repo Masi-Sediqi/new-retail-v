@@ -69,8 +69,14 @@ const themeOptions = ["System", "Light", "Dark"];
 const accentOptions = ["Preset", "Indigo", "Blue", "Emerald", "Amber", "Rose"];
 const printTemplateOptions = ["Standard", "Compact", "Thermal", "Detailed"];
 const formModules = ["products", "customers", "suppliers", "expenses", "staffMembers", "billing"];
-const permissionModules = ["Dashboard", "Products", "Billing", "Sales/Bills", "Staff", "Customers", "Godown", "Suppliers", "Expenses", "Loans", "Financials", "Reports", "Settings"];
-const permissionModuleKeys = { Dashboard:"dashboard", Products:"assets", Billing:"billing", "Sales/Bills":"salesBills", Staff:"staff", Customers:"customers", Godown:"mainStock", Suppliers:"suppliers", Expenses:"expenses", Loans:"loans", Financials:"financials", Reports:"reports", Settings:"settings" };
+
+const parseFieldOptions = (value) =>
+  String(value || "")
+    .split(",")
+    .map((option) => option.trim())
+    .filter(Boolean);
+const permissionModules = ["Dashboard", "Products", "Billing", "Sales/Bills", "Staff", "Customers", "Godown", "Suppliers", "Partner & Investing", "Expenses", "Loans", "Financials", "Reports", "Settings"];
+const permissionModuleKeys = { Dashboard:"dashboard", Products:"assets", Billing:"billing", "Sales/Bills":"salesBills", Staff:"staff", Customers:"customers", Godown:"mainStock", Suppliers:"suppliers", "Partner & Investing":"partnerInvesting", Expenses:"expenses", Loans:"loans", Financials:"financials", Reports:"reports", Settings:"settings" };
 
 const currencyCodeFromLabel = (value) => {
   const match = String(value || "").match(/\(([A-Z]{3})\)/);
@@ -233,7 +239,7 @@ function Settings() {
   const [userDraft, setUserDraft] = useState({ name: "", username: "", password: "", confirmPassword: "", role: "Operator", email: "" });
   const [customFields, setCustomFields] = useState({});
   const [activeFormModule, setActiveFormModule] = useState("products");
-  const [fieldDraft, setFieldDraft] = useState({ label: "", placeholder: "", type: "text", required: false });
+  const [fieldDraft, setFieldDraft] = useState({ label: "", placeholder: "", type: "text", options: "", required: false });
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const [userPermissions, setUserPermissions] = useState({});
@@ -658,25 +664,39 @@ function Settings() {
     setUserPermissions({}); setUserModalOpen(false);
   };
 
-  const addCustomField = () => {
+  const addCustomField = async () => {
     if (!fieldDraft.label.trim()) {
       notify("Please enter the field label.", "error");
       return;
     }
-    setCustomFields((previous) => ({
-      ...previous,
-      [activeFormModule]: [
-        ...(previous[activeFormModule] || []),
-        {
-          id: `field-${Date.now()}`,
-          label: fieldDraft.label.trim(),
-          type: fieldDraft.type,
-          placeholder: fieldDraft.placeholder.trim(),
-          required: fieldDraft.required,
-        },
-      ],
-    }));
-    setFieldDraft({ label: "", placeholder: "", type: "text", required: false });
+
+    const label = fieldDraft.label.trim();
+    const nextField = {
+      id: `field-${Date.now()}`,
+      label,
+      type: fieldDraft.type,
+      placeholder: fieldDraft.placeholder.trim() || label,
+      required: fieldDraft.required,
+      options: fieldDraft.type === "dropdown" ? parseFieldOptions(fieldDraft.options) : [],
+    };
+    const nextCustomFields = {
+      ...customFields,
+      [activeFormModule]: [...(customFields[activeFormModule] || []), nextField],
+    };
+    const saved = await setSettings([
+      {
+        ...buildDefaultSettings(),
+        ...current,
+        customFields: nextCustomFields,
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+    if (!saved) return;
+
+    setCustomFields(nextCustomFields);
+    window.dispatchEvent(new Event("company-settings-updated"));
+    notify("Custom field added successfully.");
+    setFieldDraft({ label: "", placeholder: "", type: "text", options: "", required: false });
     setFieldModalOpen(false);
   };
 
@@ -1137,7 +1157,59 @@ function Settings() {
               onDelete={(id) => setCustomFields((previous) => ({ ...previous, [activeFormModule]: (previous[activeFormModule] || []).filter((item) => item.id !== id) }))}
             />
           </section>
-          {fieldModalOpen && <SettingsModal title={`Add Field — ${activeFormModule}`} onClose={() => setFieldModalOpen(false)}><Field label="Field Label *"><input autoFocus value={fieldDraft.label} onChange={(e) => setFieldDraft((p) => ({...p,label:e.target.value}))} placeholder="e.g. Warranty Period"/></Field><Field label="Placeholder"><input value={fieldDraft.placeholder} onChange={(e) => setFieldDraft((p) => ({...p,placeholder:e.target.value}))}/></Field><Field label="Field Type"><select value={fieldDraft.type} onChange={(e) => setFieldDraft((p) => ({...p,type:e.target.value}))}>{["text","number","date","dropdown"].map((type)=><option key={type}>{type}</option>)}</select></Field><div className="settings-toggle-field"><span>Required</span><Switch checked={fieldDraft.required} onChange={(value)=>setFieldDraft((p)=>({...p,required:value}))}/></div><div className="settings-modal-actions"><button type="button" className="settings-light-button" onClick={()=>setFieldModalOpen(false)}>Cancel</button><button type="button" className="settings-save" onClick={addCustomField}>Add Field</button></div></SettingsModal>}
+          {fieldModalOpen && (
+            <SettingsModal title={`Add Field — ${activeFormModule}`} onClose={() => setFieldModalOpen(false)}>
+              <Field label="Field Label *">
+                <input
+                  autoFocus
+                  value={fieldDraft.label}
+                  onChange={(e) => setFieldDraft((p) => ({ ...p, label: e.target.value }))}
+                  placeholder="e.g. Warranty Period"
+                />
+              </Field>
+              <Field label="Placeholder">
+                <input
+                  value={fieldDraft.placeholder}
+                  onChange={(e) => setFieldDraft((p) => ({ ...p, placeholder: e.target.value }))}
+                  placeholder={fieldDraft.label || "Same as field label"}
+                />
+              </Field>
+              <Field label="Field Type">
+                <select
+                  value={fieldDraft.type}
+                  onChange={(e) => setFieldDraft((p) => ({ ...p, type: e.target.value }))}
+                >
+                  {["text", "number", "date", "dropdown"].map((type) => (
+                    <option key={type}>{type}</option>
+                  ))}
+                </select>
+              </Field>
+              {fieldDraft.type === "dropdown" && (
+                <Field label="Dropdown Options">
+                  <input
+                    value={fieldDraft.options}
+                    onChange={(e) => setFieldDraft((p) => ({ ...p, options: e.target.value }))}
+                    placeholder="Option 1, Option 2, Option 3"
+                  />
+                </Field>
+              )}
+              <div className="settings-toggle-field">
+                <span>Required</span>
+                <Switch
+                  checked={fieldDraft.required}
+                  onChange={(value) => setFieldDraft((p) => ({ ...p, required: value }))}
+                />
+              </div>
+              <div className="settings-modal-actions">
+                <button type="button" className="settings-light-button" onClick={() => setFieldModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="settings-save" onClick={addCustomField}>
+                  Add Field
+                </button>
+              </div>
+            </SettingsModal>
+          )}
         </div>
       ) : (
         <PlaceholderTab tab={activeTabMeta} />

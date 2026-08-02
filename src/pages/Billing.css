@@ -406,6 +406,331 @@
   flex: 1;
 }
 
+.billing-print-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483400;
+  background: rgba(10, 16, 28, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  overflow: hidden;
+}
+
+.billing-print-studio {
+  width: min(735px, 96vw);
+  height: min(586px, 92vh);
+  border-radius: 8px;
+  background: #f6f8fb;
+  overflow: hidden;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.4);
+  color: #162036;
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+}
+
+.billing-print-toolbar {
+  height: 34px;
+  background: #ffffff;
+  border-bottom: 1px solid #dce3ec;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+}
+
+.billing-print-toolbar > strong,
+.billing-print-toolbar-actions,
+.billing-print-toolbar-actions button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.billing-print-toolbar > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.billing-print-toolbar-actions button {
+  min-height: 24px;
+  border: 1px solid #d7dfea;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #17233d;
+  padding: 0 7px;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.billing-print-toolbar-actions button.primary {
+  background: #182744;
+  color: #ffffff;
+  border-color: #182744;
+}
+
+.billing-print-toolbar-actions button.close {
+  border: 0;
+  padding: 3px;
+}
+
+.billing-print-toolbar-actions span {
+  height: 24px;
+  min-width: 46px;
+  border-top: 1px solid #d7dfea;
+  border-bottom: 1px solid #d7dfea;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  color: #334155;
+  font-weight: 800;
+  margin-inline: -5px;
+}
+
+.billing-print-body {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  overflow: hidden;
+  direction: ltr;
+}
+
+.billing-print-controls {
+  background: #f8fafc;
+  border-right: 1px solid #dce3ec;
+  padding: 9px;
+  overflow: hidden;
+  text-align: left;
+  direction: ltr;
+}
+
+.billing-print-controls h4 {
+  margin: 7px 0 5px;
+  text-transform: uppercase;
+  font-size: 7px;
+  letter-spacing: 0.06em;
+  color: #43506a;
+}
+
+.billing-print-choices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+}
+
+.billing-print-choices button {
+  min-height: 24px;
+  border: 1px solid #d6deea;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #26334c;
+  font-size: 7px;
+  cursor: pointer;
+}
+
+.billing-print-choices button.active {
+  background: #192846;
+  color: #ffffff;
+  border-color: #192846;
+}
+
+.billing-print-range {
+  display: block;
+  margin: 5px 0;
+}
+
+.billing-print-range span {
+  display: flex;
+  justify-content: space-between;
+  text-transform: capitalize;
+  font-size: 7px;
+}
+
+.billing-print-range input {
+  width: 100%;
+  height: 10px;
+}
+
+.billing-print-controls > small {
+  display: block;
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid #dce3ec;
+  color: #718096;
+  font-size: 7px;
+}
+
+.billing-print-canvas {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12px;
+  background: #eef2f7;
+}
+
+.receipt-report-paper {
+  position: relative;
+  flex: none;
+  background: #ffffff;
+  color: #111827;
+  min-height: 100mm;
+  padding: 5mm;
+  font-family: "Courier New", monospace;
+  font-size: var(--receipt-body);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+  zoom: calc(var(--receipt-scale) * 0.66);
+}
+
+.receipt-report-paper header {
+  text-align: center;
+}
+
+.receipt-report-paper header img,
+.receipt-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  margin: 0 auto 5px;
+  border-radius: 50%;
+  background: #e8f6f7;
+  color: var(--invoice-primary);
+  display: grid;
+  place-items: center;
+}
+
+.receipt-report-paper h1 {
+  font-size: var(--receipt-title);
+  margin: 2px 0;
+  text-transform: uppercase;
+}
+
+.receipt-report-paper header p {
+  font-size: var(--receipt-subtitle);
+  margin: 0;
+}
+
+.receipt-divider {
+  border-top: 1px dashed #111827;
+  margin: 8px 0;
+}
+
+.receipt-meta,
+.receipt-totals {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 10px;
+}
+
+.receipt-meta {
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  font-size: var(--receipt-header);
+}
+
+.receipt-meta b,
+.receipt-totals b,
+.receipt-totals strong {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.receipt-report-paper table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--receipt-body);
+}
+
+.receipt-report-paper th,
+.receipt-report-paper td {
+  padding: 5px 2px;
+  border-bottom: 1px dashed #374151;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.receipt-report-paper th:first-child,
+.receipt-report-paper td:first-child {
+  text-align: left;
+  width: 42%;
+}
+
+.receipt-report-paper td small {
+  display: block;
+}
+
+.receipt-totals strong {
+  font-size: calc(var(--receipt-body) + 2px);
+  border-block: 1px solid #111827;
+  padding-block: 5px;
+}
+
+.receipt-report-paper footer {
+  display: grid;
+  gap: 5px;
+  text-align: center;
+  margin-top: 12px;
+  font-size: var(--receipt-footer);
+}
+
+.receipt-report-paper.sheet {
+  max-width: 90mm;
+  min-height: 130mm;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .billing-print-backdrop,
+  .billing-print-backdrop * {
+    visibility: visible !important;
+  }
+
+  .billing-print-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .billing-print-studio {
+    width: auto !important;
+    height: auto !important;
+    box-shadow: none !important;
+  }
+
+  .billing-print-toolbar,
+  .billing-print-controls {
+    display: none !important;
+  }
+
+  .billing-print-body,
+  .billing-print-canvas {
+    display: block !important;
+    height: auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  .receipt-report-paper {
+    box-shadow: none !important;
+    zoom: 1 !important;
+    margin: 0 auto !important;
+  }
+}
+
 .billing-modal-backdrop {
   position: fixed;
   inset: 0;
