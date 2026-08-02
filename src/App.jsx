@@ -797,6 +797,12 @@ const menuItems = [
   path="/recycle-bin"
   element={protect("dashboard", <RecycleBin />)}
 />
+
+<Route path="/help-center" element={<HelpCenter />} />
+<Route path="/developer" element={<Developer />} />
+<Route path="/faq" element={<FAQ />} />
+<Route path="/user-guide" element={<UserGuide />} />
+<Route path="/terms-privacy" element={<TermsPrivacy />} />
             </Routes>
           </Suspense>
         </div>
