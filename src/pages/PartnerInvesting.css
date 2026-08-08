@@ -365,6 +365,36 @@
   font-weight: 900;
 }
 
+.partner-payment-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.partner-payment-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.partner-payment-icon-btn:hover {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.partner-payment-icon-btn.danger:hover {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 .partner-investing-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -581,6 +611,7 @@ body.dark-mode .partner-investing-confirm-modal,
 body.dark-mode .partner-investing-light-btn,
 body.dark-mode .partner-investing-tabs button,
 body.dark-mode .partner-investing-modal-title button,
+body.dark-mode .partner-payment-icon-btn,
 body.dark-mode .partner-investing-form-field input,
 body.dark-mode .partner-investing-form-field textarea,
 body.dark-mode .partner-investing-detail-item,

@@ -577,7 +577,7 @@ export const productUnits = [
   'Biswa (biswa)',
   'Marla (marla)',
   'Kanal (kanal)',
-  'Pieces (pcs)',
+  'Pieces',
   'Unit (unit)',
   'Pair (pair)',
   'Dozen (12) (dozen)',

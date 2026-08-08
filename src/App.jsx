@@ -27,6 +27,7 @@ import {
   MessageCircle,
   MoreHorizontal,
   Package,
+  Repeat2,
   ReceiptText,
   Settings as SettingsIcon,
   ShieldCheck,
@@ -59,6 +60,7 @@ const Products = lazy(() => import("./pages/Products"));
 const Billing = lazy(() => import("./pages/Billing"));
 const SalesBills = lazy(() => import("./pages/SalesBills"));
 const Staff = lazy(() => import("./pages/Staff"));
+const StaffDetails = lazy(() => import("./pages/StaffDetails"));
 const Suppliers = lazy(() => import("./pages/Suppliers"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const Loans = lazy(() => import("./pages/Loans"));
@@ -94,10 +96,9 @@ const TermsPrivacy = lazy(
   () => import("./pages/TermsPrivacy")
 );
 const PartnerInvesting = lazy(() => import("./pages/PartnerInvesting"));
+const Transfer = lazy(() => import("./pages/Transfer"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const UserGuide = lazy(() => import("./pages/UserGuide"));
-
-
 
 const defaultAdminAccount = {
   id: "default-admin",
@@ -169,11 +170,15 @@ function App() {
   const [language, setLanguage] = useState(
     () => localStorage.getItem(languageStorageKey) || "en"
   );
+  const [startupFinished, setStartupFinished] = useState(false);
   const [primaryCurrencyFilter, setPrimaryCurrencyFilter] = useState(
     () => localStorage.getItem("isp-primary-currency") || "all"
   );
-  const [displayCurrency, setDisplayCurrency] = useState(
-    () => localStorage.getItem("isp-secondary-currency") || "original"
+  const [exchangeFromCurrency, setExchangeFromCurrency] = useState(
+    () => localStorage.getItem("isp-exchange-from-currency") || "original"
+  );
+  const [exchangeToCurrency, setExchangeToCurrency] = useState(
+    () => localStorage.getItem("isp-exchange-to-currency") || "AFN"
   );
   const sidebarInfoRef = useRef(null);
 
@@ -205,8 +210,21 @@ function App() {
 
   useEffect(() => {
     const updateCurrency = (event) => {
-      setPrimaryCurrencyFilter(event?.detail?.primaryCurrency || localStorage.getItem("isp-primary-currency") || "all");
-      setDisplayCurrency(event?.detail?.secondaryCurrency || localStorage.getItem("isp-secondary-currency") || "original");
+      setPrimaryCurrencyFilter(
+        event?.detail?.primaryCurrency ||
+          localStorage.getItem("isp-primary-currency") ||
+          "all"
+      );
+      setExchangeFromCurrency(
+        event?.detail?.exchangeFromCurrency ||
+          localStorage.getItem("isp-exchange-from-currency") ||
+          "original"
+      );
+      setExchangeToCurrency(
+        event?.detail?.exchangeToCurrency ||
+          localStorage.getItem("isp-exchange-to-currency") ||
+          "AFN"
+      );
     };
     window.addEventListener("app-currency-changed", updateCurrency);
     return () => window.removeEventListener("app-currency-changed", updateCurrency);
@@ -215,8 +233,10 @@ function App() {
   window.__retailCurrencyView = {
     baseCurrency: company.baseCurrency || "AFN",
     exchangeRates: company.exchangeRates || {},
-    displayCurrency,
+    displayCurrency: "original",
     primaryCurrency: primaryCurrencyFilter,
+    exchangeFromCurrency,
+    exchangeToCurrency,
   };
 
   useEffect(() => installPrintStudio(() => ({ settings: company.printSettings || {}, company })), [company]);
@@ -433,6 +453,13 @@ const menuItems = [
     labelKey: "partnerInvesting",
     moduleKey: "partnerInvesting",
     icon: BriefcaseBusiness,
+  },
+  {
+    to: "/transfer",
+    label: "Transfer",
+    labelKey: "transfer",
+    moduleKey: "partnerInvesting",
+    icon: Repeat2,
   },
   {
     to: "/expenses",
@@ -672,6 +699,15 @@ const menuItems = [
   element={protect("partnerInvesting", <PartnerInvesting />)}
 />
 <Route
+  path="/transfer"
+  element={protect("partnerInvesting", <Transfer />)}
+/>
+
+<Route
+  path="/transfer/:id"
+  element={protect("partnerInvesting", <Transfer />)}
+/>
+<Route
   path="/dashboard"
   element={protect("dashboard", <Dashboard t={t} />)}
 />
@@ -727,6 +763,11 @@ const menuItems = [
 />
 
 <Route
+  path="/staff/:id"
+  element={protect("staff", <StaffDetails />)}
+/>
+
+<Route
   path="/user-management"
   element={protect("staff", <Staff />)}
 />
@@ -734,6 +775,11 @@ const menuItems = [
 <Route
   path="/customers"
   element={protect("customers", <Customers />)}
+/>
+
+<Route
+  path="/customers/:id"
+  element={protect("customers", <CustomerDetails />)}
 />
 
 <Route
@@ -749,6 +795,11 @@ const menuItems = [
 <Route
   path="/suppliers"
   element={protect("suppliers", <Suppliers />)}
+/>
+
+<Route
+  path="/suppliers/:id"
+  element={protect("suppliers", <SupplierDetails />)}
 />
 
 <Route

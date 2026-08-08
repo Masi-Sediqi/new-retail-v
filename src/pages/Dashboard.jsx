@@ -32,6 +32,7 @@ import {
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { todayDateValue } from "../utils/afghanDate";
 import {
+  applyBusinessCurrencyExchange,
   convertCurrencyAmount,
   formatBusinessCurrencyAmount,
   formatCurrencyAmount,
@@ -42,7 +43,9 @@ import "../App.css";
 const money = (value, currency = "AFN") => formatBusinessCurrencyAmount(Number(value || 0), currency);
 const count = (value) => Number(value || 0).toLocaleString("en-US");
 const compactWalletMoney = (value, currency = "AFN") =>
-  formatCurrencyAmount(value, currency).replace(/\.00(\D|$)/, "$1").trim();
+  formatBusinessCurrencyAmount(value, currency)
+    .replace(/\.00(\D|$)/, "$1")
+    .trim();
 const clean = (value) => String(value || "").trim();
 const normalize = (value) => clean(value).toLowerCase();
 const parseNumber = (value) => {
@@ -64,10 +67,41 @@ const subtractCurrencyTotals = (left = {}, right = {}) => {
   return next;
 };
 
-const compactCurrencyTotals = (totalsByCurrency = {}, fallbackCurrency = "AFN") => {
-  const rows = Object.entries(totalsByCurrency).filter(([, amount]) => parseNumber(amount) !== 0);
-  if (!rows.length) return compactWalletMoney(0, fallbackCurrency);
-  return rows.map(([currency, amount]) => compactWalletMoney(amount, currency)).join("\n");
+const compactCurrencyTotals = (
+  totalsByCurrency = {},
+  fallbackCurrency = "AFN"
+) => {
+  const merged = Object.entries(totalsByCurrency).reduce(
+    (result, [currency, amount]) => {
+      if (parseNumber(amount) === 0) return result;
+
+      const exchanged = applyBusinessCurrencyExchange(amount, currency);
+      result[exchanged.currency] =
+        (result[exchanged.currency] || 0) + parseNumber(exchanged.value);
+
+      return result;
+    },
+    {}
+  );
+
+  const rows = Object.entries(merged).filter(
+    ([, amount]) => parseNumber(amount) !== 0
+  );
+
+  if (!rows.length) {
+    const fallback = applyBusinessCurrencyExchange(0, fallbackCurrency);
+    return formatCurrencyAmount(fallback.value, fallback.currency)
+      .replace(/\.00(\D|$)/, "$1")
+      .trim();
+  }
+
+  return rows
+    .map(([currency, amount]) =>
+      formatCurrencyAmount(amount, currency)
+        .replace(/\.00(\D|$)/, "$1")
+        .trim()
+    )
+    .join("\n");
 };
 
 const dateFields = [
@@ -156,7 +190,50 @@ const invoiceItems = (invoice) =>
       ? invoice.products
       : [];
 
-const invoiceCost = (invoice, products = []) =>
+const invoiceItemCost = (invoice, item, product, { baseCurrency = "AFN", exchangeRates = {} } = {}) => {
+  const invoiceCurrency = invoice.currency || baseCurrency;
+  const productCurrency = product?.currency || product?.originalCurrency || baseCurrency;
+  const itemOriginalCurrency = item?.originalCurrency || productCurrency;
+  const itemOriginalCost = parseNumber(item?.originalPurchase);
+
+  if (itemOriginalCost > 0 && itemOriginalCurrency !== invoiceCurrency) {
+    return (
+      convertCurrencyAmount(itemOriginalCost, {
+        baseCurrency,
+        exchangeRates,
+        fromCurrency: itemOriginalCurrency,
+        targetCurrency: invoiceCurrency,
+      }) ?? itemOriginalCost
+    );
+  }
+
+  const rawCost = parseNumber(
+    item.purchase ??
+      item.purchasePrice ??
+      item.cost ??
+      product?.purchase ??
+      product?.purchasePrice ??
+      product?.cost
+  );
+  const productRawCost = parseNumber(product?.purchase ?? product?.purchasePrice ?? product?.cost);
+  const looksLikeUnconvertedProductCost =
+    productCurrency !== invoiceCurrency &&
+    productRawCost > 0 &&
+    Math.abs(rawCost - productRawCost) < 0.0001;
+
+  if (!looksLikeUnconvertedProductCost) return rawCost;
+
+  return (
+    convertCurrencyAmount(rawCost, {
+      baseCurrency,
+      exchangeRates,
+      fromCurrency: productCurrency,
+      targetCurrency: invoiceCurrency,
+    }) ?? rawCost
+  );
+};
+
+const invoiceCost = (invoice, products = [], conversion = {}) =>
   invoiceItems(invoice).reduce((sum, item) => {
     const product = products.find(
       (currentProduct) =>
@@ -168,21 +245,14 @@ const invoiceCost = (invoice, products = []) =>
       item.quantity ?? item.qty ?? 1
     );
 
-    const purchasePrice = parseNumber(
-      item.purchase ??
-        item.purchasePrice ??
-        item.cost ??
-        product?.purchase ??
-        product?.purchasePrice ??
-        product?.cost
-    );
+    const purchasePrice = invoiceItemCost(invoice, item, product, conversion);
 
     return sum + quantity * purchasePrice;
   }, 0);
 
-const invoiceRefundCost = (invoice, products = []) => {
+const invoiceRefundCost = (invoice, products = [], conversion = {}) => {
   const refunds = invoice.refundHistory || invoice.refunds || [];
-  const totalCost = invoiceCost(invoice, products);
+  const totalCost = invoiceCost(invoice, products, conversion);
   const total = invoiceTotal(invoice);
 
   return refunds.reduce((sum, refund) => {
@@ -200,14 +270,7 @@ const invoiceRefundCost = (invoice, products = []) => {
               String(currentProduct.id) ===
               String(refundedItem.productId || originalItem?.productId || originalItem?.id)
           );
-          const purchasePrice = parseNumber(
-            originalItem?.purchase ??
-              originalItem?.purchasePrice ??
-              originalItem?.cost ??
-              product?.purchase ??
-              product?.purchasePrice ??
-              product?.cost
-          );
+          const purchasePrice = invoiceItemCost(invoice, originalItem || refundedItem, product, conversion);
 
           return itemSum + parseNumber(refundedItem.quantity) * purchasePrice;
         }, 0)
@@ -276,8 +339,11 @@ function Dashboard({ t = {} }) {
   const baseCurrency = company.baseCurrency || "AFN";
   const currencyView =
     typeof window === "undefined" ? {} : window.__retailCurrencyView || {};
-  const businessCurrencyFilter = currencyView.primaryCurrency || "all";
-  const displayCurrency = currencyView.displayCurrency || "original";
+  const displayCurrency =
+    currencyView.exchangeFromCurrency &&
+    currencyView.exchangeFromCurrency !== "original"
+      ? currencyView.exchangeToCurrency || baseCurrency
+      : currencyView.displayCurrency || "original";
   const exchangeRates = useMemo(
     () => company.exchangeRates || {},
     [company.exchangeRates]
@@ -296,42 +362,31 @@ function Dashboard({ t = {} }) {
     () => getDateRange(dateFilter, customRange),
     [dateFilter, customRange]
   );
-  const inBusinessCurrency = useCallback(
-    (currency) =>
-      !businessCurrencyFilter ||
-      businessCurrencyFilter === "all" ||
-      normalizeCurrency(currency) === businessCurrencyFilter,
-    [businessCurrencyFilter, normalizeCurrency]
+  // Business Currency Filter is intentionally ignored on the Dashboard.
+  // Dashboard cards only respect the date filter; currency filtering remains for record pages.
+  const filteredInvoices = useMemo(
+    () => billingInvoices.filter((invoice) => inDateRange(invoice, activeDateRange)),
+    [billingInvoices, activeDateRange]
   );
 
-  const filteredInvoices = useMemo(
-    () => billingInvoices.filter((invoice) => inDateRange(invoice, activeDateRange) && inBusinessCurrency(invoice.currency)),
-    [billingInvoices, activeDateRange, inBusinessCurrency]
-  );
   const filteredExpenses = useMemo(
-    () => expenses.filter((expense) => inDateRange(expense, activeDateRange) && inBusinessCurrency(expense.currency)),
-    [expenses, activeDateRange, inBusinessCurrency]
+    () => expenses.filter((expense) => inDateRange(expense, activeDateRange)),
+    [expenses, activeDateRange]
   );
+
   const filteredTransactions = useMemo(
-    () => transactions.filter((transaction) => inDateRange(transaction, activeDateRange) && inBusinessCurrency(transaction.currency)),
-    [transactions, activeDateRange, inBusinessCurrency]
+    () => transactions.filter((transaction) => inDateRange(transaction, activeDateRange)),
+    [transactions, activeDateRange]
   );
+
   const filteredGodownEntries = useMemo(
-    () => godownEntries.filter((entry) => inDateRange(entry, activeDateRange) && inBusinessCurrency(entry.currency)),
-    [godownEntries, activeDateRange, inBusinessCurrency]
+    () => godownEntries.filter((entry) => inDateRange(entry, activeDateRange)),
+    [godownEntries, activeDateRange]
   );
-  const filteredProducts = useMemo(
-    () => products.filter((product) => inBusinessCurrency(product.currency)),
-    [products, inBusinessCurrency]
-  );
-  const filteredStaff = useMemo(
-    () => staff.filter((member) => inBusinessCurrency(member.currency)),
-    [staff, inBusinessCurrency]
-  );
-  const filteredSuppliers = useMemo(
-    () => suppliers.filter((supplier) => inBusinessCurrency(supplier.currency)),
-    [suppliers, inBusinessCurrency]
-  );
+
+  const filteredProducts = products;
+  const filteredStaff = staff;
+  const filteredSuppliers = suppliers;
 
   const metrics = useMemo(() => {
     const grossRevenueByCurrency = filteredInvoices.reduce(
@@ -387,22 +442,38 @@ function Dashboard({ t = {} }) {
     const revenue = grossRevenue - refundTotal;
 const grossSoldGoodsCostByCurrency = filteredInvoices.reduce(
   (totals, invoice) =>
-    addCurrencyTotal(totals, invoice.currency || baseCurrency, invoiceCost(invoice, filteredProducts)),
+    addCurrencyTotal(
+      totals,
+      invoice.currency || baseCurrency,
+      invoiceCost(invoice, filteredProducts, { baseCurrency, exchangeRates })
+    ),
   {}
 );
 const grossSoldGoodsCost = filteredInvoices.reduce(
   (sum, invoice) =>
-    sum + toBase(invoiceCost(invoice, filteredProducts), invoice.currency),
+    sum +
+    toBase(
+      invoiceCost(invoice, filteredProducts, { baseCurrency, exchangeRates }),
+      invoice.currency
+    ),
   0
 );
 const refundedGoodsCostByCurrency = filteredInvoices.reduce(
   (totals, invoice) =>
-    addCurrencyTotal(totals, invoice.currency || baseCurrency, invoiceRefundCost(invoice, filteredProducts)),
+    addCurrencyTotal(
+      totals,
+      invoice.currency || baseCurrency,
+      invoiceRefundCost(invoice, filteredProducts, { baseCurrency, exchangeRates })
+    ),
   {}
 );
 const refundedGoodsCost = filteredInvoices.reduce(
   (sum, invoice) =>
-    sum + toBase(invoiceRefundCost(invoice, filteredProducts), invoice.currency),
+    sum +
+    toBase(
+      invoiceRefundCost(invoice, filteredProducts, { baseCurrency, exchangeRates }),
+      invoice.currency
+    ),
   0
 );
 const soldGoodsCostByCurrency = subtractCurrencyTotals(grossSoldGoodsCostByCurrency, refundedGoodsCostByCurrency);
@@ -580,8 +651,15 @@ const supplierReceivables = filteredSuppliers.reduce(
 const supplierNetBalance =
   supplierPayables - supplierReceivables;
     const cashWalletByCurrency = filteredTransactions.reduce((balances, transaction) => {
-      const source = normalize(transaction.source || transaction.category);
-      if (!/cash-wallet|cash wallet/.test(source)) return balances;
+      const source = normalize(
+        [
+          transaction.source,
+          transaction.category,
+          transaction.referenceSource,
+          transaction.module,
+        ].join(" ")
+      );
+      if (!/cash-wallet|cash wallet|manual-expense/.test(source)) return balances;
       const currency = transaction.currency || baseCurrency;
       const kind = normalize(transaction.transactionType || transaction.type);
       const direction = /withdraw|expense|payment out/.test(kind) ? -1 : 1;
@@ -852,15 +930,9 @@ const statCards = [
       displayCurrency === "original" ||
       displayCurrency === "all" ||
       metrics.cashWalletMissingCurrencies?.length
-        ? Object.entries(metrics.cashWalletByCurrency || {})
-            .filter(([, amount]) => parseNumber(amount) !== 0)
-            .map(([currency, amount]) => compactWalletMoney(amount, currency))
-            .join("\n") || compactWalletMoney(0, baseCurrency)
+        ? compactCurrencyTotals(metrics.cashWalletByCurrency, baseCurrency)
         : compactWalletMoney(metrics.cashWalletConvertedTotal, displayCurrency),
-    subValue: Object.entries(metrics.cashWalletByCurrency || {})
-      .filter(([, amount]) => parseNumber(amount) !== 0)
-      .map(([currency, amount]) => compactWalletMoney(amount, currency))
-      .join("\n"),
+    subValue: compactCurrencyTotals(metrics.cashWalletByCurrency, baseCurrency),
     hideSubValue:
       displayCurrency === "original" ||
       displayCurrency === "all" ||
@@ -923,15 +995,9 @@ const statCards = [
       displayCurrency === "original" ||
       displayCurrency === "all" ||
       metrics.expenseMissingCurrencies?.length
-        ? Object.entries(metrics.expenseByCurrency || {})
-            .filter(([, amount]) => parseNumber(amount) !== 0)
-            .map(([currency, amount]) => compactWalletMoney(amount, currency))
-            .join("\n") || compactWalletMoney(0, baseCurrency)
+        ? compactCurrencyTotals(metrics.expenseByCurrency, baseCurrency)
         : compactWalletMoney(metrics.expenseConvertedTotal, displayCurrency),
-    subValue: Object.entries(metrics.expenseByCurrency || {})
-      .filter(([, amount]) => parseNumber(amount) !== 0)
-      .map(([currency, amount]) => compactWalletMoney(amount, currency))
-      .join("\n"),
+    subValue: compactCurrencyTotals(metrics.expenseByCurrency, baseCurrency),
     hideSubValue:
       displayCurrency === "original" ||
       displayCurrency === "all" ||
@@ -1506,4 +1572,3 @@ function TrendGraph({ data, t = {} }) {
 }
 
 export default Dashboard;
-

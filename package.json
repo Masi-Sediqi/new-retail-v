@@ -1,47 +1,74 @@
 {
-  "name": "my-react-app",
-  "productName": "Smart Office",
+  "name": "smart-office",
+  "version": "1.0.0",
+  "description": "Smart Office Management System",
+  "main": "electron/main.cjs",
+  "author": "Larmoond Dev",
   "private": true,
-  "version": "6.5.0",
-  "type": "module",
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail -n SERVER,WEB -c green,cyan \"node transport-backend/server.cjs\" \"vite --host 127.0.0.1 --port 5173 --force\"",
-    "dev:web": "concurrently --kill-others-on-fail -n SERVER,WEB -c green,cyan \"node transport-backend/server.cjs\" \"vite --host 127.0.0.1 --port 5173 --force\"",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "backend:dev": "node transport-backend/server.cjs",
+    "dev": "concurrently -k \"npm run backend:dev\" \"vite\"",
+    "electron:dev": "concurrently -k \"vite\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "build:web": "vite build",
+    "build:desktop": "npm run build:web && electron-builder --win",
+    "build:portable": "npm run build:web && electron-builder --win portable"
   },
   "dependencies": {
-    "axios": "^1.17.0",
-    "bootstrap": "^5.3.8",
+    "axios": "^1.19.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "fs-extra": "^11.3.5",
+    "fs-extra": "^11.4.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
-    "lucide-react": "^1.26.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-router-dom": "^7.16.0",
-    "recharts": "^3.8.1"
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^24.13.2",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
-    "autoprefixer": "^10.4.21",
-    "concurrently": "^10.0.3",
-    "eslint": "^10.3.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.6.0",
-    "oxlint": "^1.69.0",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17",
-    "tslib": "^2.8.1",
-    "typescript": "~6.0.2",
-    "vite": "^8.1.0"
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.4",
+    "electron": "^37.10.3",
+    "electron-builder": "^26.15.3",
+    "vite": "^7.0.0",
+    "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "com.larmoond.smartoffice",
+    "productName": "Smart Office",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "transport-backend/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "asarUnpack": [
+      "transport-backend/**/*",
+      "node_modules/fs-extra/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Smart-Office-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Smart Office"
+    }
   }
 }

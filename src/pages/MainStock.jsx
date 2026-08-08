@@ -22,6 +22,7 @@ import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBu
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
+import { productCategories } from "../data/dashboardData";
 import "./MainStock.css";
 
 const parseNumber = (value) => Number.parseFloat(value || 0) || 0;
@@ -30,22 +31,7 @@ const todayInput = () => new Date().toISOString().slice(0, 10);
 const parseDateInput = (value) => (value ? new Date(`${String(value).slice(0, 10)}T12:00:00`) : null);
 const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
-const defaultCategories = [
-  "Beverages",
-  "Food & Grocery",
-  "Flour & Grains",
-  "Cooking Oil & Ghee",
-  "Dairy Products",
-  "Snacks",
-  "Rice & Pulses",
-  "Household Items",
-  "Cleaning Supplies",
-  "Personal Care",
-  "Stationery",
-  "Electronics",
-  "Accessories",
-  "Other",
-];
+const defaultCategories = productCategories;
 
 const unitOptions = ["Piece", "Box", "Carton", "Pack", "Bottle", "Bag", "Kg", "Gram", "Liter", "Meter", "Dozen"];
 const currencyCodes = ["AFN", "USD", "EUR", "GBP", "SAR", "PKR", "INR", "IRR", "AED", "CNY"];
@@ -1029,32 +1015,38 @@ function PurchaseModal({ baseCurrency, categories, onAddCategory, onClose, onSav
             <span>Date</span>
             <span></span>
           </div>
-          {rows.map((row) => (
-            <div className="main-stock-line" key={row.id}>
-              <div className="main-stock-product-pick">
-                <CustomSelect ariaLabel="Product" options={productOptions} value={row.productId} onChange={(value) => updateRow(row.id, { productId: value })} />
-                <input className={submitted && !row.name.trim() ? "invalid" : ""} placeholder="Product name" value={row.name} onChange={(event) => updateRow(row.id, { name: event.target.value })} />
+          {rows.map((row, index) => (
+            <article className="main-stock-line-frame" key={row.id}>
+              <div className="main-stock-line-frame-title">
+                <strong>Product Row {index + 1}</strong>
+                <span>{row.name || "New product"}</span>
               </div>
-              <input placeholder="Code" value={row.code} onChange={(event) => updateRow(row.id, { code: event.target.value })} />
-              <input className={submitted && parseNumber(row.quantity) <= 0 ? "invalid" : ""} type="number" min="0" value={row.quantity} onChange={(event) => updateRow(row.id, { quantity: event.target.value })} />
-              <CustomSelect ariaLabel="Unit" options={unitOptions.map((unit) => ({ value: unit, label: unit }))} value={row.unit} onChange={(value) => updateRow(row.id, { unit: value })} />
-              <input type="number" min="0" value={row.purchase} onChange={(event) => updateRow(row.id, { purchase: event.target.value })} />
-              <input type="number" min="0" value={row.selling} onChange={(event) => updateRow(row.id, { selling: event.target.value })} />
-              <input type="date" value={row.date} onChange={(event) => updateRow(row.id, { date: event.target.value })} />
-              <button type="button" className="main-stock-line-delete" onClick={() => removeRow(row.id)} disabled={rows.length === 1}>
-                <Trash2 size={14} />
-              </button>
-              <CustomSelect
-                ariaLabel="Category"
-                className="main-stock-line-category"
-                options={[{ value: "", label: "Category" }, ...categories.map((category) => ({ value: category, label: category }))]}
-                value={row.category}
-                onChange={(value) => updateRow(row.id, { category: value })}
-              />
-              <input className="main-stock-line-low" type="number" min="0" placeholder="Low stock" value={row.lowStock} onChange={(event) => updateRow(row.id, { lowStock: event.target.value })} />
-              <input className="main-stock-line-expiry" type="date" value={row.expiry} onChange={(event) => updateRow(row.id, { expiry: event.target.value })} />
-              <textarea className="main-stock-line-notes" placeholder="Notes" value={row.notes} onChange={(event) => updateRow(row.id, { notes: event.target.value })} />
-            </div>
+              <div className="main-stock-line">
+                <div className="main-stock-product-pick">
+                  <CustomSelect ariaLabel="Product" options={productOptions} value={row.productId} onChange={(value) => updateRow(row.id, { productId: value })} />
+                  <input className={submitted && !row.name.trim() ? "invalid" : ""} placeholder="Product name" value={row.name} onChange={(event) => updateRow(row.id, { name: event.target.value })} />
+                </div>
+                <input placeholder="Code" value={row.code} onChange={(event) => updateRow(row.id, { code: event.target.value })} />
+                <input className={submitted && parseNumber(row.quantity) <= 0 ? "invalid" : ""} type="number" min="0" value={row.quantity} onChange={(event) => updateRow(row.id, { quantity: event.target.value })} />
+                <CustomSelect ariaLabel="Unit" options={unitOptions.map((unit) => ({ value: unit, label: unit }))} value={row.unit} onChange={(value) => updateRow(row.id, { unit: value })} />
+                <input type="number" min="0" value={row.purchase} onChange={(event) => updateRow(row.id, { purchase: event.target.value })} />
+                <input type="number" min="0" value={row.selling} onChange={(event) => updateRow(row.id, { selling: event.target.value })} />
+                <input type="date" value={row.date} onChange={(event) => updateRow(row.id, { date: event.target.value })} />
+                <button type="button" className="main-stock-line-delete" onClick={() => removeRow(row.id)} disabled={rows.length === 1}>
+                  <Trash2 size={14} />
+                </button>
+                <CustomSelect
+                  ariaLabel="Category"
+                  className="main-stock-line-category"
+                  options={[{ value: "", label: "Category" }, ...categories.map((category) => ({ value: category, label: category }))]}
+                  value={row.category}
+                  onChange={(value) => updateRow(row.id, { category: value })}
+                />
+                <input className="main-stock-line-low" type="number" min="0" placeholder="Low stock" value={row.lowStock} onChange={(event) => updateRow(row.id, { lowStock: event.target.value })} />
+                <input className="main-stock-line-expiry" type="date" value={row.expiry} onChange={(event) => updateRow(row.id, { expiry: event.target.value })} />
+                <textarea className="main-stock-line-notes" placeholder="Notes" value={row.notes} onChange={(event) => updateRow(row.id, { notes: event.target.value })} />
+              </div>
+            </article>
           ))}
           <div className="main-stock-line-tools">
             <button type="button" className="main-stock-light-btn" onClick={addRow}><Plus size={15} /> Add Row</button>

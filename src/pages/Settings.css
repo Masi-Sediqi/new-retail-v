@@ -794,3 +794,53 @@ body.dark-mode .settings-clear-zone {
 
   .theme-mode-picker { grid-template-columns: minmax(0, 1fr); }
 }
+
+.settings-phone-code-panel {
+  margin-top: 18px;
+}
+
+.settings-phone-code-grid {
+  max-height: 330px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #faf9f6;
+}
+
+.settings-phone-code-chip {
+  min-height: 54px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.settings-phone-code-chip strong {
+  color: #111827;
+  font-size: 13px;
+}
+
+.settings-phone-code-chip span {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.settings-phone-code-chip.selected {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  box-shadow: inset 4px 0 0 #f59e0b;
+}

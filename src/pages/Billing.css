@@ -321,8 +321,7 @@
   font-weight: 850;
 }
 
-.billing-field input,
-.billing-date-field {
+.billing-field input {
   width: 100%;
   min-height: 44px;
   border: 1px solid #e2e8f0;
@@ -336,17 +335,73 @@
   outline: none;
 }
 
-.billing-date-field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #64748b;
+.billing-date-picker {
+  display: grid;
+  gap: 7px;
 }
 
-.billing-date-field input {
-  min-height: 0;
+.billing-date-tabs {
+  min-height: 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 3px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.billing-date-tabs button {
   border: 0;
-  padding: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.billing-date-tabs button.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.billing-date-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 8px;
+}
+
+.billing-date-field .billing-date-display {
+  font-family: inherit;
+  font-weight: 800;
+}
+
+.billing-date-native {
+  min-height: 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #64748b;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.billing-date-native input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.billing-date-conversion {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 750;
 }
 
 .billing-field input:focus,
@@ -983,7 +1038,9 @@ body.dark-mode .billing-card,
 body.dark-mode .billing-product-search,
 body.dark-mode .billing-suggestions,
 body.dark-mode .billing-field input,
-body.dark-mode .billing-date-field,
+body.dark-mode .billing-date-tabs,
+body.dark-mode .billing-date-tabs button.active,
+body.dark-mode .billing-date-native,
 body.dark-mode .billing-summary,
 body.dark-mode .billing-preview-modal,
 body.dark-mode .billing-light-btn,

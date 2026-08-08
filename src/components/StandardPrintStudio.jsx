@@ -7,6 +7,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
+import defaultLogo from "../assets/logo.jpeg";
 import { normalizePrintSettings } from "../utils/printStudio";
 
 const paperSizes = {
@@ -191,7 +192,14 @@ export default function StandardPrintStudio({
                 <div><strong>{saved.businessNameEn}</strong><span>{saved.subtitleEn}</span></div>
                 <p>{[saved.phone, saved.email, saved.address].filter(Boolean).join(" - ")}</p>
               </div>
-              {saved.watermark && <img className="standard-report-watermark" src={saved.watermark} alt="" style={{ opacity: Number(saved.watermarkOpacity || 0) / 100 }} />}
+              {(saved.watermark || saved.logo || defaultLogo) && (
+                <img
+                  className="standard-report-watermark"
+                  src={saved.watermark || saved.logo || defaultLogo}
+                  alt=""
+                  style={{ opacity: saved.watermark ? Number(saved.watermarkOpacity || 0) / 100 : 0.055 }}
+                />
+              )}
               <div className="standard-report-heading">
                 <div><small>REPORT</small><h1>{title}</h1><p>{subtitle}</p></div>
                 <div><b>{new Date().toLocaleString()}</b><span>Records {normalizedRows.length}</span><span>Page 1 of 1</span></div>

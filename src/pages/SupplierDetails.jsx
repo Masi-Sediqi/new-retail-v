@@ -134,7 +134,13 @@ function SupplierDetails() {
     left: 0,
   });
 
-  const supplier = suppliers[supplierIndex];
+  const supplier = suppliers.find((item, index) =>
+    String(item.id || item.supplierId || index) === String(id)
+  ) || suppliers[supplierIndex];
+  const resolvedSupplierIndex = suppliers.findIndex((item) =>
+    String(item.id || item.supplierId) === String(supplier?.id || supplier?.supplierId)
+  );
+  const supplierRecordIndex = resolvedSupplierIndex >= 0 ? resolvedSupplierIndex : supplierIndex;
 
   const money = (value) => Number(value || 0).toLocaleString("en-US");
 
@@ -252,7 +258,7 @@ function SupplierDetails() {
   const legacyPurchases = supplierPurchases
     .filter(
       (purchase) =>
-        Number(purchase.supplierIndex) === Number(supplierIndex) ||
+        Number(purchase.supplierIndex) === Number(supplierRecordIndex) ||
         purchase.supplierName === supplierName
     )
     .map((purchase) => ({
@@ -265,7 +271,7 @@ function SupplierDetails() {
 
   const supplierPaymentRecords = supplierPayments.filter(
     (payment) =>
-      Number(payment.supplierIndex) === Number(supplierIndex) ||
+      Number(payment.supplierIndex) === Number(supplierRecordIndex) ||
       payment.supplierName === supplierName
   );
 
@@ -817,7 +823,7 @@ const savePurchase = async (event) => {
 
   const cleanPurchase = {
     id: editPurchaseId || Date.now(),
-    supplierIndex,
+    supplierIndex: supplierRecordIndex,
     supplierName,
     purchaseDate: purchaseForm.purchaseDate,
     referenceNumber: purchaseForm.referenceNumber.trim() || generateNextPurchaseReference(),

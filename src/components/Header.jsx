@@ -35,6 +35,7 @@ import { playNotificationSound } from "../utils/notificationSounds";
 import { setThemeModeOverride, themeModeStorageKey } from "../utils/theme";
 import { downloadBackup, loadBackupCollectionNames, normalizeBackupCollections } from "../utils/backup";
 import { apiUrl } from "../utils/api";
+import { convertCurrencyAmount } from "../utils/currencyExchange";
 
 const NOTIFICATION_STATE_KEY = "isp-notification-state";
 const LOW_STOCK_SOUND_STATE_KEY = "isp-low-stock-sounded";
@@ -42,6 +43,14 @@ const LOW_STOCK_SOUND_STATE_KEY = "isp-low-stock-sounded";
 const LANGUAGE_STORAGE_KEY = "isp-selected-language";
 const PRIMARY_CURRENCY_STORAGE_KEY = "isp-primary-currency";
 const SECONDARY_CURRENCY_STORAGE_KEY = "isp-secondary-currency";
+const EXCHANGE_FROM_CURRENCY_STORAGE_KEY = "isp-exchange-from-currency";
+const EXCHANGE_TO_CURRENCY_STORAGE_KEY = "isp-exchange-to-currency";
+
+const getRecordKey = (...values) =>
+  values.find((value) => value !== undefined && value !== null && String(value).trim()) || "";
+
+const buildHighlightPath = (path, highlight) =>
+  highlight ? `${path}?highlight=${encodeURIComponent(String(highlight))}` : path;
 
 const languageOptions = [
   {
@@ -119,9 +128,15 @@ const currencyOptions = [
     shortLabel: "INR",
     symbol: "₹",
   },
+  {
+    value: "CNY",
+    label: "Chinese Yuan",
+    shortLabel: "CNY",
+    symbol: "¥",
+  },
 ];
 
-const currencyTranslationKeys = { AFN: "afghanAfghani", USD: "usDollar", EUR: "euro", GBP: "britishPound", PKR: "pakistaniRupee", IRR: "iranianRial", SAR: "saudiRiyal", AED: "uaeDirham", INR: "indianRupee" };
+const currencyTranslationKeys = { AFN: "afghanAfghani", USD: "usDollar", EUR: "euro", GBP: "britishPound", PKR: "pakistaniRupee", IRR: "iranianRial", SAR: "saudiRiyal", AED: "uaeDirham", INR: "indianRupee", CNY: "chineseYuan" };
 const allCurrencyFilterOption = {
   value: "all",
   label: "All Currencies",
@@ -176,6 +191,7 @@ function HeaderActions({
   const [openMenu, setOpenMenu] = useState(null);
 
   const [showCashWallet, setShowCashWallet] = useState(false);
+  const [editingWalletId, setEditingWalletId] = useState(null);
 
 const [walletType, setWalletType] = useState("deposit");
 
@@ -193,8 +209,12 @@ const [primaryCurrency, setPrimaryCurrency] = useState(
   () => localStorage.getItem(PRIMARY_CURRENCY_STORAGE_KEY) || "all"
 );
 
-const [secondaryCurrency, setSecondaryCurrency] = useState(
-  () => localStorage.getItem(SECONDARY_CURRENCY_STORAGE_KEY) || "original"
+const [exchangeFromCurrency, setExchangeFromCurrency] = useState(
+  () => localStorage.getItem(EXCHANGE_FROM_CURRENCY_STORAGE_KEY) || "original"
+);
+
+const [exchangeToCurrency, setExchangeToCurrency] = useState(
+  () => localStorage.getItem(EXCHANGE_TO_CURRENCY_STORAGE_KEY) || "AFN"
 );
 
 const headerDropdownRef = useRef(null);
@@ -233,6 +253,8 @@ const importAccountBackup = async (event) => {
     await Promise.all(importable.map((name) => axios.put(apiUrl(name), data[name])));
     localStorage.setItem(PRIMARY_CURRENCY_STORAGE_KEY, "all");
     localStorage.setItem(SECONDARY_CURRENCY_STORAGE_KEY, "original");
+    localStorage.setItem(EXCHANGE_FROM_CURRENCY_STORAGE_KEY, "original");
+    localStorage.setItem(EXCHANGE_TO_CURRENCY_STORAGE_KEY, "AFN");
     setOpenMenu(null);
     window.alert("Backup imported successfully. The app will now refresh.");
     window.location.reload();
@@ -268,8 +290,37 @@ const importAccountBackup = async (event) => {
   );
 
 useEffect(() => {
-  const openCashWalletFromPage = () => {
+  const openCashWalletFromPage = (event) => {
+    const transaction = event.detail;
+
     setOpenMenu(null);
+
+    if (transaction?.id) {
+      setEditingWalletId(transaction.id);
+      setWalletType(
+        transaction.transactionType === "withdraw" ||
+          transaction.type === "expense"
+          ? "withdraw"
+          : "deposit"
+      );
+      setWalletForm({
+        amount: String(transaction.amount ?? ""),
+        currency: transaction.currency || "AFN",
+        note: transaction.note || transaction.description || "",
+      });
+    } else {
+      setEditingWalletId(null);
+      setWalletType("deposit");
+      setWalletForm({
+        amount: "",
+        currency:
+          primaryCurrency && primaryCurrency !== "all"
+            ? primaryCurrency
+            : "AFN",
+        note: "",
+      });
+    }
+
     setShowCashWallet(true);
   };
 
@@ -343,11 +394,16 @@ useEffect(() => {
       id: `low-stock:asset:${asset.id || asset.assetId || asset.deviceName}`,
       title: "Low Stock Alert",
       description: `${asset.assetId || asset.deviceName || "Asset"} has only ${money(asset.quantity)} ${asset.purchaseUsageUnit || asset.purchaseUnit || "unit(s)"} left`,
+      targetPath: buildHighlightPath("/assets", getRecordKey(asset.id, asset.assetId, asset.deviceName)),
     })),
     ...lowStockProducts.map((product) => ({
       id: `low-stock:product:${product.id || product.code || product.barcode || product.name}`,
       title: "Product Low Stock Alert",
       description: `${product.name || product.code || "Product"} has ${money(product.quantity)} ${product.unit || "unit(s)"} left (alert level: ${money(product.lowStock ?? product.lowStockThreshold)})`,
+      targetPath: buildHighlightPath(
+        "/products",
+        getRecordKey(product.id, product.code, product.barcode, product.name)
+      ),
     })),
   ];
 
@@ -368,6 +424,7 @@ useEffect(() => {
         id: `asset-status:${asset.id || asset.assetId || asset.deviceName}:${asset.status}`,
         title: `${asset.status || "Asset"} Asset`,
         description: `${asset.assetId || asset.deviceName || "Asset"} needs attention`,
+        targetPath: buildHighlightPath("/assets", getRecordKey(asset.id, asset.assetId, asset.deviceName)),
       })),
     },
     {
@@ -379,6 +436,7 @@ useEffect(() => {
         id: `tower:${tower.id || tower.towerName}:${tower.installationStatus}`,
         title: "Pending Tower Installation",
         description: `${tower.towerName || "Tower"} is still pending`,
+        targetPath: buildHighlightPath("/main-stock", getRecordKey(tower.id, tower.towerName)),
       })),
     },
     {
@@ -390,6 +448,9 @@ useEffect(() => {
         id: `deposit:${deposit.id || deposit.customerId || deposit.customerName}:${deposit.status}:${deposit.remainingAmount || deposit.amount || deposit.depositAmount}`,
         title: "Outstanding Deposit",
         description: `${deposit.customerName || deposit.customerId || "Customer"} has a deposit balance`,
+        targetPath: deposit.customerId
+          ? `/customers/${encodeURIComponent(String(deposit.customerId))}`
+          : buildHighlightPath("/customers", getRecordKey(deposit.customerName, deposit.id)),
       })),
     },
   ].filter((group) => group.count > 0);
@@ -471,6 +532,15 @@ useEffect(() => {
     });
   };
 
+  const openNotificationTarget = (item) => {
+    persistNotificationState({
+      ...notificationState,
+      readIds: Array.from(new Set([...notificationState.readIds, item.id])),
+    });
+    setOpenMenu(null);
+    navigate(item.targetPath || "/dashboard");
+  };
+
   const changeLanguage = (languageCode) => {
   const language =
     languageOptions.find(
@@ -512,7 +582,9 @@ const changePrimaryCurrency = (currencyCode) => {
     new CustomEvent("app-currency-changed", {
       detail: {
         primaryCurrency: currencyCode,
-        secondaryCurrency,
+        exchangeFromCurrency,
+        exchangeToCurrency,
+        secondaryCurrency: exchangeFromCurrency === "original" ? "original" : exchangeToCurrency,
       },
     })
   );
@@ -520,23 +592,69 @@ const changePrimaryCurrency = (currencyCode) => {
   setOpenMenu(null);
 };
 
-const changeSecondaryCurrency = (currencyCode) => {
-  setSecondaryCurrency(currencyCode);
-
-  localStorage.setItem(
-    SECONDARY_CURRENCY_STORAGE_KEY,
-    currencyCode
-  );
-
+const dispatchCurrencyViewChange = ({
+  nextPrimaryCurrency = primaryCurrency,
+  nextExchangeFrom = exchangeFromCurrency,
+  nextExchangeTo = exchangeToCurrency,
+} = {}) => {
   window.dispatchEvent(
     new CustomEvent("app-currency-changed", {
       detail: {
-        primaryCurrency,
-        secondaryCurrency: currencyCode,
+        primaryCurrency: nextPrimaryCurrency,
+        exchangeFromCurrency: nextExchangeFrom,
+        exchangeToCurrency: nextExchangeTo,
+        secondaryCurrency:
+          nextExchangeFrom === "original" ? "original" : nextExchangeTo,
       },
     })
   );
+};
 
+const changeExchangeFromCurrency = (currencyCode) => {
+  const nextFrom = currencyCode;
+  const nextTo =
+    currencyCode !== "original" && currencyCode === exchangeToCurrency
+      ? currencyOptions.find((item) => item.value !== currencyCode)?.value || "AFN"
+      : exchangeToCurrency;
+
+  setExchangeFromCurrency(nextFrom);
+  setExchangeToCurrency(nextTo);
+
+  localStorage.setItem(EXCHANGE_FROM_CURRENCY_STORAGE_KEY, nextFrom);
+  localStorage.setItem(EXCHANGE_TO_CURRENCY_STORAGE_KEY, nextTo);
+  localStorage.setItem(
+    SECONDARY_CURRENCY_STORAGE_KEY,
+    nextFrom === "original" ? "original" : nextTo
+  );
+
+  dispatchCurrencyViewChange({
+    nextExchangeFrom: nextFrom,
+    nextExchangeTo: nextTo,
+  });
+};
+
+const changeExchangeToCurrency = (currencyCode) => {
+  if (exchangeFromCurrency === "original" || currencyCode === exchangeFromCurrency) {
+    return;
+  }
+
+  setExchangeToCurrency(currencyCode);
+  localStorage.setItem(EXCHANGE_TO_CURRENCY_STORAGE_KEY, currencyCode);
+  localStorage.setItem(SECONDARY_CURRENCY_STORAGE_KEY, currencyCode);
+
+  dispatchCurrencyViewChange({
+    nextExchangeTo: currencyCode,
+  });
+};
+
+const clearExchangeCurrency = () => {
+  setExchangeFromCurrency("original");
+  localStorage.setItem(EXCHANGE_FROM_CURRENCY_STORAGE_KEY, "original");
+  localStorage.setItem(SECONDARY_CURRENCY_STORAGE_KEY, "original");
+
+  dispatchCurrencyViewChange({
+    nextExchangeFrom: "original",
+  });
   setOpenMenu(null);
 };
 
@@ -549,6 +667,7 @@ const changeSecondaryCurrency = (currencyCode) => {
   }
 
   const openCashWallet = () => {
+  setEditingWalletId(null);
   setWalletType("deposit");
 
   setWalletForm({
@@ -563,6 +682,7 @@ const changeSecondaryCurrency = (currencyCode) => {
 
 const closeCashWallet = () => {
   setShowCashWallet(false);
+  setEditingWalletId(null);
   setWalletType("deposit");
 
   setWalletForm({
@@ -594,7 +714,7 @@ const saveCashWalletTransaction = async (event) => {
   const now = new Date().toISOString();
 
   const nextTransaction = {
-    id: `wallet-${Date.now()}`,
+    id: editingWalletId || `wallet-${Date.now()}`,
     transactionType: walletType,
     type: walletType === "deposit" ? "income" : "expense",
     category: "Cash Wallet",
@@ -611,10 +731,19 @@ const saveCashWalletTransaction = async (event) => {
     source: "cash-wallet",
   };
 
-  const saved = await setTransactions((current) => [
-    nextTransaction,
-    ...current,
-  ]);
+  const saved = await setTransactions((current) =>
+    editingWalletId
+      ? current.map((transaction) =>
+          transaction.id === editingWalletId
+            ? {
+                ...transaction,
+                ...nextTransaction,
+                createdAt: transaction.createdAt || now,
+              }
+            : transaction
+        )
+      : [nextTransaction, ...current]
+  );
 
   if (!saved) return;
 
@@ -626,6 +755,45 @@ const saveCashWalletTransaction = async (event) => {
 
   closeCashWallet();
 };
+
+  const companySettings = appSettings?.[0] || {};
+  const baseCurrency = companySettings.baseCurrency || "AFN";
+  const exchangeRates = companySettings.exchangeRates || {};
+
+  const selectedExchangeRate = useMemo(() => {
+    if (
+      !exchangeFromCurrency ||
+      !exchangeToCurrency ||
+      exchangeFromCurrency === "original" ||
+      exchangeFromCurrency === exchangeToCurrency
+    ) {
+      return null;
+    }
+
+    return convertCurrencyAmount(1, {
+      baseCurrency,
+      exchangeRates,
+      fromCurrency: exchangeFromCurrency,
+      targetCurrency: exchangeToCurrency,
+    });
+  }, [
+    baseCurrency,
+    exchangeRates,
+    exchangeFromCurrency,
+    exchangeToCurrency,
+  ]);
+
+  const exchangeRateIsAvailable =
+    selectedExchangeRate !== null &&
+    Number.isFinite(Number(selectedExchangeRate));
+
+  const selectedExchangeFromMeta =
+    currencyOptions.find((currency) => currency.value === exchangeFromCurrency) ||
+    originalCurrencyOption;
+
+  const selectedExchangeToMeta =
+    currencyOptions.find((currency) => currency.value === exchangeToCurrency) ||
+    currencyOptions[0];
 
   if (compact) {
     return (
@@ -807,75 +975,134 @@ const saveCashWalletTransaction = async (event) => {
     )}
   </div>
 
-  {/* Secondary currency dropdown */}
-  <div className="header-menu header-preference-menu">
-   <button
-  type="button"
-  className={`header-preference-btn header-icon-only-btn ${
-    openMenu === "secondary-currency"
-      ? "active"
-      : ""
-  }`}
-  aria-label={t.selectExchangeCurrency || "Select exchange currency"}
-  title={secondaryCurrency === "original" ? (t.originalNoConversion || "Original (No Conversion)") : secondaryCurrency}
-  aria-expanded={
-    openMenu === "secondary-currency"
-  }
-  onClick={() =>
-    setOpenMenu(
-      openMenu === "secondary-currency"
-        ? null
-        : "secondary-currency"
-    )
-  }
->
-  <ArrowLeftRight size={19} strokeWidth={1.9} />
-</button>
+  {/* Exchange Currency dropdown */}
+  <div className="header-menu header-preference-menu exchange-currency-menu">
+    <button
+      type="button"
+      className={`header-preference-btn header-icon-only-btn ${
+        openMenu === "exchange-currency" ? "active" : ""
+      }`}
+      aria-label={t.selectExchangeCurrency || "Select exchange currency"}
+      title={
+        exchangeFromCurrency === "original"
+          ? (t.originalNoConversion || "Original (No Conversion)")
+          : `${exchangeFromCurrency} → ${exchangeToCurrency}`
+      }
+      aria-expanded={openMenu === "exchange-currency"}
+      onClick={() =>
+        setOpenMenu(
+          openMenu === "exchange-currency" ? null : "exchange-currency"
+        )
+      }
+    >
+      <ArrowLeftRight size={19} strokeWidth={1.9} />
+    </button>
 
-    {openMenu === "secondary-currency" && (
-      <div className="dropdown header-preference-dropdown currency-dropdown secondary-currency-dropdown">
+    {openMenu === "exchange-currency" && (
+      <div className="dropdown header-preference-dropdown currency-dropdown exchange-compact-dropdown">
         <div className="header-preference-dropdown-title">
           <strong>{t.exchangeCurrency || "Exchange Currency"}</strong>
-
-          <span>
-            {t.exchangeCurrencyHint || "Choose conversion display currency"}
-          </span>
+          <span>{t.exchangeCurrencyHint || "Choose source and destination currencies"}</span>
         </div>
 
-        <div className="header-currency-list">
-          {[originalCurrencyOption, ...currencyOptions].map((currency) => (
-              <button
-                type="button"
-                key={currency.value}
-                className={`header-preference-option ${
-                  secondaryCurrency ===
-                  currency.value
-                    ? "active"
-                    : ""
-                }`}
-                onClick={() =>
-                  changeSecondaryCurrency(
-                    currency.value
-                  )
-                }
+        <div className="exchange-compact-fields">
+          <label className="exchange-compact-field">
+            <span>From</span>
+            <div className="exchange-compact-select-wrap">
+              <span className="exchange-compact-symbol">
+                {selectedExchangeFromMeta.symbol}
+              </span>
+              <select
+                value={exchangeFromCurrency}
+                onChange={(event) => changeExchangeFromCurrency(event.target.value)}
               >
-                <span className="currency-symbol">
-                  {currency.symbol}
-                </span>
+                <option value="original">No conversion</option>
+                {currencyOptions.map((currency) => (
+                  <option key={`exchange-from-${currency.value}`} value={currency.value}>
+                    {currency.value} — {currency.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </label>
 
-                <span>
-                  <strong>{currency.value === "original" ? "Original" : currency.value}</strong>
+          <div className="exchange-compact-arrow">
+            <ArrowLeftRight size={17} />
+          </div>
 
-                  <small>{currency.value === "original" ? (t.originalNoConversion || "Original (No Conversion)") : (t[currencyTranslationKeys[currency.value]] || currency.label)}</small>
-                </span>
-
-                {secondaryCurrency ===
-                  currency.value && (
-                  <CheckCheck size={15} />
-                )}
-              </button>
-            ))}
+          <label className="exchange-compact-field">
+            <span>To</span>
+            <div className="exchange-compact-select-wrap">
+              <span className="exchange-compact-symbol">
+                {selectedExchangeToMeta.symbol}
+              </span>
+              <select
+                value={exchangeToCurrency}
+                disabled={exchangeFromCurrency === "original"}
+                onChange={(event) => changeExchangeToCurrency(event.target.value)}
+              >
+                {currencyOptions.map((currency) => (
+                  <option
+                    key={`exchange-to-${currency.value}`}
+                    value={currency.value}
+                    disabled={currency.value === exchangeFromCurrency}
+                  >
+                    {currency.value} — {currency.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </label>
         </div>
+
+        {exchangeFromCurrency === "original" ? (
+          <div className="exchange-rate-alert neutral">
+            <ArrowLeftRight size={15} />
+            <div>
+              <strong>No conversion</strong>
+              <span>All amounts remain in their original currencies.</span>
+            </div>
+          </div>
+        ) : exchangeFromCurrency === exchangeToCurrency ? (
+          <div className="exchange-rate-alert warning">
+            <AlertTriangle size={15} />
+            <div>
+              <strong>Select different currencies</strong>
+              <span>From and To currencies cannot be the same.</span>
+            </div>
+          </div>
+        ) : exchangeRateIsAvailable ? (
+          <div className="exchange-rate-alert success">
+            <CheckCheck size={15} />
+            <div>
+              <strong>Exchange rate configured</strong>
+              <span>
+                1 {exchangeFromCurrency} = {Number(selectedExchangeRate).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 6,
+                })} {exchangeToCurrency}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="exchange-rate-alert danger">
+            <AlertTriangle size={15} />
+            <div>
+              <strong>Exchange rate not configured</strong>
+              <span>
+                Add the rate for {exchangeFromCurrency} and {exchangeToCurrency} in Settings.
+              </span>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="exchange-clear-button"
+          onClick={clearExchangeCurrency}
+        >
+          Clear conversion
+        </button>
       </div>
     )}
   </div>
@@ -960,6 +1187,16 @@ const saveCashWalletTransaction = async (event) => {
                         <div
   key={`${item.groupTitle}-${index}`}
   className={`notification-item${isRead ? " read" : ""}`}
+  role="button"
+  tabIndex={0}
+  title="Open related record"
+  onClick={() => openNotificationTarget(item)}
+  onKeyDown={(event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openNotificationTarget(item);
+    }
+  }}
 >
   <span className="notification-icon">
     <Icon size={15} strokeWidth={1.9} />
@@ -976,7 +1213,10 @@ const saveCashWalletTransaction = async (event) => {
     className="notification-remove-btn"
     aria-label={`Remove ${item.title}`}
     title={t.removeNotification || "Remove notification"}
-    onClick={() => removeNotification(item.id)}
+    onClick={(event) => {
+      event.stopPropagation();
+      removeNotification(item.id);
+    }}
   >
     <Trash2 size={13} />
   </button>
@@ -1052,6 +1292,7 @@ const saveCashWalletTransaction = async (event) => {
           setWalletType={setWalletType}
           walletForm={walletForm}
           walletType={walletType}
+          isEditing={Boolean(editingWalletId)}
           t={t}
         />
       )}
@@ -1067,6 +1308,7 @@ function CashWalletModal({
   setWalletType,
   walletForm,
   walletType,
+  isEditing = false,
   t = {},
 }) {
   return (
@@ -1079,7 +1321,7 @@ function CashWalletModal({
             </span>
 
             <div>
-              <h3>{t.cashWallet || "Cash Wallet"}</h3>
+              <h3>{isEditing ? "Edit Cash Wallet Record" : t.cashWallet || "Cash Wallet"}</h3>
               <p>{t.walletHint || "Track owner cash deposits and withdrawals."}</p>
             </div>
           </div>
@@ -1165,7 +1407,11 @@ function CashWalletModal({
               {t.cancel || "Cancel"}
             </button>
             <button type="submit" className={`cash-wallet-save ${walletType}`}>
-              {walletType === "deposit" ? (t.saveDeposit || "Save Deposit") : (t.saveWithdrawal || "Save Withdrawal")}
+              {isEditing
+                ? "Save Changes"
+                : walletType === "deposit"
+                  ? (t.saveDeposit || "Save Deposit")
+                  : (t.saveWithdrawal || "Save Withdrawal")}
             </button>
           </div>
         </form>

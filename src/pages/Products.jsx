@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Archive,
   Barcode,
   Boxes,
+  Copy,
   Eye,
   FileDown,
   ImagePlus,
@@ -21,6 +22,7 @@ import CustomSelect from "../components/CustomSelect";
 import CustomFormFields from "../components/CustomFormFields";
 import FloatingActionMenu from "../components/FloatingActionMenu";
 import TablePagination from "../components/TablePagination";
+import { useLocation } from "react-router-dom";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
@@ -31,6 +33,8 @@ import {
 import { createRecycleEntry } from "../utils/recycleBin";
 import { notify } from "../utils/notify";
 import { normalizePrintSettings } from "../utils/printStudio";
+import defaultLogo from "../assets/logo.jpeg";
+import { limitPhoneValue, normalizePhoneRules } from "../utils/phoneRules";
 import "./Products.css";
 
 const emptyProduct = {
@@ -45,7 +49,7 @@ const emptyProduct = {
   alertBefore: "1 month",
   lowStock: "",
   quantity: "",
-  unit: "Pieces (pcs)",
+  unit: "Pieces",
   currency: "AFN",
   supplierId: "",
   cashWalletPaid: "",
@@ -54,10 +58,115 @@ const emptyProduct = {
   customFields: {},
 };
 
+const emptySupplierForm = {
+  accountType: "supplier",
+  name: "",
+  supplierName: "",
+  phone: "",
+  email: "",
+  businessType: "",
+  address: "",
+  currency: "AFN",
+  items: [],
+  balance: "",
+  status: "Active",
+  notes: "",
+  customFields: {},
+};
+
 const alertBeforeOptions = ["1 week", "2 weeks", "1 month", "3 months", "6 months", "1 year"];
 const currencyOptions = ["AFN", "USD", "EUR", "GBP", "SAR", "PKR", "INR", "IRR", "AED", "CNY"];
 
 const parseNumber = (value) => Number.parseFloat(value || 0) || 0;
+
+const getProductHighlightKey = (product) =>
+  String(product?.id || product?.code || product?.barcode || product?.name || product?.originalIndex || "");
+
+const barcodeLabelSizes = [
+  { value: "small", label: "Small (50x25mm)", width: 50, height: 25 },
+  { value: "medium", label: "Medium (60x30mm)", width: 60, height: 30 },
+  { value: "large", label: "Large (70x35mm)", width: 70, height: 35 },
+  { value: "wide", label: "Wide (90x40mm)", width: 90, height: 40 },
+];
+
+const barcodeContentOptions = [
+  { value: "barcode-qr", label: "Barcode + QR" },
+  { value: "barcode", label: "Barcode only" },
+  { value: "qr", label: "QR only" },
+];
+
+const printerTypeOptions = [
+  { value: "a4", label: "A4 Sheet" },
+  { value: "roll", label: "Label Roll" },
+];
+
+const hashText = (text) => {
+  let hash = 2166136261;
+  for (let index = 0; index < String(text).length; index += 1) {
+    hash ^= String(text).charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+const svgDataUri = (svg) =>
+  `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const buildBarcodeSvg = (value, width = 260, height = 72) => {
+  const text = String(value || "0000000000");
+  let x = 8;
+  const bars = [];
+  for (let index = 0; index < text.length * 3; index += 1) {
+    const seed = hashText(`${text}:${index}`);
+    const barWidth = 1 + (seed % 4);
+    const gap = 1 + ((seed >> 3) % 3);
+    const barHeight = height - 12 - ((seed >> 6) % 16);
+    bars.push(`<rect x="${x}" y="${height - barHeight - 6}" width="${barWidth}" height="${barHeight}" rx="0.4"/>`);
+    x += barWidth + gap;
+    if (x > width - 10) break;
+  }
+  return svgDataUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#fff"/><g fill="#111827">${bars.join("")}</g></svg>`
+  );
+};
+
+const buildQrSvg = (value, size = 124) => {
+  const cells = 29;
+  const padding = 2;
+  const cellSize = size / (cells + padding * 2);
+  const finder = (startX, startY) => `
+    <rect x="${(startX + padding) * cellSize}" y="${(startY + padding) * cellSize}" width="${7 * cellSize}" height="${7 * cellSize}" fill="#111827"/>
+    <rect x="${(startX + padding + 1) * cellSize}" y="${(startY + padding + 1) * cellSize}" width="${5 * cellSize}" height="${5 * cellSize}" fill="#fff"/>
+    <rect x="${(startX + padding + 2) * cellSize}" y="${(startY + padding + 2) * cellSize}" width="${3 * cellSize}" height="${3 * cellSize}" fill="#111827"/>
+  `;
+  const modules = [finder(0, 0), finder(22, 0), finder(0, 22)];
+  for (let y = 0; y < cells; y += 1) {
+    for (let x = 0; x < cells; x += 1) {
+      const inFinder =
+        (x < 8 && y < 8) ||
+        (x > 20 && y < 8) ||
+        (x < 8 && y > 20);
+      if (inFinder) continue;
+      const seed = hashText(`${value}:${x}:${y}`);
+      if ((seed % 7 === 0) || ((seed >> 4) % 11 === 0)) {
+        modules.push(
+          `<rect x="${(x + padding) * cellSize}" y="${(y + padding) * cellSize}" width="${cellSize}" height="${cellSize}" fill="#111827"/>`
+        );
+      }
+    }
+  }
+  return svgDataUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="100%" height="100%" fill="#fff"/>${modules.join("")}</svg>`
+  );
+};
 const money = (value, currency = "AFN") =>
   `${Number(value || 0).toLocaleString("en-US", {
     minimumFractionDigits: 0,
@@ -155,6 +264,7 @@ const productFormText = {
 function Products({ language = "en" }) {
   const tx = productPageText[language] || productPageText.en;
   const formTx = productFormText[language] || productFormText.en;
+  const location = useLocation();
   const [products, setProducts] = useJsonCollection("products");
   const [suppliers, setSuppliers] = useJsonCollection("suppliers");
   const [categories, setCategories] = useJsonCollection("productCategories");
@@ -168,16 +278,12 @@ function Products({ language = "en" }) {
 
 
   const [formData, setFormData] = useState(emptyProduct);
-  const [supplierForm, setSupplierForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-  });
+  const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
   const [showModal, setShowModal] = useState(false);
   const [printReportOpen, setPrintReportOpen] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [viewProduct, setViewProduct] = useState(null);
+  const [barcodeProduct, setBarcodeProduct] = useState(null);
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [editIndex, setEditIndex] = useState(null);
   const [search, setSearch] = useState("");
@@ -185,12 +291,20 @@ function Products({ language = "en" }) {
   const [categoryQuery, setCategoryQuery] = useState("");
   const [unitQuery, setUnitQuery] = useState("");
   const [customUnits, setCustomUnits] = useState([]);
+  const [activeHighlightKey, setActiveHighlightKey] = useState("");
+  const highlightedRowRefs = useRef({});
   const imageInputRef = useRef(null);
   const productCustomFields =
     systemSettings[0]?.customFields?.products ||
     systemSettings[0]?.customFields?.Products ||
     systemSettings[0]?.customFields?.Product ||
     [];
+  const supplierCustomFields =
+    systemSettings[0]?.customFields?.suppliers ||
+    systemSettings[0]?.customFields?.Suppliers ||
+    systemSettings[0]?.customFields?.Supplier ||
+    [];
+  const phoneRules = normalizePhoneRules(systemSettings[0] || {});
 
   
 
@@ -211,7 +325,7 @@ const unitList = useMemo(() => {
       ...productUnits,
       ...usedUnits,
       ...customUnits,
-    ]),
+    ].map((unit) => (unit === "Pieces (pcs)" ? "Pieces" : unit))),
   ];
 }, [customUnits, products]);
 
@@ -317,6 +431,45 @@ const unitList = useMemo(() => {
 
   const pagination = useTablePagination(filteredProducts, `${search}-${stockFilter}`);
 
+  const requestedHighlightKey = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("highlight") || "";
+  }, [location.search]);
+
+  useEffect(() => {
+    if (!requestedHighlightKey) return;
+    setStockFilter("all");
+    setActiveHighlightKey(requestedHighlightKey);
+  }, [requestedHighlightKey]);
+
+  useEffect(() => {
+    if (!activeHighlightKey) return;
+    const rowIndex = filteredProducts.findIndex((product) => {
+      const candidates = [
+        product.id,
+        product.code,
+        product.barcode,
+        product.name,
+        product.originalIndex,
+      ].map((value) => String(value || ""));
+      return candidates.includes(String(activeHighlightKey));
+    });
+
+    if (rowIndex >= 0) {
+      pagination.setPage(Math.floor(rowIndex / pagination.pageSize) + 1);
+    }
+  }, [activeHighlightKey, filteredProducts, pagination.pageSize, pagination.setPage]);
+
+  useEffect(() => {
+    if (!activeHighlightKey) return undefined;
+    const row = highlightedRowRefs.current[String(activeHighlightKey)];
+    if (row) {
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    const timer = window.setTimeout(() => setActiveHighlightKey(""), 6500);
+    return () => window.clearTimeout(timer);
+  }, [activeHighlightKey, pagination.page]);
+
   const supplierOptions = [
     { value: "", label: "No supplier" },
     ...suppliers.map((supplier) => ({
@@ -326,14 +479,16 @@ const unitList = useMemo(() => {
   ];
 
   const openAddModal = () => {
+    const defaultUnit = "Pieces";
     setFormData({
       ...emptyProduct,
+      unit: defaultUnit,
       code: generateProductCode(),
       barcode: generateBarcode(),
     });
     setEditIndex(null);
     setCategoryQuery("");
-    setUnitQuery("");
+    setUnitQuery(defaultUnit);
     setShowModal(true);
   };
 
@@ -425,20 +580,28 @@ const unitList = useMemo(() => {
     }
 
     const now = new Date().toISOString();
+    const items = Array.isArray(supplierForm.items)
+      ? supplierForm.items
+      : String(supplierForm.items || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
     const nextSupplier = {
       id: `supplier-${Date.now()}`,
-      accountType: "supplier",
+      accountType: supplierForm.accountType || "supplier",
       name,
       supplierName: name,
       phone: supplierForm.phone.trim(),
       email: supplierForm.email.trim(),
+      businessType: supplierForm.businessType.trim(),
       address: supplierForm.address.trim(),
-      currency: formData.currency || "AFN",
-      items: [],
-      balance: "",
-      status: "Active",
-      notes: "",
-      customFields: {},
+      currency: supplierForm.currency || formData.currency || "AFN",
+      items,
+      balance: supplierForm.balance,
+      openingBalance: supplierForm.balance,
+      status: supplierForm.status || "Active",
+      notes: supplierForm.notes.trim(),
+      customFields: supplierForm.customFields || {},
       createdAt: now,
       updatedAt: now,
     };
@@ -447,7 +610,10 @@ const unitList = useMemo(() => {
     if (!saved) return;
 
     setFormData((previous) => ({ ...previous, supplierId: nextSupplier.id }));
-    setSupplierForm({ name: "", phone: "", email: "", address: "" });
+    setSupplierForm({
+      ...emptySupplierForm,
+      currency: formData.currency || "AFN",
+    });
     setShowSupplierModal(false);
     notify("Supplier added successfully.");
   };
@@ -523,7 +689,7 @@ const unitList = useMemo(() => {
       code,
       barcode: formData.barcode.trim() || generateBarcode(),
       category: formData.category.trim(),
-      unit: formData.unit.trim() || "Pieces (pcs)",
+      unit: formData.unit.trim() || "Pieces",
       images: normalizeProductImages(formData),
       purchase: parseNumber(formData.purchase),
       selling: parseNumber(formData.selling),
@@ -543,7 +709,7 @@ const unitList = useMemo(() => {
     const saved = await setProducts(nextProducts);
     if (!saved) return;
 
-    if (editIndex === null || nextProduct.supplierId) {
+    {
       const now = new Date().toISOString();
       const date = now.slice(0, 10);
       const quantity = parseNumber(nextProduct.quantity);
@@ -597,6 +763,10 @@ const unitList = useMemo(() => {
           ...current.filter((entry) => String(entry.referenceId) !== referenceId),
         ]);
         if (!godownSaved) notify("Product saved, but the Godown entry could not be created.", "error");
+      } else {
+        await setGodownEntries((current) =>
+          current.filter((entry) => String(entry.referenceId) !== referenceId)
+        );
       }
 
       if (supplier) {
@@ -630,6 +800,10 @@ const unitList = useMemo(() => {
           ...current.filter((purchase) => String(purchase.id) !== referenceId),
         ]);
         if (!ledgerSaved) notify("Product saved, but the supplier Purchase ledger could not be created.", "error");
+      } else {
+        await setSupplierPurchases((current) =>
+          current.filter((purchase) => String(purchase.id) !== referenceId)
+        );
       }
 
       if (walletPaid > 0) {
@@ -674,6 +848,13 @@ const unitList = useMemo(() => {
           ...current.filter((transaction) => String(transaction.id) !== String(walletTransaction.id)),
         ]);
         if (!walletSaved) notify("Product saved, but the Cash Wallet withdrawal could not be recorded.", "error");
+      } else {
+        await setExpenses((current) =>
+          current.filter((item) => String(item.id) !== `expense-${referenceId}`)
+        );
+        await setTransactions((current) =>
+          current.filter((transaction) => String(transaction.id) !== `wallet-${referenceId}`)
+        );
       }
     }
 
@@ -695,41 +876,26 @@ const unitList = useMemo(() => {
     );
     if (!saved) return;
 
+    const referenceId = `product-purchase-${deleteProduct.id}`;
+    await setGodownEntries((current) =>
+      current.filter((entry) => String(entry.referenceId) !== referenceId)
+    );
+    await setSupplierPurchases((current) =>
+      current.filter((purchase) => String(purchase.id) !== referenceId)
+    );
+    await setExpenses((current) =>
+      current.filter((expense) => String(expense.id) !== `expense-${referenceId}`)
+    );
+    await setTransactions((current) =>
+      current.filter((transaction) => String(transaction.id) !== `wallet-${referenceId}`)
+    );
+
     notify("Product deleted successfully.");
     setDeleteProduct(null);
   };
 
   const printBarcode = (product) => {
-    const printWindow = window.open("", "_blank", "width=420,height=360");
-    if (!printWindow) return;
-
-    printWindow.document.write(`
-      <!doctype html>
-      <html>
-        <head>
-          <title>${product.name} Barcode</title>
-          <style>
-            body { margin: 0; font-family: Arial, sans-serif; display: grid; place-items: center; min-height: 100vh; }
-            .label { width: 320px; border: 1px solid #111827; padding: 18px; text-align: center; }
-            h1 { margin: 0 0 8px; font-size: 18px; }
-            .bars { height: 72px; margin: 12px 0; background: repeating-linear-gradient(90deg,#111 0 3px,#fff 3px 6px,#111 6px 8px,#fff 8px 12px); }
-            strong { letter-spacing: 3px; }
-            p { margin: 6px 0 0; color: #475569; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="label">
-            <h1>${product.name}</h1>
-            <div class="bars"></div>
-            <strong>${product.barcode || product.code}</strong>
-            <p>${product.code || ""}</p>
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    window.setTimeout(() => printWindow.print(), 250);
+    setBarcodeProduct(product);
   };
 
   const stockFilterOptions = [
@@ -804,8 +970,16 @@ const unitList = useMemo(() => {
               {pagination.pageItems.map((product) => {
                 const firstImage = normalizeProductImages(product)[0];
                 const status = productStatus(product);
+                const highlightKey = getProductHighlightKey(product);
+                const isHighlighted = String(activeHighlightKey) === highlightKey;
                 return (
-                  <tr key={product.id || product.code || product.originalIndex}>
+                  <tr
+                    key={product.id || product.code || product.originalIndex}
+                    ref={(element) => {
+                      if (element) highlightedRowRefs.current[highlightKey] = element;
+                    }}
+                    className={isHighlighted ? "products-highlight-row" : ""}
+                  >
                     <td>
                       <div className="product-name-cell">
                         <div className="product-thumb">
@@ -902,7 +1076,13 @@ const unitList = useMemo(() => {
           handleImageUpload={handleImageUpload}
           imageInputRef={imageInputRef}
           onClose={resetModal}
-          onOpenSupplierForm={() => setShowSupplierModal(true)}
+          onOpenSupplierForm={() => {
+            setSupplierForm((previous) => ({
+              ...previous,
+              currency: previous.currency || formData.currency || "AFN",
+            }));
+            setShowSupplierModal(true);
+          }}
           onSubmit={handleSubmit}
           removeImage={removeImage}
           setCategoryQuery={setCategoryQuery}
@@ -910,6 +1090,7 @@ const unitList = useMemo(() => {
           setUnitQuery={setUnitQuery}
           supplierOptions={supplierOptions}
           addCustomUnit={addCustomUnit}
+          unitList={unitList}
           unitQuery={unitQuery}
           tx={formTx}
           rtl={language === "fa" || language === "ps"}
@@ -927,8 +1108,14 @@ const unitList = useMemo(() => {
 
       {showSupplierModal && (
         <SupplierCreateModal
+          currencyOptions={currencyOptions}
+          customFields={supplierCustomFields}
           formData={supplierForm}
+          phoneRules={phoneRules}
           onChange={handleSupplierFormChange}
+          onUpdate={(field, value) =>
+            setSupplierForm((previous) => ({ ...previous, [field]: value }))
+          }
           onClose={() => setShowSupplierModal(false)}
           onSubmit={handleSupplierSubmit}
         />
@@ -940,6 +1127,13 @@ const unitList = useMemo(() => {
           supplier={suppliers.find((item) => String(item.id) === String(viewProduct.supplierId))}
           status={productStatus(viewProduct)}
           onClose={() => setViewProduct(null)}
+        />
+      )}
+
+      {barcodeProduct && (
+        <BarcodePrintModal
+          product={barcodeProduct}
+          onClose={() => setBarcodeProduct(null)}
         />
       )}
 
@@ -999,10 +1193,25 @@ function SearchableTextInput({
   onAdd,
 }) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const optionRefs = useRef([]);
   const searchTerm = String(query || "").trim().toLowerCase();
   const matches = searchTerm
     ? options.filter((option) => option.toLowerCase().includes(searchTerm))
     : options;
+  const canAddQuery =
+    query.trim() &&
+    !options.some((option) => option.toLowerCase() === query.trim().toLowerCase());
+  const menuOptions = canAddQuery ? [...matches, query.trim()] : matches;
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [searchTerm, options.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, open]);
 
   const commit = (nextValue) => {
     const cleanValue = nextValue.trim();
@@ -1026,24 +1235,66 @@ function SearchableTextInput({
           setOpen(true);
         }}
         onKeyDown={(event) => {
-          if (event.key === "Enter" && query.trim()) {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            if (!menuOptions.length) return;
             event.preventDefault();
-            commit(query);
+            setOpen(true);
+            setActiveIndex((current) => {
+              const direction = event.key === "ArrowDown" ? 1 : -1;
+              return (current + direction + menuOptions.length) % menuOptions.length;
+            });
+            return;
+          }
+
+          if (event.key === "Home" || event.key === "End") {
+            if (!menuOptions.length) return;
+            event.preventDefault();
+            setOpen(true);
+            setActiveIndex(event.key === "Home" ? 0 : menuOptions.length - 1);
+            return;
+          }
+
+          if (event.key === "Enter") {
+            const selectedOption = open ? menuOptions[activeIndex] : query;
+            if (selectedOption?.trim()) {
+              event.preventDefault();
+              commit(selectedOption);
+            }
+            return;
+          }
+
+          if (event.key === "Escape" && open) {
+            event.preventDefault();
+            setOpen(false);
           }
         }}
       />
       {open && (
         <div className="products-searchable-menu">
-          {matches.map((option) => (
-            <button key={option} type="button" onMouseDown={() => commit(option)}>
+          {matches.map((option, index) => (
+            <button
+              className={index === activeIndex ? "active-option" : ""}
+              key={option}
+              ref={(element) => {
+                optionRefs.current[index] = element;
+              }}
+              type="button"
+              onMouseEnter={() => setActiveIndex(index)}
+              onMouseDown={() => commit(option)}
+            >
               {option}
             </button>
           ))}
-          {query.trim() &&
-            !options.some((option) => option.toLowerCase() === query.trim().toLowerCase()) && (
+          {canAddQuery && (
               <button
                 type="button"
-                className="products-add-option"
+                className={`products-add-option ${
+                  activeIndex === matches.length ? "active-option" : ""
+                }`.trim()}
+                ref={(element) => {
+                  optionRefs.current[matches.length] = element;
+                }}
+                onMouseEnter={() => setActiveIndex(matches.length)}
                 onMouseDown={() => commit(query)}
               >
                 + Add: {query.trim()}
@@ -1051,6 +1302,165 @@ function SearchableTextInput({
             )}
         </div>
       )}
+    </div>
+  );
+}
+
+function BarcodePrintModal({ product, onClose }) {
+  const [labelSize, setLabelSize] = useState("large");
+  const [labelsPerPage, setLabelsPerPage] = useState(4);
+  const [contentType, setContentType] = useState("barcode-qr");
+  const [printerType, setPrinterType] = useState("a4");
+  const selectedSize = barcodeLabelSizes.find((item) => item.value === labelSize) || barcodeLabelSizes[2];
+  const barcodeValue = String(product.barcode || product.code || product.id || product.name || "0000000000");
+  const qrValue = JSON.stringify({
+    type: "product",
+    name: product.name || "",
+    code: product.code || "",
+    barcode: barcodeValue,
+    price: product.selling || "",
+  });
+  const showBarcode = contentType === "barcode-qr" || contentType === "barcode";
+  const showQr = contentType === "barcode-qr" || contentType === "qr";
+  const barcodeImage = buildBarcodeSvg(barcodeValue, 260, 74);
+  const qrImage = buildQrSvg(qrValue, 128);
+  const labelHtml = `
+    <div class="barcode-label">
+      <div class="barcode-media ${contentType}">
+        ${showQr ? `<img class="qr-image" src="${qrImage}" alt="QR Code" />` : ""}
+        ${showBarcode ? `<img class="barcode-image" src="${barcodeImage}" alt="Barcode" />` : ""}
+      </div>
+      <strong>${escapeHtml(product.name || "Product")}</strong>
+      <span>${escapeHtml(barcodeValue)}</span>
+      <b>${escapeHtml(money(product.selling || 0, product.currency || "AFN"))}</b>
+    </div>
+  `;
+
+  const buildPrintHtml = () => {
+    const count = Math.max(1, Number(labelsPerPage) || 1);
+    const labels = Array.from({ length: printerType === "roll" ? 1 : count }, () => labelHtml).join("");
+    return `
+      <!doctype html>
+      <html>
+        <head>
+          <title>${escapeHtml(product.name || "Product")} Barcode</title>
+          <style>
+            @page { size: ${printerType === "roll" ? `${selectedSize.width}mm ${selectedSize.height}mm` : "A4"}; margin: ${printerType === "roll" ? "0" : "10mm"}; }
+            * { box-sizing: border-box; }
+            body { margin: 0; font-family: Arial, sans-serif; color: #111827; background: #fff; }
+            .sheet { display: grid; grid-template-columns: ${printerType === "roll" ? "1fr" : "repeat(2, minmax(0, 1fr))"}; gap: 7mm; align-items: start; }
+            .barcode-label { width: ${selectedSize.width}mm; min-height: ${selectedSize.height}mm; border: 1px solid #d7dee8; border-radius: 4mm; padding: 2.5mm; display: grid; align-content: start; gap: 1.2mm; page-break-inside: avoid; background: #fff; }
+            .barcode-media { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 1.2mm; align-items: center; }
+            .barcode-media.barcode-qr { grid-template-columns: 1fr; }
+            .qr-image { width: 18mm; height: 18mm; object-fit: contain; }
+            .barcode-image { width: 100%; max-width: ${Math.max(24, selectedSize.width - 6)}mm; height: 12mm; object-fit: fill; }
+            strong { font-size: 9pt; line-height: 1.1; }
+            span { font-size: 7pt; letter-spacing: 0.5pt; color: #334155; }
+            b { font-size: 8pt; }
+          </style>
+        </head>
+        <body><main class="sheet">${labels}</main></body>
+      </html>
+    `;
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank", "width=820,height=760");
+    if (!printWindow) return;
+    printWindow.document.write(buildPrintHtml());
+    printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => printWindow.print(), 250);
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${product.name || "Product"}\n${barcodeValue}\n${money(product.selling || 0, product.currency || "AFN")}`);
+      notify("Barcode information copied.");
+    } catch {
+      notify("Unable to copy barcode information.", "error");
+    }
+  };
+
+  return (
+    <div className="products-modal-backdrop">
+      <div className="products-barcode-modal">
+        <div className="products-barcode-header">
+          <h3>Barcode - {product.name || "Product"}</h3>
+          <button type="button" className="products-icon-btn" onClick={onClose} aria-label="Close barcode modal">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="products-barcode-preview">
+          <div
+            className={`products-barcode-label ${contentType}`}
+            style={{
+              "--label-preview-width": `${Math.min(selectedSize.width * 4.2, 330)}px`,
+              "--label-preview-height": `${Math.min(selectedSize.height * 6.8, 295)}px`,
+            }}
+          >
+            <div className="products-barcode-media">
+              {showQr && <img className="products-qr-image" src={qrImage} alt="QR Code" />}
+              {showBarcode && <img className="products-barcode-image" src={barcodeImage} alt="Barcode" />}
+            </div>
+            <strong>{product.name || "Product"}</strong>
+            <span>{barcodeValue}</span>
+            <b>{money(product.selling || 0, product.currency || "AFN")}</b>
+          </div>
+        </div>
+
+        <div className="products-barcode-controls">
+          <label>
+            <span>Label Size</span>
+            <CustomSelect
+              ariaLabel="Label size"
+              options={barcodeLabelSizes.map((item) => ({ value: item.value, label: item.label }))}
+              value={labelSize}
+              onChange={setLabelSize}
+            />
+          </label>
+          <label>
+            <span>Labels per Page</span>
+            <input
+              type="number"
+              min="1"
+              max="80"
+              value={labelsPerPage}
+              onChange={(event) => setLabelsPerPage(event.target.value)}
+            />
+          </label>
+          <label>
+            <span>Label content</span>
+            <CustomSelect
+              ariaLabel="Label content"
+              options={barcodeContentOptions}
+              value={contentType}
+              onChange={setContentType}
+            />
+          </label>
+          <label>
+            <span>Printer type</span>
+            <CustomSelect
+              ariaLabel="Printer type"
+              options={printerTypeOptions}
+              value={printerType}
+              onChange={setPrinterType}
+            />
+          </label>
+        </div>
+
+        <div className="products-barcode-actions">
+          <button type="button" className="products-barcode-print-btn" onClick={handlePrint}>
+            <Printer size={17} />
+            Print Barcode
+          </button>
+          <button type="button" className="products-barcode-copy-btn" onClick={handleCopy}>
+            <Copy size={16} />
+            Copy
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1077,6 +1487,7 @@ function ProductModal({
   setFormData,
   setUnitQuery,
   supplierOptions,
+  unitList,
   unitQuery,
   tx,
   rtl,
@@ -1084,6 +1495,9 @@ function ProductModal({
   const imageList = normalizeProductImages(formData);
   const [marginPercent, setMarginPercent] = useState("");
   const purchaseAmount = parseNumber(formData.purchase);
+  const sellingAmount = parseNumber(formData.selling);
+  const unitNetProfit = sellingAmount - purchaseAmount;
+  const unitProfitPercent = purchaseAmount > 0 ? (unitNetProfit / purchaseAmount) * 100 : 0;
   const quantityAmount = parseNumber(formData.quantity);
   const grandTotal = purchaseAmount * quantityAmount;
   const showGrandTotal = purchaseAmount > 0 && quantityAmount > 0;
@@ -1250,6 +1664,22 @@ function ProductModal({
   </div>
 </div>
 
+<div className="products-profit-summary full">
+  <div>
+    <span>Net Profit</span>
+    <strong className={unitNetProfit < 0 ? "danger" : ""}>
+      {money(unitNetProfit, formData.currency)}
+    </strong>
+  </div>
+  <div>
+    <span>Profit %</span>
+    <strong className={unitNetProfit < 0 ? "danger" : ""}>
+      {Number.isFinite(unitProfitPercent) ? unitProfitPercent.toFixed(2) : "0.00"}%
+    </strong>
+  </div>
+  <small>Selling - Purchase per unit</small>
+</div>
+
             <Field label={tx.expiry} className="half label-with-icon" icon={<AlertTriangle size={14} />}>
               <input
                 type="date"
@@ -1296,7 +1726,7 @@ function ProductModal({
 
             <Field label={tx.unit} className="third field-with-actions">
   <SearchableTextInput
-                options={productUnits}
+                options={unitList}
     placeholder={tx.searchUnit}
     value={formData.unit}
     query={unitQuery}
@@ -1482,7 +1912,27 @@ function ProductModal({
   );
 }
 
-function SupplierCreateModal({ formData, onChange, onClose, onSubmit }) {
+function SupplierCreateModal({
+  currencyOptions,
+  customFields = [],
+  formData,
+  onChange,
+  onClose,
+  onSubmit,
+  onUpdate,
+  phoneRules,
+}) {
+  const [itemInput, setItemInput] = useState("");
+  const addItem = () => {
+    const item = itemInput.trim();
+    if (!item) return;
+    const items = Array.isArray(formData.items) ? formData.items : [];
+    if (!items.some((value) => value.toLowerCase() === item.toLowerCase())) {
+      onUpdate("items", [...items, item]);
+    }
+    setItemInput("");
+  };
+
   return (
     <div className="products-modal-backdrop products-nested-backdrop">
       <div className="products-delete-modal products-supplier-modal">
@@ -1508,9 +1958,11 @@ function SupplierCreateModal({ formData, onChange, onClose, onSubmit }) {
             </Field>
             <Field label="Phone Number">
               <input
+                inputMode="numeric"
+                maxLength={phoneRules?.enabled ? phoneRules.maxLength : undefined}
                 name="phone"
                 value={formData.phone}
-                onChange={onChange}
+                onChange={(event) => onUpdate("phone", limitPhoneValue(event.target.value, phoneRules))}
                 placeholder="Phone"
               />
             </Field>
@@ -1522,6 +1974,82 @@ function SupplierCreateModal({ formData, onChange, onClose, onSubmit }) {
                 placeholder="Email"
               />
             </Field>
+            <Field label="Business Type">
+              <input
+                name="businessType"
+                value={formData.businessType}
+                onChange={onChange}
+                placeholder="Example: Electronics, Food, Services"
+              />
+            </Field>
+            <Field label="Currency">
+              <CustomSelect
+                ariaLabel="Supplier currency"
+                options={currencyOptions.map((currency) => ({
+                  value: currency,
+                  label: currency,
+                }))}
+                value={formData.currency}
+                onChange={(value) => onUpdate("currency", value)}
+              />
+            </Field>
+            <Field label="Opening Balance">
+              <input
+                name="balance"
+                value={formData.balance}
+                onChange={onChange}
+                inputMode="decimal"
+                placeholder="0.00"
+              />
+            </Field>
+            <Field label="Status">
+              <CustomSelect
+                ariaLabel="Supplier status"
+                options={[
+                  { value: "Active", label: "Active" },
+                  { value: "Inactive", label: "Inactive" },
+                ]}
+                value={formData.status}
+                onChange={(value) => onUpdate("status", value)}
+              />
+            </Field>
+            <Field label="Supply Items" className="full">
+              <div className="products-supplier-item-add">
+                <input
+                  value={itemInput}
+                  onChange={(event) => setItemInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addItem();
+                    }
+                  }}
+                  placeholder="Example: Rice, Oil, Electronics"
+                />
+                <button type="button" onClick={addItem}>
+                  Add
+                </button>
+              </div>
+              {!!formData.items?.length && (
+                <div className="products-supplier-item-chips">
+                  {formData.items.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() =>
+                        onUpdate(
+                          "items",
+                          formData.items.filter((value) => value !== item)
+                        )
+                      }
+                    >
+                      {item}
+                      <span>x</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Field>
             <Field label="Address" className="full">
               <textarea
                 name="address"
@@ -1530,6 +2058,25 @@ function SupplierCreateModal({ formData, onChange, onClose, onSubmit }) {
                 placeholder="Address"
               />
             </Field>
+            <Field label="Notes" className="full">
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={onChange}
+                placeholder="Optional notes"
+              />
+            </Field>
+            <CustomFormFields
+              fields={customFields}
+              values={formData.customFields}
+              fieldClassName="products-form-group"
+              onChange={(key, value) =>
+                onUpdate("customFields", {
+                  ...(formData.customFields || {}),
+                  [key]: value,
+                })
+              }
+            />
           </div>
 
           <div className="products-modal-actions">
@@ -1723,7 +2270,7 @@ function ProductPrintStudio({ company, language, products, onClose }) {
           <main className="product-print-canvas">
             <article ref={reportRef} className={`product-report-paper ${orientation}${isThermal ? " thermal" : ""}`} style={{ width: `${paperSize[0]}mm`, minHeight: `${paperSize[1]}mm`, "--report-scale": scale / 100, "--report-margin": `${isThermal ? Math.min(marginSize, 5) : marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
               <div className="product-report-header">{saved.showLogo && saved.logo ? <img src={saved.logo} alt="" /> : <div className="product-report-logo"><Package size={28} /></div>}<div><strong>{businessName}</strong><span>{subtitle}</span></div><p>{[saved.phone, saved.email, saved.address].filter(Boolean).join(" · ")}</p></div>
-              {saved.watermark && <img className="product-report-watermark" src={saved.watermark} alt="" style={{ opacity: Number(saved.watermarkOpacity || 0) / 100 }} />}
+              {(saved.watermark || saved.logo || defaultLogo) && <img className="product-report-watermark" src={saved.watermark || saved.logo || defaultLogo} alt="" style={{ opacity: saved.watermark ? Number(saved.watermarkOpacity || 0) / 100 : 0.055 }} />}
               <div className="product-report-heading"><div><small>REPORT</small><h1>{labels.title}</h1><p>{labels.all}</p></div><div><b>{new Date().toLocaleString()}</b><span>{labels.records} {products.length}</span><span>{labels.page}</span></div></div>
               <div className="product-report-stats"><div><span>{labels.total}</span><b>{products.length}</b></div><div><span>{labels.stock}</span><b>{inStock}</b></div><div><span>{labels.out}</span><b>{products.length - inStock}</b></div></div>
               <p className="product-report-contents">{labels.contents}: <span>1 — {Math.min(reportRows.length, products.length)} {labels.records}</span></p>

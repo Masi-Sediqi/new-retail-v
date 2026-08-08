@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BriefcaseBusiness,
   CreditCard,
@@ -22,9 +23,11 @@ import { useJsonCollection } from "../hooks/useJsonCollection";
 import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBusinessCurrencyFilter";
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
-import { currencies, formatCurrencyAmount } from "../utils/currencyExchange";
+import { convertCurrencyAmount, currencies, formatCurrencyAmount } from "../utils/currencyExchange";
 import { createRecycleEntry } from "../utils/recycleBin";
 import { normalizePrintSettings } from "../utils/printStudio";
+import defaultLogo from "../assets/logo.jpeg";
+import { limitPhoneValue, normalizePhoneRules } from "../utils/phoneRules";
 import "./Staff.css";
 
 const employmentTypes = ["Full-time", "Part-time", "Contract"];
@@ -42,6 +45,8 @@ const emptyStaff = {
   role: "",
   department: "",
   employmentType: "Full-time",
+  joiningDate: "",
+  salaryType: "fixed",
   salary: "",
   currency: "AFN",
   status: "Active",
@@ -106,6 +111,7 @@ const getPayrollPayableTotal = (history = []) => {
 };
 
 function Staff() {
+  const navigate = useNavigate();
   const [staffMembers, setStaffMembers] = useJsonCollection("staff");
   const [settings] = useJsonCollection("settings");
   const [, setTransactions] = useJsonCollection("transactions");
@@ -121,6 +127,7 @@ function Staff() {
   const [deletePayrollEntry, setDeletePayrollEntry] = useState(null);
   const [printReportOpen, setPrintReportOpen] = useState(false);
   const staffCustomFields = settings[0]?.customFields?.staffMembers || [];
+  const phoneRules = normalizePhoneRules(settings[0] || {});
 
   const normalizedStaff = useMemo(
     () =>
@@ -195,6 +202,8 @@ function Staff() {
       id: staff.id || `staff-${Date.now()}`,
       name: staff.name.trim(),
       role: staff.role.trim(),
+      joiningDate: staff.joiningDate || "",
+      salaryType: staff.salaryType || "fixed",
       salary: roundMoney(staff.salary),
       updatedAt: new Date().toISOString(),
       createdAt: staff.createdAt || new Date().toISOString(),
@@ -390,7 +399,11 @@ function Staff() {
             </thead>
             <tbody>
               {pagination.pageItems.map((staff) => (
-                <tr key={staff.id || staff.name}>
+                <tr
+                  key={staff.id || staff.name}
+                  className="staff-click-row"
+                  onClick={() => navigate(`/staff/${encodeURIComponent(String(staff.id || staff.staffId || staff.name))}`)}
+                >
                   <td className="staff-name-cell">
                     <strong>{staff.name}</strong>
                     <span>{staff.phone || staff.email || "No contact"}</span>
@@ -408,7 +421,7 @@ function Staff() {
                       {staff.status || "Active"}
                     </span>
                   </td>
-                  <td>
+                  <td onClick={(event) => event.stopPropagation()}>
                     <FloatingActionMenu
                       ariaLabel="Staff actions"
                       actions={[
@@ -444,6 +457,7 @@ function Staff() {
         <StaffModal
           customFields={staffCustomFields}
           initialStaff={editingStaff}
+          phoneRules={phoneRules}
           onClose={() => {
             setShowStaffModal(false);
             setEditingStaff(null);
@@ -456,6 +470,7 @@ function Staff() {
         <PayrollModal
           staff={payrollStaff}
           staffMembers={normalizedStaff}
+          settings={settings[0] || {}}
           onClose={() => setPayrollStaff(null)}
           onSave={savePayroll}
         />
@@ -591,7 +606,7 @@ function StaffPrintStudio({ company, staffMembers, stats, statCurrency = "AFN", 
           <main className="standard-print-canvas">
             <article ref={reportRef} className={`standard-report-paper ${orientation}${isThermal ? " thermal" : ""}`} style={{ width: `${paperSize[0]}mm`, minHeight: `${paperSize[1]}mm`, "--report-scale": scale / 100, "--report-margin": `${isThermal ? Math.min(marginSize, 5) : marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
               <div className="standard-report-header">{saved.showLogo && saved.logo ? <img src={saved.logo} alt="" /> : <div className="standard-report-logo"><BriefcaseBusiness size={28} /></div>}<div><strong>{saved.businessNameEn}</strong><span>{saved.subtitleEn}</span></div><p>{[saved.phone, saved.email, saved.address].filter(Boolean).join(" - ")}</p></div>
-              {saved.watermark && <img className="standard-report-watermark" src={saved.watermark} alt="" style={{ opacity: Number(saved.watermarkOpacity || 0) / 100 }} />}
+              {(saved.watermark || saved.logo || defaultLogo) && <img className="standard-report-watermark" src={saved.watermark || saved.logo || defaultLogo} alt="" style={{ opacity: saved.watermark ? Number(saved.watermarkOpacity || 0) / 100 : 0.055 }} />}
               <div className="standard-report-heading"><div><small>REPORT</small><h1>Staff Report</h1><p>All filtered staff records</p></div><div><b>{new Date().toLocaleString()}</b><span>Records {staffMembers.length}</span><span>Page 1 of 1</span></div></div>
               <div className="standard-report-stats"><div><span>TOTAL STAFF</span><b>{stats.total}</b></div><div><span>PAID PAYROLL</span><b>{formatCurrencyAmount(stats.paid, statCurrency)}</b></div><div><span>PAYABLE</span><b>{formatCurrencyAmount(stats.payable, statCurrency)}</b></div></div>
               <p className="standard-report-contents">Contents: <span>1 - {Math.min(reportRows.length, staffMembers.length)} Records</span></p>
@@ -609,7 +624,7 @@ function StandardControl({ title, values, value, onChange }) {
   return <><h4>{title}</h4><div className="standard-print-choices">{values.map((item) => <button type="button" className={value === item ? "active" : ""} key={item} onClick={() => onChange(item)}>{item}</button>)}</div></>;
 }
 
-function StaffModal({ customFields = [], initialStaff, onClose, onSave }) {
+function StaffModal({ customFields = [], initialStaff, onClose, onSave, phoneRules }) {
   const [form, setForm] = useState(() => ({
     ...emptyStaff,
     ...(initialStaff || {}),
@@ -649,7 +664,7 @@ function StaffModal({ customFields = [], initialStaff, onClose, onSave }) {
             <input autoFocus value={form.name} onChange={(event) => update("name", event.target.value)} />
           </Field>
           <Field label="Phone Number">
-            <input value={form.phone} onChange={(event) => update("phone", event.target.value)} />
+            <input inputMode="numeric" maxLength={phoneRules?.enabled ? phoneRules.maxLength : undefined} value={form.phone} onChange={(event) => update("phone", limitPhoneValue(event.target.value, phoneRules))} />
           </Field>
           <Field label="Email">
             <input value={form.email} onChange={(event) => update("email", event.target.value)} />
@@ -668,7 +683,21 @@ function StaffModal({ customFields = [], initialStaff, onClose, onSave }) {
               onChange={(value) => update("employmentType", value)}
             />
           </Field>
-          <Field label="Monthly Salary">
+          <Field label="Joining Date">
+            <input type="date" value={form.joiningDate || ""} onChange={(event) => update("joiningDate", event.target.value)} />
+          </Field>
+          <Field label="Salary Type">
+            <CustomSelect
+              ariaLabel="Salary type"
+              options={[
+                { value: "fixed", label: "Fixed Salary" },
+                { value: "percentage", label: "Percentage Per Purchase" },
+              ]}
+              value={form.salaryType || "fixed"}
+              onChange={(value) => update("salaryType", value)}
+            />
+          </Field>
+          <Field label={(form.salaryType || "fixed") === "percentage" ? "Percentage Per Purchase" : "Monthly Salary"}>
             <input value={form.salary} onChange={(event) => update("salary", event.target.value)} />
           </Field>
           <Field label="Currency">
@@ -715,27 +744,73 @@ function StaffModal({ customFields = [], initialStaff, onClose, onSave }) {
   );
 }
 
-function PayrollModal({ staff, onClose, onSave }) {
+function PayrollModal({ staff, onClose, onSave, settings = {} }) {
   const today = new Date();
+  const staffSalaryType = staff.salaryType || "fixed";
+  const baseCurrency = settings.baseCurrency || "AFN";
+  const exchangeRates = settings.exchangeRates || {};
   const [period, setPeriod] = useState("monthly");
   const [start, setStart] = useState(getMonthStart(today));
   const [end, setEnd] = useState(getMonthEnd(today));
   const [baseSalary, setBaseSalary] = useState(String(staff.salary || ""));
+  const [saleAmount, setSaleAmount] = useState("");
+  const [saleCurrency, setSaleCurrency] = useState(staff.currency || "AFN");
   const [currency, setCurrency] = useState(staff.currency || "AFN");
+  const [todayRate, setTodayRate] = useState("");
   const [paidAmount, setPaidAmount] = useState("0");
   const [method, setMethod] = useState("cash");
   const [notes, setNotes] = useState("");
 
   const days = getDaysInclusive(start, end);
   const monthlySalary = parseNumber(baseSalary || staff.salary);
-  const suggested = period === "monthly" ? monthlySalary : (monthlySalary / 30) * days;
+  const percentageRate = parseNumber(baseSalary || staff.salary);
+  const earningCurrency = staffSalaryType === "percentage" ? saleCurrency : staff.currency || currency;
+  const grossEarning =
+    staffSalaryType === "percentage"
+      ? (parseNumber(saleAmount) * percentageRate) / 100
+      : period === "monthly"
+        ? monthlySalary
+        : (monthlySalary / 30) * days;
+  const configuredRate = useMemo(() => {
+    if (!earningCurrency || earningCurrency === currency) return 1;
+    const converted = convertCurrencyAmount(1, {
+      baseCurrency,
+      exchangeRates,
+      fromCurrency: earningCurrency,
+      targetCurrency: currency,
+    });
+    return converted === null ? 0 : converted;
+  }, [baseCurrency, currency, earningCurrency, exchangeRates]);
+  const activeRate = earningCurrency === currency ? 1 : parseNumber(todayRate || configuredRate);
+  const suggested =
+    earningCurrency === currency
+      ? grossEarning
+      : activeRate > 0
+        ? grossEarning * activeRate
+        : 0;
+  const paidInEarningCurrency =
+    earningCurrency === currency
+      ? parseNumber(paidAmount)
+      : activeRate > 0
+        ? parseNumber(paidAmount) / activeRate
+        : 0;
   const alreadyPaid = (staff.payrollHistory || [])
     .filter((entry) => entry.start === start && entry.end === end)
     .reduce((sum, entry) => sum + parseNumber(entry.paidAmountBase ?? entry.paidAmount), 0);
-  const maxPayable = Math.max(0, suggested - alreadyPaid);
+  const maxPayable = Math.max(0, suggested - (earningCurrency === currency ? alreadyPaid : alreadyPaid * activeRate));
   const paidValue = parseNumber(paidAmount);
   const paidTooHigh = paidValue > maxPayable;
-  const canSave = paidValue > 0 && !paidTooHigh;
+  const canSave = paidValue > 0 && !paidTooHigh && suggested > 0;
+
+  useEffect(() => {
+    setPaidAmount(String(roundMoney(suggested)));
+  }, [suggested]);
+
+  useEffect(() => {
+    if (earningCurrency !== currency && configuredRate > 0) {
+      setTodayRate(String(roundMoney(configuredRate)));
+    }
+  }, [configuredRate, currency, earningCurrency]);
 
   const setPeriodRange = (nextPeriod) => {
     setPeriod(nextPeriod);
@@ -766,12 +841,18 @@ function PayrollModal({ staff, onClose, onSave }) {
             start,
             end,
             baseSalary: monthlySalary,
+            salaryType: staffSalaryType,
+            percentageRate: staffSalaryType === "percentage" ? percentageRate : 0,
+            saleAmount: roundMoney(saleAmount),
+            saleCurrency,
+            earningCurrency,
+            exchangeRate: earningCurrency === currency ? 1 : activeRate,
             currency,
             suggested: roundMoney(suggested),
             paidAmount: roundMoney(paidAmount),
-            paidAmountBase: roundMoney(paidAmount),
-            staffCurrency: staff.currency || currency,
-            payable: roundMoney(Math.max(0, maxPayable - paidValue)),
+            paidAmountBase: roundMoney(paidInEarningCurrency),
+            staffCurrency: earningCurrency,
+            payable: roundMoney(Math.max(0, (grossEarning - alreadyPaid) - paidInEarningCurrency)),
             method,
             notes: notes.trim(),
             createdAt: new Date().toISOString(),
@@ -806,16 +887,39 @@ function PayrollModal({ staff, onClose, onSave }) {
           <Field label="End Date">
             <input type="date" value={end} onChange={(event) => setEnd(event.target.value)} />
           </Field>
-          <Field label="Base Salary">
+          <Field label={staffSalaryType === "percentage" ? "Percentage Per Purchase" : "Base Salary"}>
             <input value={baseSalary} onChange={(event) => setBaseSalary(event.target.value)} />
           </Field>
-          <Field label="Currency">
+          {staffSalaryType === "percentage" && (
+            <>
+              <Field label="Sales Amount">
+                <input value={saleAmount} onChange={(event) => setSaleAmount(event.target.value)} />
+              </Field>
+              <Field label="Sales Currency">
+                <CustomSelect
+                  ariaLabel="Sales currency"
+                  options={currencies.map((item) => ({ value: item.code, label: `${item.symbol} ${item.code}` }))}
+                  value={saleCurrency}
+                  onChange={setSaleCurrency}
+                />
+              </Field>
+            </>
+          )}
+          <Field label="Payment Currency">
             <CustomSelect
               ariaLabel="Currency"
               options={currencies.map((item) => ({ value: item.code, label: `${item.symbol} ${item.code}` }))}
               value={currency}
               onChange={setCurrency}
             />
+          </Field>
+          {earningCurrency !== currency && (
+            <Field label={`Today Rate (1 ${earningCurrency} = ? ${currency})`} invalid={activeRate <= 0}>
+              <input value={todayRate} onChange={(event) => setTodayRate(event.target.value)} />
+            </Field>
+          )}
+          <Field label="Staff Share">
+            <input readOnly value={formatCurrencyAmount(grossEarning, earningCurrency)} />
           </Field>
           <Field label="Paid Amount" invalid={paidTooHigh}>
             <input value={paidAmount} onChange={(event) => setPaidAmount(event.target.value)} />
@@ -830,8 +934,9 @@ function PayrollModal({ staff, onClose, onSave }) {
 
         <div className="payroll-summary">
           <div><span>Days</span><strong>{days}</strong></div>
-          <div><span>Suggested</span><strong>{formatCurrencyAmount(suggested, currency)}</strong></div>
-          <div><span>Already Paid</span><strong>{formatCurrencyAmount(alreadyPaid, currency)}</strong></div>
+          <div><span>{staffSalaryType === "percentage" ? "Sales Amount" : "Suggested"}</span><strong>{staffSalaryType === "percentage" ? formatCurrencyAmount(parseNumber(saleAmount), saleCurrency) : formatCurrencyAmount(suggested, currency)}</strong></div>
+          <div><span>Staff Right</span><strong>{formatCurrencyAmount(suggested, currency)}</strong></div>
+          <div><span>Already Paid</span><strong>{formatCurrencyAmount(earningCurrency === currency ? alreadyPaid : alreadyPaid * activeRate, currency)}</strong></div>
           <div><span>Remaining After Payment</span><strong>{formatCurrencyAmount(Math.max(0, maxPayable - paidValue), currency)}</strong></div>
         </div>
 

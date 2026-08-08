@@ -39,12 +39,14 @@ import { applyTheme, themePresets } from "../utils/theme";
 import { currencies, getCurrencyMeta, rebaseExchangeRates } from "../utils/currencyExchange";
 import { defaultPrintStudio, normalizePrintSettings, openPrintPreview } from "../utils/printStudio";
 import { playNotificationSound, soundOptions as notificationSoundOptions } from "../utils/notificationSounds";
+import { countryDialCodes, defaultPhoneRules, normalizePhoneRules } from "../utils/phoneRules";
 
 const defaultSystemName = "Smart Office";
 const defaultSystemSubtitle = "Smart Office Management System";
 
 const settingTabs = [
   { key: "general", label: "General", icon: SettingsIcon },
+  { key: "arrangement", label: "Arrangement", icon: Check },
   { key: "themes", label: "Themes", icon: Globe2 },
   { key: "currency", label: "Currency", icon: CircleDollarSign },
   { key: "printing", label: "Printing", icon: Printer },
@@ -190,6 +192,8 @@ function Settings() {
   const [logo, setLogo] = useState("");
   const [address, setAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneRules, setPhoneRules] = useState(defaultPhoneRules);
+  const [countryCodeSearch, setCountryCodeSearch] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
   const [website, setWebsite] = useState("");
   const [defaultCurrency, setDefaultCurrency] = useState(currencyOptions[0]);
@@ -250,6 +254,7 @@ function Settings() {
     setLogo(current.logo || "");
     setAddress(current.address || "");
     setPhoneNumber(current.phoneNumber || "");
+    setPhoneRules(normalizePhoneRules(current));
     setEmailAddress(current.emailAddress || "");
     setWebsite(current.website || "");
     setDefaultCurrency(current.defaultCurrency || currencyOptions[0]);
@@ -365,6 +370,11 @@ function Settings() {
         logo,
         address: address.trim(),
         phoneNumber: phoneNumber.trim(),
+        phoneRules: {
+          ...phoneRules,
+          countryCodes: phoneRules.countryCodes?.length ? phoneRules.countryCodes : defaultPhoneRules.countryCodes,
+          maxLength: Math.max(Number(phoneRules.maxLength || defaultPhoneRules.maxLength), 1),
+        },
         emailAddress: emailAddress.trim(),
         website: website.trim(),
         defaultCurrency,
@@ -700,6 +710,22 @@ function Settings() {
     setFieldModalOpen(false);
   };
 
+  const filteredCountryDialCodes = countryDialCodes.filter((item) => {
+    const needle = countryCodeSearch.trim().toLowerCase();
+    return !needle || `${item.code} ${item.country}`.toLowerCase().includes(needle);
+  });
+
+  const togglePhoneCountryCode = (code) => {
+    setPhoneRules((previous) => {
+      const countryCodes = previous.countryCodes || [];
+      const exists = countryCodes.includes(code);
+      return {
+        ...previous,
+        countryCodes: exists ? countryCodes.filter((item) => item !== code) : [...countryCodes, code],
+      };
+    });
+  };
+
   return (
     <form className="settings-page" onSubmit={save}>
       <div className="settings-header">
@@ -949,6 +975,62 @@ function Settings() {
             </p>
           </section>
         </div>
+      ) : activeTab === "arrangement" ? (
+        <div className="settings-stack">
+          <section className="settings-card">
+            <SectionTitle
+              title="Phone Number Arrangement"
+              description="Control how phone numbers are written in customer, supplier, staff and quick supplier forms."
+              icon={Check}
+            />
+            <div className="settings-field-grid three">
+              <div className="settings-toggle-field">
+                <span>Apply phone rules</span>
+                <Switch checked={phoneRules.enabled} onChange={(value) => setPhoneRules((previous) => ({ ...previous, enabled: value }))} />
+              </div>
+              <Field label="Maximum characters">
+                <input
+                  min="1"
+                  type="number"
+                  value={phoneRules.maxLength}
+                  onChange={(event) => setPhoneRules((previous) => ({ ...previous, maxLength: event.target.value }))}
+                />
+              </Field>
+              <Field label="Selected country codes">
+                <input readOnly value={(phoneRules.countryCodes || []).join(", ")} />
+              </Field>
+            </div>
+            <div className="settings-phone-code-panel">
+              <label className="settings-field">
+                <span>Search country code</span>
+                <input
+                  placeholder="Search +93, Afghanistan, +1..."
+                  value={countryCodeSearch}
+                  onChange={(event) => setCountryCodeSearch(event.target.value)}
+                />
+              </label>
+              <div className="settings-phone-code-grid">
+                {filteredCountryDialCodes.map((item) => {
+                  const selected = (phoneRules.countryCodes || []).includes(item.code);
+                  return (
+                    <button
+                      className={`settings-phone-code-chip ${selected ? "selected" : ""}`}
+                      key={`${item.code}-${item.country}`}
+                      type="button"
+                      onClick={() => togglePhoneCountryCode(item.code)}
+                    >
+                      <strong>{item.code}</strong>
+                      <span>{item.country}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <p className="settings-help-text">
+              Example: if maximum characters is 13, users cannot type more than 13 characters in phone fields.
+            </p>
+          </section>
+        </div>
       ) : activeTab === "backup" ? (
         <BackupTab
           appDataBusy={appDataBusy}
@@ -993,7 +1075,7 @@ function Settings() {
                 </select>
               </Field>
             </div>
-            <h3 className="settings-rate-title">Exchange rates (1 {currencyCodeFromLabel(defaultCurrency)} = ?)</h3>
+            <h3 className="settings-rate-title">Exchange rates (1 currency = ? {currencyCodeFromLabel(defaultCurrency)})</h3>
             <div className="settings-currency-rate-grid">
               {currencies.filter(({ code }) => code !== currencyCodeFromLabel(defaultCurrency)).map(({ code, name, symbol }) => {
                 const rate = Number.parseFloat(exchangeRates[code]);
@@ -1006,7 +1088,7 @@ function Settings() {
                       <input type="number" min="0" step="any" inputMode="decimal" value={exchangeRates[code] || ""} onChange={(event) => setExchangeRates((previous) => ({ ...previous, [code]: event.target.value }))} placeholder="0.000000" />
                       {reciprocal > 0 && (
                         <small className="settings-rate-reciprocal">
-                          1 {code} = {reciprocal.toLocaleString(undefined, { maximumFractionDigits: 10 })} {baseCode}
+                          1 {baseCode} = {reciprocal.toLocaleString(undefined, { maximumFractionDigits: 10 })} {code}
                         </small>
                       )}
                     </Field>
@@ -1014,7 +1096,7 @@ function Settings() {
                 );
               })}
             </div>
-            <div className="settings-rate-note"><strong>Calculation rule</strong><span>Enter how much of each currency equals 1 {currencyCodeFromLabel(defaultCurrency)}. Records keep their original currency; reports and totals convert them using these rates.</span></div>
+            <div className="settings-rate-note"><strong>Calculation rule</strong><span>Enter how much 1 unit of each currency equals in {currencyCodeFromLabel(defaultCurrency)}. Records keep their original currency; reports and totals convert them using these rates.</span></div>
           </section>
         </div>
       ) : activeTab === "printing" ? (

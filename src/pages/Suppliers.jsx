@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
   ChevronLeft,
@@ -27,7 +28,9 @@ import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBu
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
+import { LedgerAmount } from "../utils/ledgerDisplay";
 import { createRecycleEntry } from "../utils/recycleBin";
+import { limitPhoneValue, normalizePhoneRules } from "../utils/phoneRules";
 import "./Suppliers.css";
 
 const emptySupplier = {
@@ -116,6 +119,7 @@ const getDateMatches = (dateValue, filter, start, end) => {
 };
 
 function Suppliers() {
+  const navigate = useNavigate();
   const [suppliers, setSuppliers] = useJsonCollection("suppliers");
   const [godownEntries, setGodownEntries] = useJsonCollection("godownEntries");
   const [products] = useJsonCollection("products");
@@ -125,6 +129,7 @@ function Suppliers() {
   const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
+  const phoneRules = normalizePhoneRules(company);
   const baseCurrency = company.baseCurrency || "AFN";
   const supplierCustomFields = company.customFields?.suppliers || [];
 
@@ -713,7 +718,11 @@ function Suppliers() {
               {pagination.pageItems.map((supplier) => {
                 const stat = supplierStats.get(getSupplierKey(supplier));
                 return (
-                  <tr key={supplier.id}>
+                  <tr
+                    className="supplier-clickable-row"
+                    key={supplier.id}
+                    onClick={() => navigate(`/suppliers/${encodeURIComponent(String(supplier.id || supplier.supplierId || suppliers.indexOf(supplier)))}`)}
+                  >
                     <td className="supplier-name-cell">
                       <strong>{supplier.name}</strong>
                       <span>{supplier.businessType || "Supplier"}</span>
@@ -726,7 +735,7 @@ function Suppliers() {
                     </td>
                     <td><span className={`supplier-status ${stat?.statusKey || "settled"}`}>{stat?.statusKey || "settled"}</span></td>
                     <td>{getDateLabel(stat?.lastDate)}</td>
-                    <td>
+                    <td onClick={(event) => event.stopPropagation()}>
                       <FloatingActionMenu
                         ariaLabel="Supplier actions"
                         actions={[
@@ -769,6 +778,7 @@ function Suppliers() {
         <SupplierModal
           customFields={supplierCustomFields}
           initialSupplier={editingSupplier}
+          phoneRules={phoneRules}
           onClose={() => {
             setModalOpen(false);
             setEditingSupplier(null);
@@ -845,6 +855,8 @@ function SupplierPortal({
           description: "Opening Balance",
           deposit: openingBalance < 0 ? formatCurrencyAmount(Math.abs(openingBalance), openingCurrency) : "-",
           withdraw: openingBalance > 0 ? formatCurrencyAmount(openingBalance, openingCurrency) : "-",
+          depositAmount: openingBalance < 0 ? Math.abs(openingBalance) : 0,
+          withdrawAmount: openingBalance > 0 ? openingBalance : 0,
           balance: formatCurrencyAmount(openingBalance, openingCurrency),
           currency: openingCurrency,
           paid: "-",
@@ -858,6 +870,8 @@ function SupplierPortal({
       description: `${entry.name} (${entry.quantity} ${entry.unit || "Piece"})`,
       deposit: "-",
       withdraw: formatCurrencyAmount(entry.total, entry.currency || openingCurrency),
+      depositAmount: 0,
+      withdrawAmount: entry.total,
       paid: formatCurrencyAmount(entry.paid, entry.currency || openingCurrency),
       balance: formatCurrencyAmount(entry.remaining, entry.currency || openingCurrency),
       currency: entry.currency || openingCurrency,
@@ -875,6 +889,8 @@ function SupplierPortal({
       description: adjustment.reason,
       deposit: adjustment.type === "credit" ? formatCurrencyAmount(adjustment.amount, adjustment.currency || openingCurrency) : "-",
       withdraw: adjustment.type === "debit" ? formatCurrencyAmount(adjustment.amount, adjustment.currency || openingCurrency) : "-",
+      depositAmount: adjustment.type === "credit" ? adjustment.amount : 0,
+      withdrawAmount: adjustment.type === "debit" ? adjustment.amount : 0,
       paid: adjustment.type === "debit" ? formatCurrencyAmount(adjustment.amount, adjustment.currency || openingCurrency) : "-",
       balance: formatCurrencyAmount(adjustment.balanceDelta || 0, adjustment.currency || openingCurrency),
       currency: adjustment.currency || openingCurrency,
@@ -1094,8 +1110,8 @@ function SupplierPortalPanel({
         index + 1,
         <span key="date">{row.date}<small>{getShamsiLabel(row.rawDate)}</small></span>,
         row.description,
-        row.deposit,
-        <span className="supplier-warning-text" key="withdraw">{row.withdraw}</span>,
+        <LedgerAmount key="deposit" type="credit" value={row.depositAmount} currency={row.currency || openingCurrency} />,
+        <LedgerAmount key="withdraw" type="debit" value={row.withdrawAmount} currency={row.currency || openingCurrency} />,
         <span className="supplier-success-text" key="paid">{row.paid}</span>,
         row.balance,
         row.currency,
@@ -1200,6 +1216,7 @@ function SupplierModal({
   initialSupplier,
   onClose,
   onSave,
+  phoneRules,
 }) {
   const [form, setForm] = useState(() => ({
     ...emptySupplier,
@@ -1246,7 +1263,7 @@ function SupplierModal({
           <Field label="Name" required invalid={submitted && !form.name.trim()}>
             <input autoFocus value={form.name} onChange={(event) => update("name", event.target.value)} />
           </Field>
-          <Field label="Phone"><input value={form.phone} onChange={(event) => update("phone", event.target.value)} /></Field>
+          <Field label="Phone"><input inputMode="numeric" maxLength={phoneRules?.enabled ? phoneRules.maxLength : undefined} value={form.phone} onChange={(event) => update("phone", limitPhoneValue(event.target.value, phoneRules))} /></Field>
           <Field label="Email"><input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} /></Field>
           <Field label="Business Type"><input value={form.businessType} onChange={(event) => update("businessType", event.target.value)} /></Field>
           <Field label="Currency">

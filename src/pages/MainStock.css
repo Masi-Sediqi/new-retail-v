@@ -485,7 +485,7 @@
 .main-stock-purchase-lines {
   padding: 16px 18px 0;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .main-stock-line {
@@ -493,6 +493,39 @@
   grid-template-columns: minmax(220px, 1.6fr) 110px 90px 110px 110px 110px 145px 40px;
   gap: 8px;
   align-items: start;
+}
+
+.main-stock-line-frame {
+  border: 1px solid #e8e0d4;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  padding: 12px;
+}
+
+.main-stock-line-frame-title {
+  min-height: 28px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.main-stock-line-frame-title strong {
+  color: #111827;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.main-stock-line-frame-title span {
+  max-width: 360px;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .main-stock-line-head {

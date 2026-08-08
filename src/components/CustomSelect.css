@@ -74,6 +74,7 @@
 }
 
 .floating-select-menu button:hover,
+.floating-select-menu button.active-option,
 .floating-select-menu button.selected {
   background: #eef2ff;
   color: #3730a3;
@@ -91,6 +92,7 @@ body.dark-mode .floating-select-menu button {
 }
 
 body.dark-mode .floating-select-menu button:hover,
+body.dark-mode .floating-select-menu button.active-option,
 body.dark-mode .floating-select-menu button.selected {
   background: #334155;
   color: #ffffff;

@@ -9,6 +9,16 @@ import {
   TrendingDown,
   WalletCards,
 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import CustomSelect from "../components/CustomSelect";
 import StandardPrintStudio from "../components/StandardPrintStudio";
 import TablePagination from "../components/TablePagination";
@@ -84,15 +94,15 @@ const getDateLabel = (value) => {
   return date ? date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "-";
 };
 
-function MetricCard({ icon: Icon, label, tone = "green", value }) {
+function MetricCard({ icon: Icon, label, onClick, tone = "green", value }) {
   return (
-    <article className={`finance-stat-card ${tone}`}>
+    <button type="button" className={`finance-stat-card ${tone}`} onClick={onClick}>
       <div>
         <span>{label}</span>
         <strong>{value}</strong>
       </div>
       <Icon size={22} />
-    </article>
+    </button>
   );
 }
 
@@ -125,6 +135,7 @@ function Finance() {
   const [customEndDate, setCustomEndDate] = useState("");
   const [search, setSearch] = useState("");
   const [printReportOpen, setPrintReportOpen] = useState(false);
+  const [detailMetric, setDetailMetric] = useState(null);
 
   const filteredSales = useMemo(
     () =>
@@ -261,6 +272,200 @@ function Finance() {
     [baseCurrency, ledgerRows]
   );
 
+  const detailRowsByMetric = useMemo(() => {
+    const saleRows = filteredSales.map((sale) => ({
+      id: `sale-${sale.id}`,
+      date: sale.date || sale.billDate || sale.createdAt,
+      item: sale.invoiceNumber || sale.billNumber || `Sale ${sale.id || ""}`.trim(),
+      note: sale.customerName || "Customer sale",
+      type: "Credit",
+      tone: "income",
+      amount: getSaleTotal(sale),
+      currency: sale.currency || baseCurrency,
+    }));
+    const paidRows = filteredSales
+      .filter((sale) => getSalePaid(sale) > 0)
+      .map((sale) => ({
+        id: `paid-${sale.id}`,
+        date: sale.date || sale.billDate || sale.createdAt,
+        item: sale.invoiceNumber || sale.billNumber || `Sale ${sale.id || ""}`.trim(),
+        note: sale.customerName || "Paid revenue",
+        type: "Credit",
+        tone: "income",
+        amount: getSalePaid(sale),
+        currency: sale.currency || baseCurrency,
+      }));
+    const pendingRows = filteredSales
+      .filter((sale) => getSaleBalance(sale) > 0)
+      .map((sale) => ({
+        id: `pending-${sale.id}`,
+        date: sale.date || sale.billDate || sale.createdAt,
+        item: sale.invoiceNumber || sale.billNumber || `Sale ${sale.id || ""}`.trim(),
+        note: sale.customerName || "Pending payment",
+        type: "Pending",
+        tone: "warning",
+        amount: getSaleBalance(sale),
+        currency: sale.currency || baseCurrency,
+      }));
+    const discountRows = filteredSales
+      .filter((sale) => getSaleDiscount(sale) > 0)
+      .map((sale) => ({
+        id: `discount-${sale.id}`,
+        date: sale.date || sale.billDate || sale.createdAt,
+        item: sale.invoiceNumber || sale.billNumber || `Sale ${sale.id || ""}`.trim(),
+        note: sale.customerName || "Discount",
+        type: "Debit",
+        tone: "expense",
+        amount: getSaleDiscount(sale),
+        currency: sale.currency || baseCurrency,
+      }));
+    const expenseRows = filteredExpenses.map((expense) => ({
+      id: `expense-${expense.id}`,
+      date: expense.date || expense.createdAt,
+      item: expense.description || expense.title || "Expense",
+      note: expense.category || expense.method || "Expense",
+      type: "Debit",
+      tone: "expense",
+      amount: parseNumber(expense.amount),
+      currency: expense.currency || baseCurrency,
+    }));
+    const cogsRows = filteredSales.flatMap((sale) =>
+      (sale.items || sale.products || []).map((item, index) => ({
+        id: `cogs-${sale.id}-${item.id || index}`,
+        date: sale.date || sale.billDate || sale.createdAt,
+        item: item.productName || item.name || item.title || "Sold item",
+        note: sale.invoiceNumber || sale.billNumber || "Cost of goods sold",
+        type: "Debit",
+        tone: "expense",
+        amount: getLineCost(item),
+        currency: sale.currency || baseCurrency,
+      }))
+    );
+    const stockRows = products
+      .filter((product) => currencyMatchesFilter(product.currency || baseCurrency, businessCurrencyFilter))
+      .map((product) => ({
+        id: `stock-${product.id}`,
+        date: product.updatedAt || product.createdAt,
+        item: product.name || product.productName || product.code || "Product",
+        note: `Qty ${parseNumber(product.quantity || product.stock || product.availableQuantity)}`,
+        type: "Stock",
+        tone: "neutral",
+        amount: getStockValue(product),
+        currency: product.currency || baseCurrency,
+      }));
+    const staffRows = staffMembers
+      .filter((staff) => currencyMatchesFilter(staff.currency || baseCurrency, businessCurrencyFilter))
+      .flatMap((staff) =>
+        (staff.payrollHistory || []).map((entry) => ({
+          id: `staff-paid-${staff.id}-${entry.id}`,
+          date: entry.createdAt || entry.date,
+          item: staff.name || "Staff member",
+          note: entry.notes || entry.period || "Payroll",
+          type: "Debit",
+          tone: "expense",
+          amount: parseNumber(entry.paidAmountBase ?? entry.paidAmount),
+          currency: entry.staffCurrency || entry.earningCurrency || entry.currency || staff.currency || baseCurrency,
+        }))
+      );
+    const manualIncomeRows = manualTransactions
+      .filter((transaction) => transaction.type === "income")
+      .map((transaction) => ({
+        id: `manual-income-${transaction.id}`,
+        date: transaction.date || transaction.createdAt,
+        item: transaction.title || "Manual income",
+        note: transaction.category || transaction.description || "Financial",
+        type: "Credit",
+        tone: "income",
+        amount: parseNumber(transaction.amount),
+        currency: transaction.currency || baseCurrency,
+      }));
+    const manualExpenseRows = manualTransactions
+      .filter((transaction) => transaction.type === "expense")
+      .map((transaction) => ({
+        id: `manual-expense-${transaction.id}`,
+        date: transaction.date || transaction.createdAt,
+        item: transaction.title || "Manual expense",
+        note: transaction.category || transaction.description || "Financial",
+        type: "Debit",
+        tone: "expense",
+        amount: parseNumber(transaction.amount),
+        currency: transaction.currency || baseCurrency,
+      }));
+
+    const revenue = [...saleRows, ...manualIncomeRows];
+    const expenses = [...expenseRows, ...manualExpenseRows];
+    const grossProfit = [
+      ...revenue,
+      ...cogsRows.map((row) => ({ ...row, amount: -Math.abs(row.amount) })),
+    ];
+    const netProfit = [
+      ...grossProfit,
+      ...expenses.map((row) => ({ ...row, amount: -Math.abs(row.amount) })),
+    ];
+
+    return {
+      revenue,
+      expenses,
+      grossProfit,
+      netProfit,
+      discounts: discountRows,
+      pending: pendingRows,
+      stockValue: stockRows,
+      staffPaid: staffRows,
+      pureProfit: [
+        ...revenue,
+        ...expenses.map((row) => ({ ...row, amount: -Math.abs(row.amount) })),
+      ],
+      paidRevenue: paidRows,
+      cogs: cogsRows,
+    };
+  }, [baseCurrency, businessCurrencyFilter, filteredExpenses, filteredSales, manualTransactions, products, staffMembers]);
+
+  const metricCards = useMemo(
+    () => [
+      { key: "revenue", icon: DollarSign, label: "Revenue", tone: "green", value: metrics.revenue },
+      { key: "expenses", icon: WalletCards, label: "Expenses", tone: "red", value: metrics.expenses },
+      { key: "grossProfit", icon: BarChart3, label: "Gross Profit", tone: "blue", value: metrics.grossProfit },
+      { key: "netProfit", icon: BarChart3, label: "Net Profit", tone: metrics.netProfit >= 0 ? "green" : "red", value: metrics.netProfit },
+      { key: "discounts", icon: TrendingDown, label: "Total Discounts", tone: "orange", value: metrics.discounts },
+      { key: "pending", icon: CreditCard, label: "Pending Payments", tone: "orange", value: metrics.pending },
+      { key: "stockValue", icon: WalletCards, label: "Stock Value", tone: "blue", value: metrics.stockValue },
+      { key: "staffPaid", icon: CalendarDays, label: "Staff Paid", tone: "green", value: metrics.staffPaid },
+    ],
+    [metrics]
+  );
+
+  const trendRows = useMemo(
+    () => [
+      { key: "revenue", label: "Revenue", type: "Credit", tone: "income", amount: metrics.revenue, records: detailRowsByMetric.revenue.length, note: "Sales and manual income" },
+      { key: "paidRevenue", label: "Paid Revenue", type: "Credit", tone: "income", amount: metrics.paidRevenue, records: detailRowsByMetric.paidRevenue.length, note: "Received customer payments" },
+      { key: "pending", label: "Pending Payments", type: "Pending", tone: "warning", amount: metrics.pending, records: detailRowsByMetric.pending.length, note: "Unpaid customer balance" },
+      { key: "cogs", label: "COGS", type: "Debit", tone: "expense", amount: metrics.cogs, records: detailRowsByMetric.cogs.length, note: "Estimated sold goods cost" },
+      { key: "expenses", label: "Expenses", type: "Debit", tone: "expense", amount: metrics.expenses, records: detailRowsByMetric.expenses.length, note: "Business and manual expenses" },
+      { key: "grossProfit", label: "Gross Profit", type: "Profit", tone: metrics.grossProfit >= 0 ? "income" : "expense", amount: metrics.grossProfit, records: detailRowsByMetric.grossProfit.length, note: "Revenue minus COGS" },
+      { key: "netProfit", label: "Net Profit", type: "Profit", tone: metrics.netProfit >= 0 ? "income" : "expense", amount: metrics.netProfit, records: detailRowsByMetric.netProfit.length, note: "After COGS and expenses" },
+      { key: "stockValue", label: "Stock Value", type: "Asset", tone: "neutral", amount: metrics.stockValue, records: detailRowsByMetric.stockValue.length, note: "Current product value" },
+    ],
+    [detailRowsByMetric, metrics]
+  );
+
+  const trendChartRows = useMemo(
+    () =>
+      trendRows.map((row) => ({
+        ...row,
+        chartAmount: Math.abs(parseNumber(row.amount)),
+        fill:
+          row.tone === "expense"
+            ? "#dc2626"
+            : row.tone === "warning"
+              ? "#d97706"
+              : row.tone === "neutral"
+                ? "#4f46e5"
+                : "#16a34a",
+      })),
+    [trendRows]
+  );
+
   return (
     <div className="finance-page">
       <div className="finance-header">
@@ -303,14 +508,16 @@ function Finance() {
       )}
 
       <div className="finance-stats">
-        <MetricCard icon={DollarSign} label="Revenue" value={formatCurrencyAmount(metrics.revenue, baseCurrency)} />
-        <MetricCard icon={WalletCards} label="Expenses" tone="red" value={formatCurrencyAmount(metrics.expenses, baseCurrency)} />
-        <MetricCard icon={BarChart3} label="Gross Profit" tone="blue" value={formatCurrencyAmount(metrics.grossProfit, baseCurrency)} />
-        <MetricCard icon={BarChart3} label="Net Profit" tone={metrics.netProfit >= 0 ? "green" : "red"} value={formatCurrencyAmount(metrics.netProfit, baseCurrency)} />
-        <MetricCard icon={TrendingDown} label="Total Discounts" tone="orange" value={formatCurrencyAmount(metrics.discounts, baseCurrency)} />
-        <MetricCard icon={CreditCard} label="Pending Payments" tone="orange" value={formatCurrencyAmount(metrics.pending, baseCurrency)} />
-        <MetricCard icon={WalletCards} label="Stock Value" tone="blue" value={formatCurrencyAmount(metrics.stockValue, baseCurrency)} />
-        <MetricCard icon={CalendarDays} label="Staff Paid" value={formatCurrencyAmount(metrics.staffPaid, baseCurrency)} />
+        {metricCards.map((card) => (
+          <MetricCard
+            key={card.key}
+            icon={card.icon}
+            label={card.label}
+            tone={card.tone}
+            value={formatCurrencyAmount(card.value, baseCurrency)}
+            onClick={() => setDetailMetric(card)}
+          />
+        ))}
       </div>
 
       <div className="finance-summary-grid">
@@ -339,6 +546,65 @@ function Finance() {
           <StatementRow amount={formatCurrencyAmount(metrics.netProfit, baseCurrency)} label="Net Profit" note="Revenue minus COGS and expenses" tone="outline" />
         </section>
       </div>
+
+      <section className="finance-table-card finance-trend-card">
+        <div className="finance-table-header">
+          <div>
+            <h3>Financial Trend</h3>
+            <p>Graph summary across revenue, expenses, profit, stock and pending balances.</p>
+          </div>
+        </div>
+        <div className="finance-trend-graph-layout">
+          <div className="finance-trend-chart" aria-label="Financial trend chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={trendChartRows} margin={{ top: 16, right: 18, left: 0, bottom: 6 }}>
+                <CartesianGrid strokeDasharray="4 4" vertical={false} />
+                <XAxis dataKey="label" angle={-16} height={62} interval={0} textAnchor="end" tickLine={false} />
+                <YAxis tickFormatter={(value) => Number(value).toLocaleString("en-US")} width={62} />
+                <Tooltip
+                  cursor={{ fill: "rgba(15, 23, 42, 0.05)" }}
+                  formatter={(value, _name, item) => [
+                    formatCurrencyAmount(item?.payload?.amount ?? value, baseCurrency),
+                    item?.payload?.type || "Impact",
+                  ]}
+                />
+                <Bar dataKey="chartAmount" name="Impact" radius={[9, 9, 0, 0]}>
+                  {trendChartRows.map((row) => (
+                    <Cell key={row.key} fill={row.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="finance-trend-side" aria-label="Financial trend records">
+            {trendChartRows.map((row) => {
+              const metric = metricCards.find((card) => card.key === row.key) || {
+                key: row.key,
+                label: row.label,
+                value: row.amount,
+              };
+              return (
+                <button
+                  type="button"
+                  className="finance-trend-chip"
+                  key={row.key}
+                  onClick={() => setDetailMetric(metric)}
+                >
+                  <span style={{ backgroundColor: row.fill }} />
+                  <div>
+                    <strong>{row.label}</strong>
+                    <small>{row.records} records / {row.note}</small>
+                  </div>
+                  <b className={row.tone === "expense" ? "finance-trend-loss" : row.tone === "warning" ? "finance-trend-warn" : "finance-trend-gain"}>
+                    {formatCurrencyAmount(row.amount, baseCurrency)}
+                  </b>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       <section className="finance-table-card">
         <div className="finance-table-header">
@@ -408,6 +674,62 @@ function Finance() {
           onClose={() => setPrintReportOpen(false)}
         />
       )}
+      {detailMetric && (
+        <FinanceDetailModal
+          baseCurrency={baseCurrency}
+          metric={detailMetric}
+          rows={detailRowsByMetric[detailMetric.key] || []}
+          onClose={() => setDetailMetric(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function FinanceDetailModal({ baseCurrency, metric, onClose, rows }) {
+  const total = rows.reduce((sum, row) => sum + parseNumber(row.amount), 0);
+  return (
+    <div className="finance-detail-backdrop">
+      <section className="finance-detail-modal">
+        <div className="finance-detail-title">
+          <div>
+            <h2>{metric.label}</h2>
+            <p>{rows.length} related records / Total {formatCurrencyAmount(total || metric.value, baseCurrency)}</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close financial details">×</button>
+        </div>
+        <div className="finance-detail-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Type</th>
+                <th>Note</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{getDateLabel(row.date)}</td>
+                  <td>{row.item}</td>
+                  <td><span className={`finance-badge ${row.tone === "warning" ? "expense" : row.tone}`}>{row.type}</span></td>
+                  <td>{row.note}</td>
+                  <td className={parseNumber(row.amount) < 0 || row.tone === "expense" ? "finance-detail-debit" : "finance-detail-credit"}>
+                    {formatCurrencyAmount(Math.abs(parseNumber(row.amount)), row.currency || baseCurrency)}
+                  </td>
+                </tr>
+              ))}
+              {!rows.length && (
+                <tr>
+                  <td className="finance-empty" colSpan="5">No related record found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

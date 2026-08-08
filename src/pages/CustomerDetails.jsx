@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useJsonCollection } from "../hooks/useJsonCollection";
 import { notify } from "../utils/notify";
 import { formatDateTime } from "../utils/afghanDate";
+import { LedgerAmount } from "../utils/ledgerDisplay";
 import "./CustomerDetails.css";
 
 function money(value) {
@@ -18,6 +19,7 @@ function CustomerDetails() {
   const navigate = useNavigate();
 
   const [customers, setCustomers, , customersLoaded] = useJsonCollection("customers");
+  const [billingInvoices, , , invoicesLoaded] = useJsonCollection("billingInvoices");
   const [customerPackages, setCustomerPackages, , packagesLoaded] =
     useJsonCollection("customerPackages");
   const [customerPayments, setCustomerPayments, , paymentsLoaded] =
@@ -106,6 +108,19 @@ function CustomerDetails() {
           String(item.customerId) === String(customer.customerId) ||
           String(item.customerRecordId) === String(customer.id)
       )
+    : [];
+
+  const billingSales = customer
+    ? billingInvoices.filter((item) => {
+        const invoiceCustomerId = String(item.customerId || item.customerRecordId || "");
+        const invoiceCustomerName = String(item.customerName || "").trim().toLowerCase();
+        const customerName = String(customer.customerName || customer.name || "").trim().toLowerCase();
+        return (
+          invoiceCustomerId === String(customer.customerId || "") ||
+          invoiceCustomerId === String(customer.id || "") ||
+          (!invoiceCustomerId && invoiceCustomerName && invoiceCustomerName === customerName)
+        );
+      })
     : [];
 
   const today = new Date().toISOString().slice(0, 10);
@@ -489,7 +504,12 @@ function CustomerDetails() {
     0
   );
 
-  const totalAccountValue = totalPrice + totalDeviceSaleValue + totalDamageChargeValue;
+  const totalBillingSaleValue = billingSales.reduce(
+    (sum, item) => sum + Number(item.total || 0),
+    0
+  );
+
+  const totalAccountValue = totalPrice + totalDeviceSaleValue + totalDamageChargeValue + totalBillingSaleValue;
 
   const deviceSalePaidTotal = soldDeviceTransfers.reduce(
     (sum, item) => sum + Number(item.paidAmount || 0),
@@ -498,6 +518,11 @@ function CustomerDetails() {
 
   const damagePaidTotal = customerDamageTransfers.reduce(
     (sum, item) => sum + Number(item.customerDamagePaidAmount || item.paidAmount || 0),
+    0
+  );
+
+  const billingSalePaidTotal = billingSales.reduce(
+    (sum, item) => sum + Number(item.paidAmount || 0),
     0
   );
 
@@ -521,6 +546,7 @@ function CustomerDetails() {
     legacyPaymentTotal +
     deviceSalePaidTotal +
     damagePaidTotal +
+    billingSalePaidTotal +
     customerPaymentRecords.reduce(
       (sum, item) =>
         getPaymentDirection(item) === "customer-to-us"
@@ -577,6 +603,18 @@ function CustomerDetails() {
     })),
 
     ...initialPaymentRows,
+
+    ...billingSales.map((item) => ({
+      id: `billing-sale-${item.id}`,
+      type: "Product Sale",
+      date: item.gregorianDate || item.date || item.createdAt?.slice(0, 10) || "-",
+      timeSource: item.createdAt || item.updatedAt || "",
+      description: `${item.invoiceNumber || "-"} - ${(item.items || []).length} item(s)`,
+      debit: Number(item.total || 0),
+      credit: Number(item.paidAmount || 0),
+      status: Number(item.balance || 0) > 0 ? "Loan" : "Paid",
+      record: item,
+    })),
 
     ...soldDeviceTransfers.map((item) => ({
       id: `device-sale-${item.id}`,
@@ -1312,6 +1350,7 @@ const saveCustomerPayment = async (event) => {
 
   if (
     !customersLoaded ||
+    !invoicesLoaded ||
     !packagesLoaded ||
     !paymentsLoaded ||
     !transfersLoaded ||
@@ -1347,24 +1386,13 @@ const saveCustomerPayment = async (event) => {
         </div>
 
         <div className="customer-details-header-actions">
-          {String(customer.status || "").toLowerCase() === "suspend" ? (
+          {String(customer.status || "").toLowerCase() === "suspend" && (
             <button
               type="button"
               className="customer-details-payment-btn"
               onClick={openReconnectModal}
             >
               Reconnect
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="customer-details-disconnect-btn"
-              onClick={() => {
-                resetDisconnectForm();
-                setShowDisconnectModal(true);
-              }}
-            >
-              Suspend
             </button>
           )}
 
@@ -1539,8 +1567,22 @@ const saveCustomerPayment = async (event) => {
                     </span>
                   </td>
                   <td>{row.description || "-"}</td>
-                  <td>{row.debit ? `${money(row.debit)} AFN` : "-"}</td>
-                  <td>{row.credit ? `${money(row.credit)} AFN` : "-"}</td>
+                  <td>
+                    <LedgerAmount
+                      type="debit"
+                      value={row.debit}
+                      currency="AFN"
+                      formatter={(value, currency) => `${money(value)} ${currency}`}
+                    />
+                  </td>
+                  <td>
+                    <LedgerAmount
+                      type="credit"
+                      value={row.credit}
+                      currency="AFN"
+                      formatter={(value, currency) => `${money(value)} ${currency}`}
+                    />
+                  </td>
                   <td>{row.status || "-"}</td>
                   <td>
   {row.type === "Package Purchase" ? (
@@ -1921,7 +1963,6 @@ const saveCustomerPayment = async (event) => {
                     <option value="Active">Active</option>
                     <option value="Expired">Expired</option>
                     <option value="Paused">Paused</option>
-                    <option value="Suspend">Suspend</option>
                   </select>
                 </div>
 
@@ -2040,7 +2081,7 @@ const saveCustomerPayment = async (event) => {
         </div>
       )}
 
-      {showDisconnectModal && (
+      {false && (
   <div
     className="customer-details-modal-backdrop"
   >

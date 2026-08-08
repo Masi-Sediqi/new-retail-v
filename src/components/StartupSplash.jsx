@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import backgroundImage from "../assets/Background.png";
+import logoImage from "../assets/logo.jpeg";
 import "./StartupSplash.css";
 
 const DISPLAY_TIME_MS = 3000;
@@ -57,9 +58,12 @@ function StartupSplash() {
       <div className="startup-splash-overlay" />
 
       <div className="startup-splash-content">
+        <div className="startup-splash-logo">
+          <img src={logoImage} alt="" />
+        </div>
         <span>POWERED BY</span>
         <strong>AFGHAN POWER</strong>
-        <p>Smart Office Management System</p>
+        <p>Asset & Inventory Management</p>
         <div className="startup-splash-line">
           <i />
         </div>

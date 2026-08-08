@@ -26,6 +26,7 @@ import {
   currencies,
   formatCurrencyAmount,
 } from "../utils/currencyExchange";
+import { afghanToGregorian, gregorianToAfghan } from "../utils/afghanDate";
 import { normalizePrintSettings } from "../utils/printStudio";
 import "./Billing.css";
 
@@ -37,6 +38,34 @@ const formatDateInput = (date) => {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+};
+
+const formatAfghanInput = (value) => {
+  const afghanDate = gregorianToAfghan(value);
+  if (!afghanDate) return "";
+  return `${afghanDate.jy}-${String(afghanDate.jm).padStart(2, "0")}-${String(
+    afghanDate.jd
+  ).padStart(2, "0")}`;
+};
+
+const isAfghanDateValue = (value) => {
+  const year = Number(String(value || "").slice(0, 4));
+  return year > 1200 && year < 1700;
+};
+
+const normalizeStoredBillDate = (invoice) => {
+  const rawDate = invoice?.date || formatDateInput(new Date());
+  const calendar = invoice?.dateCalendar || (isAfghanDateValue(rawDate) ? "shamsi" : "gregorian");
+  const gregorianDate =
+    invoice?.gregorianDate ||
+    (calendar === "shamsi"
+      ? afghanToGregorian(...String(rawDate).slice(0, 10).split("-").map(Number))
+      : rawDate);
+
+  return {
+    calendar,
+    gregorianDate: gregorianDate || formatDateInput(new Date()),
+  };
 };
 
 const defaultPaymentMethods = [
@@ -58,6 +87,8 @@ const getCustomerName = (customer) =>
   customer.name ||
   `${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
   "Customer";
+
+const normalizeCustomerName = (value) => String(value || "").trim().toLowerCase();
 
 function ScannerModal({ onClose, onScan }) {
   const [manualCode, setManualCode] = useState("");
@@ -305,7 +336,8 @@ function Billing() {
   const [currency, setCurrency] = useState(baseCurrency);
   const [discountMode, setDiscountMode] = useState("flat");
   const [discount, setDiscount] = useState("0");
-  const [billDate, setBillDate] = useState(formatDateInput(new Date()));
+  const [billGregorianDate, setBillGregorianDate] = useState(formatDateInput(new Date()));
+  const [billDateCalendar, setBillDateCalendar] = useState("gregorian");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentStatusMode, setPaymentStatusMode] = useState("paid");
   const [paidAmountInput, setPaidAmountInput] = useState("");
@@ -355,7 +387,9 @@ function Billing() {
     setCurrency(editingSale.currency || baseCurrency);
     setDiscountMode(editingSale.discountMode || "flat");
     setDiscount(String(parseMoney(editingSale.discount)));
-    setBillDate(editingSale.date || formatDateInput(new Date()));
+    const storedBillDate = normalizeStoredBillDate(editingSale);
+    setBillGregorianDate(storedBillDate.gregorianDate);
+    setBillDateCalendar(storedBillDate.calendar);
     setPaymentMethod(editingSale.paymentMethod || "cash");
     setPaymentStatusMode(parseMoney(editingSale.balance) > 0 ? "loan" : "paid");
     setPaidAmountInput(parseMoney(editingSale.balance) > 0 ? String(parseMoney(editingSale.paidAmount)) : "");
@@ -471,6 +505,8 @@ function Billing() {
           unit: product.unit || "Piece",
           currency: billCurrency,
           originalCurrency: productCurrency,
+          originalPrice: roundMoney(product.selling),
+          originalPurchase: roundMoney(purchasePrice),
           price: roundMoney(convertedPrice),
           purchase: roundMoney(convertedPurchase),
           cost: roundMoney(convertedPurchase),
@@ -489,13 +525,28 @@ function Billing() {
     if (nextCurrency === currency) return;
 
     const convertedItems = items.map((item) => {
-      const convertedPrice = convertMoney(item.price, item.currency, nextCurrency);
+      const sourceCurrency = item.originalCurrency || item.currency || currency;
+      const sourcePrice =
+        item.originalPrice !== undefined && item.originalPrice !== null
+          ? item.originalPrice
+          : item.price;
+      const sourcePurchase =
+        item.originalPurchase !== undefined && item.originalPurchase !== null
+          ? item.originalPurchase
+          : item.purchase || item.cost;
+      const convertedPrice = convertMoney(sourcePrice, sourceCurrency, nextCurrency);
       const convertedDiscount = convertMoney(item.discount, item.currency, nextCurrency);
-      if (convertedPrice === null || convertedDiscount === null) return null;
+      const convertedPurchase = convertMoney(sourcePurchase, sourceCurrency, nextCurrency);
+      if (convertedPrice === null || convertedDiscount === null || convertedPurchase === null) return null;
       return {
         ...item,
         currency: nextCurrency,
+        originalCurrency: sourceCurrency,
+        originalPrice: roundMoney(sourcePrice),
+        originalPurchase: roundMoney(sourcePurchase),
         price: roundMoney(convertedPrice),
+        purchase: roundMoney(convertedPurchase),
+        cost: roundMoney(convertedPurchase),
         discount: roundMoney(convertedDiscount),
       };
     });
@@ -563,6 +614,9 @@ function Billing() {
   const paidAmount = paymentStatusMode === "paid" ? total : parseMoney(paidAmountInput);
   const balance = Math.max(0, total - paidAmount);
   const paidTooHigh = paymentStatusMode === "loan" && paidAmount > total;
+  const billShamsiDate = formatAfghanInput(billGregorianDate);
+  const billDate =
+    billDateCalendar === "shamsi" ? billShamsiDate || billGregorianDate : billGregorianDate;
 
   const createInvoice = (customerOverride = null) => {
     const selectedCustomer = customerOverride || customers.find(
@@ -578,6 +632,9 @@ function Billing() {
       recordType: "Sale",
       invoiceNumber,
       date: billDate,
+      dateCalendar: billDateCalendar,
+      gregorianDate: billGregorianDate,
+      shamsiDate: billShamsiDate,
       customerId: selectedCustomer ? String(selectedCustomer.id || selectedCustomer.customerId) : "",
       customerName: selectedCustomer ? getCustomerName(selectedCustomer) : walkInName || "Walk-in customer",
       currency,
@@ -611,7 +668,8 @@ function Billing() {
     setCurrency(baseCurrency);
     setDiscountMode("flat");
     setDiscount("0");
-    setBillDate(formatDateInput(new Date()));
+    setBillGregorianDate(formatDateInput(new Date()));
+    setBillDateCalendar("gregorian");
     setPaymentMethod("cash");
     setPaymentStatusMode("paid");
     setPaidAmountInput("");
@@ -641,7 +699,10 @@ function Billing() {
     }
 
     const cleanWalkInName = walkInName.trim();
-    const walkInCustomer = !editingSale && !customerId && cleanWalkInName
+    const existingWalkInCustomer = !editingSale && !customerId && cleanWalkInName
+      ? customers.find((customer) => normalizeCustomerName(getCustomerName(customer)) === normalizeCustomerName(cleanWalkInName))
+      : null;
+    const walkInCustomer = !editingSale && !customerId && cleanWalkInName && !existingWalkInCustomer
       ? {
           id: `customer-${Date.now()}`,
           customerId: `customer-${Date.now()}`,
@@ -662,7 +723,7 @@ function Billing() {
       : null;
     if (walkInCustomer) walkInCustomer.customerId = walkInCustomer.id;
 
-    const invoice = createInvoice(walkInCustomer);
+    const invoice = createInvoice(existingWalkInCustomer || walkInCustomer);
 
     if (editingSale) {
       const stockSaved = await setProducts((currentProducts) => currentProducts.map((product) => {
@@ -1074,13 +1135,42 @@ function Billing() {
 
           <label className="billing-field">
             <span>Date</span>
-            <div className="billing-date-field">
-              <CalendarDays size={16} />
-              <input
-                type="date"
-                value={billDate}
-                onChange={(event) => setBillDate(event.target.value)}
-              />
+            <div className="billing-date-picker">
+              <div className="billing-date-tabs">
+                <button
+                  type="button"
+                  className={billDateCalendar === "gregorian" ? "active" : ""}
+                  onClick={() => setBillDateCalendar("gregorian")}
+                >
+                  Gregorian (Isai)
+                </button>
+                <button
+                  type="button"
+                  className={billDateCalendar === "shamsi" ? "active" : ""}
+                  onClick={() => setBillDateCalendar("shamsi")}
+                >
+                  Shamsi (AFG)
+                </button>
+              </div>
+              <div className="billing-date-field">
+                <input
+                  className="billing-date-display"
+                  value={billDateCalendar === "shamsi" ? billShamsiDate : billGregorianDate}
+                  readOnly
+                />
+                <label className="billing-date-native">
+                  <CalendarDays size={16} />
+                  <input
+                    type="date"
+                    value={billGregorianDate}
+                    onChange={(event) => setBillGregorianDate(event.target.value)}
+                    aria-label="Select Gregorian bill date"
+                  />
+                </label>
+              </div>
+              <small className="billing-date-conversion">
+                {billGregorianDate} · {billShamsiDate}
+              </small>
             </div>
           </label>
 

@@ -160,6 +160,15 @@
   font-weight: 900;
 }
 
+.sales-net-profit {
+  color: #16a34a !important;
+  font-weight: 900;
+}
+
+.sales-net-profit.loss {
+  color: #dc2626 !important;
+}
+
 .sales-status {
   min-height: 26px;
   border-radius: 999px;
@@ -503,6 +512,61 @@ body.dark-mode .sales-refund-modal{background:#111827;color:#f8fafc}.sales-modal
 
 .receipt-report-paper{position:relative;background:#fff;color:#111827;min-height:100mm;padding:5mm;font-family:"Courier New",monospace;font-size:var(--receipt-body);box-shadow:0 8px 22px rgba(15,23,42,.16);overflow:hidden}.receipt-report-paper header{text-align:center}.receipt-report-paper header img,.receipt-logo{width:34px;height:34px;object-fit:contain;margin:0 auto 5px;border-radius:50%;background:#e8f6f7;color:var(--invoice-primary);display:grid;place-items:center}.receipt-report-paper h1{font-size:var(--receipt-title);margin:2px 0;text-transform:uppercase}.receipt-report-paper header p{font-size:var(--receipt-subtitle);margin:0}.receipt-divider{border-top:1px dashed #111827;margin:8px 0}.receipt-meta{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;font-size:var(--receipt-header)}.receipt-meta b{text-align:right;overflow-wrap:anywhere}.receipt-report-paper table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:var(--receipt-body)}.receipt-report-paper th,.receipt-report-paper td{padding:5px 2px;border-bottom:1px dashed #374151;text-align:right;overflow:hidden;text-overflow:ellipsis}.receipt-report-paper th:first-child,.receipt-report-paper td:first-child{text-align:left;width:42%}.receipt-report-paper td small{display:block}.receipt-totals{display:grid;grid-template-columns:1fr auto;gap:5px 10px}.receipt-totals b,.receipt-totals strong{text-align:right}.receipt-totals strong{font-size:calc(var(--receipt-body) + 2px);border-block:1px solid #111827;padding-block:5px}.receipt-report-paper footer{display:grid;gap:5px;text-align:center;margin-top:12px;font-size:var(--receipt-footer)}.receipt-report-paper.sheet{max-width:90mm;min-height:130mm}.receipt-print-canvas{align-items:flex-start}
 @media print{.receipt-report-paper{box-shadow:none!important;zoom:1!important;margin:0 auto!important}.receipt-print-studio .invoice-print-body{display:block!important}.receipt-print-canvas{display:block!important}}
+
+/* Elegant print report branding: soft gold blended with charcoal. Tables, totals, and values stay unchanged. */
+.invoice-report-paper,
+.standard-report-paper {
+  --print-gold-soft: #f4d58a;
+  --print-gold-deep: #c99a2e;
+  --print-charcoal: #22252b;
+  --print-charcoal-soft: #3a3d44;
+}
+
+.invoice-report-header,
+.standard-report-header {
+  background:
+    radial-gradient(circle at 58% 28%, rgba(255, 255, 255, 0.16), transparent 28%),
+    linear-gradient(135deg, var(--print-gold-soft) 0%, var(--print-gold-deep) 34%, var(--print-charcoal-soft) 68%, var(--print-charcoal) 100%) !important;
+  color: #fffaf0 !important;
+}
+
+.invoice-report-header img,
+.invoice-report-logo,
+.standard-report-header img,
+.standard-report-logo {
+  background: rgba(255, 255, 255, 0.78) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+}
+
+.invoice-report-header span,
+.invoice-report-header p,
+.standard-report-header span,
+.standard-report-header p {
+  color: rgba(255, 250, 240, 0.88) !important;
+}
+
+.invoice-report-watermark,
+.standard-report-watermark {
+  inset: 34% 27% !important;
+  width: 46% !important;
+  max-height: 36% !important;
+  object-fit: contain;
+  filter: grayscale(0.15) saturate(0.78);
+  pointer-events: none;
+}
+
+.invoice-report-heading small,
+.standard-report-heading small {
+  background: #fff7df !important;
+  color: #8a6518 !important;
+}
+
+.invoice-report-paper footer,
+.standard-report-paper footer {
+  background:
+    linear-gradient(105deg, var(--print-charcoal) 0%, var(--print-charcoal-soft) 48%, var(--print-gold-deep) 100%) !important;
+  color: rgba(255, 250, 240, 0.92) !important;
+}
 .payment-history-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:11px;border:1px solid #dce4ee;border-radius:9px;background:#f8fafc}.payment-history-summary div{display:grid;gap:3px}.payment-history-summary span,.payment-history-tools>span{font-size:10px;color:#64748b}.payment-history-summary b{font-size:13px}.paid{color:#16a34a!important}.remaining{color:#ef4444!important}.payment-history-tools{display:flex;align-items:center;justify-content:space-between;margin:11px 0}.payment-history-tools button{display:flex;align-items:center;gap:5px}.payment-history-empty{min-height:125px;display:grid;place-items:center;align-content:center;gap:5px;color:#94a3b8;text-align:center}.payment-history-empty b{color:#334155}.payment-history-empty span{font-size:10px}.payment-form-layer{z-index:2147483600;background:rgba(0,0,0,.72)}.payment-entry-modal{width:min(390px,calc(100vw - 28px));background:#fff;border-radius:12px;padding:18px;box-shadow:0 28px 80px rgba(0,0,0,.4)}.payment-entry-facts{display:grid;grid-template-columns:1fr auto;gap:7px 18px;padding:10px 2px;font-size:11px}.payment-entry-facts b{text-align:right}.payment-wallet-option{margin:10px 0;display:flex;align-items:center;justify-content:space-between;border:1px solid #dce4ee;border-radius:8px;background:#f8fafc;padding:10px}.payment-wallet-option>span{display:flex;align-items:center;gap:8px}.payment-wallet-option>span>span{display:grid;gap:2px}.payment-wallet-option small{color:#64748b;font-size:9px}.payment-wallet-option input{width:34px;height:18px;accent-color:#182744}.payment-entry-result{display:grid;grid-template-columns:1fr auto;gap:6px 15px;padding:11px;margin:10px 0;background:#f8fafc;border-radius:8px;font-size:11px}.payment-entry-result b{text-align:right}.payment-entry-modal .sales-primary-btn:disabled{opacity:.45;cursor:not-allowed}
 body.dark-mode .payment-history-summary,body.dark-mode .payment-wallet-option,body.dark-mode .payment-entry-result{background:#111827;border-color:#334155}body.dark-mode .payment-entry-modal{background:#0f172a;color:#e5e7eb}body.dark-mode .payment-history-empty b{color:#e5e7eb}
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   CreditCard,
@@ -78,6 +79,7 @@ const getDateMatches = (dateValue, filter, customStartDate, customEndDate) => {
 };
 
 function Loans() {
+  const navigate = useNavigate();
   const [sales, setSales] = useJsonCollection("billingInvoices");
   const [, setCustomers] = useJsonCollection("customers");
   const [settings] = useJsonCollection("settings");
@@ -233,6 +235,14 @@ function Loans() {
     setViewLoan(null);
   };
 
+  const openCustomerLedger = (loan) => {
+    if (!loan.customerId) {
+      setViewLoan(loan);
+      return;
+    }
+    navigate(`/customers/${encodeURIComponent(String(loan.customerId))}`);
+  };
+
   const loanReportRows = useMemo(
     () =>
       filteredLoans.map((loan) => ({
@@ -322,7 +332,7 @@ function Loans() {
             </thead>
             <tbody>
               {pagination.pageItems.map((loan) => (
-                <tr key={loan.id}>
+                <tr className="loan-clickable-row" key={loan.id} onClick={() => openCustomerLedger(loan)}>
                   <td><strong>{loan.invoiceNumber || "-"}</strong></td>
                   <td>{loan.customerName || "Walk-in customer"}</td>
                   <td><strong>{formatCurrencyAmount(loan.total, loan.currency)}</strong></td>
@@ -330,12 +340,12 @@ function Loans() {
                   <td className="loan-danger-text">{formatCurrencyAmount(loan.balance, loan.currency)}</td>
                   <td><span className={`loan-status ${loan.status}`}>{loan.status}</span></td>
                   <td>{getDateLabel(loan.date)}<small>{getShamsiLabel(loan.date)}</small></td>
-                  <td>
+                  <td onClick={(event) => event.stopPropagation()}>
                     <FloatingActionMenu
                       ariaLabel="Loan actions"
                       width={186}
                       actions={[
-                        { icon: <Eye size={15} />, label: "View", onClick: () => setViewLoan(loan) },
+                        { icon: <Eye size={15} />, label: loan.customerId ? "Customer Ledger" : "View", onClick: () => openCustomerLedger(loan) },
                         { icon: <DollarSign size={15} />, label: "Make Payment", onClick: () => setPaymentLoan(loan) },
                         { icon: <CreditCard size={15} />, label: "Mark as Paid", onClick: () => markPaid(loan) },
                         { danger: true, icon: <Trash2 size={15} />, label: "Delete", onClick: () => setDeleteLoan(loan) },

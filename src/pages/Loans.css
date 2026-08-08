@@ -212,6 +212,14 @@
   background: #f8fafc;
 }
 
+.loan-clickable-row {
+  cursor: pointer;
+}
+
+.loan-clickable-row:hover td:first-child strong {
+  color: #b45309;
+}
+
 .loan-table-wrap td strong {
   color: #111827;
   font-weight: 900;

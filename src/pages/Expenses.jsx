@@ -196,12 +196,14 @@ function Expenses() {
     await setTransactions((current) => {
       const transaction = {
         id: `expense-${cleanExpense.id}`,
+        transactionType: "withdraw",
         type: "expense",
         title: cleanExpense.description,
         amount: cleanExpense.amount,
         date: cleanExpense.date,
         description: cleanExpense.notes,
-        source: "manual-expense",
+        source: "cash-wallet",
+        referenceSource: "manual-expense",
         category: cleanExpense.category,
         method: cleanExpense.method,
         referenceId: cleanExpense.id,

@@ -28,6 +28,7 @@ import { notify } from "../utils/notify";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
 import { normalizePrintSettings } from "../utils/printStudio";
 import { createRecycleEntry } from "../utils/recycleBin";
+import defaultLogo from "../assets/logo.jpeg";
 import "./SalesBills.css";
 
 const parseNumber = (value) => Number.parseFloat(value || 0) || 0;
@@ -66,6 +67,31 @@ const getSaleDiscountTotal = (sale) =>
   parseNumber(sale.discountTotal) ||
   parseNumber(sale.itemDiscountTotal) + parseNumber(sale.discount);
 
+const getItemCost = (item, products = []) => {
+  const product = products.find(
+    (record) =>
+      String(record.id || "") === String(item.productId || "") ||
+      String(record.code || "") === String(item.code || "")
+  );
+  return parseNumber(
+    item.purchase ||
+      item.purchasePrice ||
+      item.cost ||
+      item.costPrice ||
+      product?.purchase ||
+      product?.purchasePrice
+  );
+};
+
+const getSaleNetProfit = (sale, products = []) =>
+  roundMoney(
+    (sale.items || []).reduce((sum, item) => {
+      const quantity = parseNumber(item.quantity);
+      const revenue = parseNumber(item.lineTotal) || quantity * parseNumber(item.price);
+      return sum + revenue - quantity * getItemCost(item, products);
+    }, 0) - getSaleDiscountTotal(sale)
+  );
+
 const addCurrencyTotal = (totals, amount, currency = "AFN") => ({
   ...totals,
   [currency]: (totals[currency] || 0) + parseNumber(amount),
@@ -79,7 +105,7 @@ const formatCurrencyTotals = (totals, fallbackCurrency = "AFN") => {
 
 function SalesBills() {
   const [sales, setSales] = useJsonCollection("billingInvoices");
-  const [, setProducts] = useJsonCollection("products");
+  const [products, setProducts] = useJsonCollection("products");
   const [, setCustomers] = useJsonCollection("customers");
   const [settings] = useJsonCollection("settings");
   const [transactions, setTransactions] = useJsonCollection("transactions");
@@ -441,13 +467,18 @@ function SalesBills() {
 
     const stockSaved = await setProducts((currentProducts) =>
       currentProducts.map((product) => {
+        const refundedQuantity = (deleteSale.refundHistory || [])
+          .flatMap((refund) => refund.items || [])
+          .filter((item) => String(item.productId) === String(product.id))
+          .reduce((sum, item) => sum + parseNumber(item.quantity), 0);
         const soldQuantity = (deleteSale.items || [])
           .filter((item) => String(item.productId) === String(product.id))
           .reduce((sum, item) => sum + parseNumber(item.quantity), 0);
-        return soldQuantity
+        const quantityToRestore = Math.max(0, soldQuantity - refundedQuantity);
+        return quantityToRestore
           ? {
               ...product,
-              quantity: roundMoney(parseNumber(product.quantity) + soldQuantity),
+              quantity: roundMoney(parseNumber(product.quantity) + quantityToRestore),
               updatedAt: new Date().toISOString(),
             }
           : product;
@@ -465,6 +496,25 @@ function SalesBills() {
       )
     );
     if (!transactionsSaved) return;
+
+    if (deleteSale.customerId) {
+      const customerSaved = await setCustomers((currentCustomers) =>
+        currentCustomers.map((customer) => {
+          if (String(customer.id || customer.customerId) !== String(deleteSale.customerId)) return customer;
+          return {
+            ...customer,
+            purchases: roundMoney(Math.max(0, parseNumber(customer.purchases) - parseNumber(deleteSale.total))),
+            pending: roundMoney(Math.max(0, parseNumber(customer.pending) - parseNumber(deleteSale.balance))),
+            lastSaleId:
+              String(customer.lastSaleId || "") === String(deleteSale.id)
+                ? ""
+                : customer.lastSaleId,
+            updatedAt: new Date().toISOString(),
+          };
+        })
+      );
+      if (!customerSaved) return;
+    }
 
     const saved = await setSales((current) =>
       current.filter((sale) => String(sale.id) !== String(deleteSale.id))
@@ -551,6 +601,7 @@ function SalesBills() {
                 <th>Total</th>
                 <th>Discount</th>
                 <th>Paid</th>
+                <th>Net Profit</th>
                 <th>Balance</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -569,6 +620,9 @@ function SalesBills() {
                   <td>{formatCurrencyAmount(sale.total, sale.currency)}</td>
                   <td>{formatCurrencyAmount(getSaleDiscountTotal(sale), sale.currency)}</td>
                   <td>{formatCurrencyAmount(sale.paidAmount, sale.currency)}</td>
+                  <td className={getSaleNetProfit(sale, products) < 0 ? "sales-net-profit loss" : "sales-net-profit"}>
+                    {formatCurrencyAmount(getSaleNetProfit(sale, products), sale.currency)}
+                  </td>
                   <td className={sale.balance > 0 ? "sales-warning-text" : ""}>
                     {formatCurrencyAmount(sale.balance, sale.currency)}
                   </td>
@@ -601,7 +655,7 @@ function SalesBills() {
 
               {!filteredSales.length && (
                 <tr>
-                  <td colSpan="10" className="sales-empty">
+                  <td colSpan="11" className="sales-empty">
                     No sales bill has been recorded yet.
                   </td>
                 </tr>
@@ -865,7 +919,7 @@ function InvoicePrintStudio({ sale, company, onClose }) {
         <main className="invoice-print-canvas">
           <article className={`invoice-report-paper ${thermal?"thermal":""}`} style={{width:`${paperSize[0]}mm`,minHeight:`${paperSize[1]}mm`,"--invoice-scale":scale/100,"--invoice-margin":`${thermal?Math.min(5,marginSize):marginSize}mm`,"--invoice-primary":saved.primaryColor,"--invoice-accent":saved.accentColor,"--invoice-title":`${sizes.title}px`,"--invoice-subtitle":`${sizes.subtitle}px`,"--invoice-header":`${sizes.header}px`,"--invoice-body":`${sizes.body}px`,"--invoice-footer":`${sizes.footer}px`}}>
             <header className="invoice-report-header">{saved.showLogo && saved.logo?<img src={saved.logo} alt=""/>:<div className="invoice-report-logo"><ReceiptText size={27}/></div>}<div><strong>{saved.businessNameEn}</strong><span>{saved.subtitleEn}</span></div><p>{[saved.businessNameFa,saved.subtitleFa,saved.phone,saved.address].filter(Boolean).join(" · ")}</p></header>
-            {saved.watermark&&<img className="invoice-report-watermark" src={saved.watermark} alt="" style={{opacity:Number(saved.watermarkOpacity||0)/100}}/>}
+            {(saved.watermark||saved.logo||defaultLogo)&&<img className="invoice-report-watermark" src={saved.watermark||saved.logo||defaultLogo} alt="" style={{opacity:saved.watermark?Number(saved.watermarkOpacity||0)/100:0.055}}/>}
             <section className="invoice-report-heading"><div><small>INVOICE</small><h1>Tax Invoice</h1></div><div><b>Invoice # {sale.invoiceNumber}</b><span>Date {getGregorianLabel(sale.date)} / {getShamsiShortLabel(sale.date)}</span><span>Status {status}</span></div></section>
             <section className="invoice-report-parties"><div><span>BILL TO</span><b>{sale.customerName || "Walk-in Customer"}</b></div><div><span>SOLD BY</span><b>{saved.businessNameEn}</b></div></section>
             <table data-table-enhancer="off"><thead><tr><th>#</th><th>ITEM</th><th>QTY</th><th>RATE</th><th>TOTAL</th></tr></thead><tbody>{sale.items.map((item,index)=><tr key={`${item.productId}-${index}`}><td>{index+1}</td><td><b>{item.name}</b><small>{item.code}</small></td><td>{item.quantity} {item.unit||"pcs"}</td><td>{formatCurrencyAmount(item.price,sale.currency)}</td><td>{formatCurrencyAmount(item.lineTotal,sale.currency)}</td></tr>)}</tbody></table>
@@ -982,7 +1036,7 @@ function SalesBillsPrintStudio({ company, sales, stats, onClose }) {
           <main className="standard-print-canvas">
             <article ref={reportRef} className={`standard-report-paper ${orientation}${isThermal ? " thermal" : ""}`} style={{ width: `${paperSize[0]}mm`, minHeight: `${paperSize[1]}mm`, "--report-scale": scale / 100, "--report-margin": `${isThermal ? Math.min(marginSize, 5) : marginSize}mm`, "--report-primary": saved.primaryColor, "--report-accent": saved.accentColor, "--report-title": `${sizes.title}px`, "--report-subtitle": `${sizes.subtitle}px`, "--report-header": `${sizes.header}px`, "--report-body": `${sizes.body}px`, "--report-footer": `${sizes.footer}px` }}>
               <div className="standard-report-header">{saved.showLogo && saved.logo ? <img src={saved.logo} alt="" /> : <div className="standard-report-logo"><ReceiptText size={28} /></div>}<div><strong>{saved.businessNameEn}</strong><span>{saved.subtitleEn}</span></div><p>{[saved.phone, saved.email, saved.address].filter(Boolean).join(" - ")}</p></div>
-              {saved.watermark && <img className="standard-report-watermark" src={saved.watermark} alt="" style={{ opacity: Number(saved.watermarkOpacity || 0) / 100 }} />}
+              {(saved.watermark || saved.logo || defaultLogo) && <img className="standard-report-watermark" src={saved.watermark || saved.logo || defaultLogo} alt="" style={{ opacity: saved.watermark ? Number(saved.watermarkOpacity || 0) / 100 : 0.055 }} />}
               <div className="standard-report-heading"><div><small>REPORT</small><h1>Sales / Bills Report</h1><p>All filtered invoices</p></div><div><b>{new Date().toLocaleString()}</b><span>Records {sales.length}</span><span>Page 1 of 1</span></div></div>
               <div className="standard-report-stats"><div><span>INVOICES</span><b>{stats.invoices}</b></div><div><span>PAID</span><b>{formatCurrencyTotals(stats.paid)}</b></div><div><span>PENDING</span><b>{formatCurrencyTotals(stats.pending)}</b></div></div>
               <p className="standard-report-contents">Contents: <span>1 - {Math.min(reportRows.length, sales.length)} Records</span></p>

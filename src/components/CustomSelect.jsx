@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import "./CustomSelect.css";
@@ -96,9 +96,22 @@ function CustomSelect({
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const listboxId = useId();
   const rootRef = useRef(null);
   const menuRef = useRef(null);
+  const optionRefs = useRef([]);
   const selected = options.find((option) => option.value === value) || options[0];
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === selected?.value)
+  );
+
+  const selectOption = (option) => {
+    if (!option) return;
+    onChange?.(option.value);
+    setOpen(false);
+  };
 
   useEffect(() => {
     if (!open) return undefined;
@@ -163,6 +176,47 @@ function CustomSelect({
     };
   }, [open, options.length]);
 
+  useEffect(() => {
+    if (!open) return;
+    optionRefs.current[activeIndex]?.scrollIntoView({
+      block: "nearest",
+    });
+  }, [activeIndex, open]);
+
+  const handleKeyDown = (event) => {
+    if (!options.length) return;
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setOpen(true);
+      setActiveIndex((current) => {
+        const startIndex = open ? current : selectedIndex;
+        const direction = event.key === "ArrowDown" ? 1 : -1;
+        return (startIndex + direction + options.length) % options.length;
+      });
+      return;
+    }
+
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      setOpen(true);
+      setActiveIndex(event.key === "Home" ? 0 : options.length - 1);
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      if (!open) return;
+      event.preventDefault();
+      selectOption(options[activeIndex]);
+      return;
+    }
+
+    if (event.key === "Escape" && open) {
+      event.preventDefault();
+      setOpen(false);
+    }
+  };
+
   const menu = (
     <div
       className={`smooth-select-menu floating-select-menu ${menuClassName} ${
@@ -170,21 +224,30 @@ function CustomSelect({
       }`.trim()}
       ref={menuRef}
       role="listbox"
+      id={listboxId}
       style={{
         ...(position || { left: -9999, top: -9999 }),
         zIndex: 2147483002,
       }}
     >
-      {options.map((option) => (
+      {options.map((option, index) => (
         <button
           aria-selected={option.value === value}
-          className={option.value === value ? "selected" : ""}
+          className={[
+            option.value === value ? "selected" : "",
+            index === activeIndex ? "active-option" : "",
+          ].filter(Boolean).join(" ")}
+          id={`${listboxId}-option-${index}`}
           key={option.value}
           onClick={() => {
-            onChange?.(option.value);
-            setOpen(false);
+            selectOption(option);
+          }}
+          onMouseEnter={() => setActiveIndex(index)}
+          ref={(element) => {
+            optionRefs.current[index] = element;
           }}
           role="option"
+          tabIndex={-1}
           type="button"
         >
           <span>{translateSelectLabel(option.label)}</span>
@@ -197,10 +260,16 @@ function CustomSelect({
     <div className={`smooth-select ${className}`.trim()} ref={rootRef}>
       <button
         aria-expanded={open}
+        aria-activedescendant={open ? `${listboxId}-option-${activeIndex}` : undefined}
+        aria-controls={open ? listboxId : undefined}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
         className={`smooth-select-btn ${buttonClassName} ${open ? "active" : ""}`.trim()}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          setActiveIndex(selectedIndex);
+          setOpen((current) => !current);
+        }}
+        onKeyDown={handleKeyDown}
         type="button"
       >
         <span className="smooth-select-label">

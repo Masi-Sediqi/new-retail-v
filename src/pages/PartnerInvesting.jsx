@@ -134,6 +134,7 @@ function PartnerInvesting() {
   const [viewAccount, setViewAccount] = useState(null);
   const [paymentAccountId, setPaymentAccountId] = useState(null);
   const [paymentDraft, setPaymentDraft] = useState(null);
+  const [deletePayment, setDeletePayment] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [printReportOpen, setPrintReportOpen] = useState(false);
@@ -417,8 +418,9 @@ function PartnerInvesting() {
     }
 
     const now = new Date().toISOString();
+    const isEditingPayment = Boolean(draft.id);
     const paymentEntry = {
-      id: `partner-payment-${Date.now()}`,
+      id: draft.id || `partner-payment-${Date.now()}`,
       accountId: paymentAccount.id,
       accountType: paymentAccount.accountType,
       date: draft.date || now.slice(0, 10),
@@ -429,7 +431,7 @@ function PartnerInvesting() {
       balanceDelta: roundMoney(parseNumber(draft.expectedAmount) - paidAmount),
       currency: draft.currency,
       notes: draft.notes.trim(),
-      createdAt: now,
+      createdAt: draft.createdAt || now,
       updatedAt: now,
     };
 
@@ -438,10 +440,16 @@ function PartnerInvesting() {
         String(account.id) === String(paymentAccount.id)
           ? {
               ...account,
-              paymentLedger: [
-                paymentEntry,
-                ...getPaymentLedger(account),
-              ],
+              paymentLedger: isEditingPayment
+                ? getPaymentLedger(account).map((entry) =>
+                    String(entry.id) === String(paymentEntry.id)
+                      ? paymentEntry
+                      : entry
+                  )
+                : [
+                    paymentEntry,
+                    ...getPaymentLedger(account),
+                  ],
               updatedAt: now,
             }
           : account
@@ -473,10 +481,22 @@ function PartnerInvesting() {
       currency: paymentEntry.currency,
     };
 
-    const transactionSaved = await setTransactions((current) => [
-      walletTransaction,
-      ...current,
-    ]);
+    const transactionSaved = await setTransactions((current) => {
+      const exists = current.some(
+        (transaction) =>
+          String(transaction.paymentEntryId) === String(paymentEntry.id) ||
+          String(transaction.id) === String(walletTransaction.id)
+      );
+
+      return exists
+        ? current.map((transaction) =>
+            String(transaction.paymentEntryId) === String(paymentEntry.id) ||
+            String(transaction.id) === String(walletTransaction.id)
+              ? { ...transaction, ...walletTransaction, createdAt: transaction.createdAt || now }
+              : transaction
+          )
+        : [walletTransaction, ...current];
+    });
 
     if (transactionSaved) {
       window.dispatchEvent(
@@ -486,8 +506,51 @@ function PartnerInvesting() {
       );
     }
 
-    notify("Payment saved and deducted from Cash Wallet.");
+    notify(isEditingPayment ? "Payment updated successfully." : "Payment saved and deducted from Cash Wallet.");
     setPaymentDraft(null);
+  };
+
+  const editPaymentEntry = (entry) => {
+    setPaymentDraft({
+      ...entry,
+      date: entry.date || new Date().toISOString().slice(0, 10),
+      walletTotal: entry.walletTotal ?? 0,
+      percent: entry.percent ?? 0,
+      expectedAmount: entry.expectedAmount ?? 0,
+      paidAmount: entry.paidAmount ?? 0,
+      currency: entry.currency || paymentAccount?.currency || baseCurrency,
+      notes: entry.notes || "",
+    });
+  };
+
+  const removePaymentEntry = async () => {
+    if (!paymentAccount || !deletePayment) return;
+
+    const saved = await setAccounts((current) =>
+      current.map((account) =>
+        String(account.id) === String(paymentAccount.id)
+          ? {
+              ...account,
+              paymentLedger: getPaymentLedger(account).filter(
+                (entry) => String(entry.id) !== String(deletePayment.id)
+              ),
+              updatedAt: new Date().toISOString(),
+            }
+          : account
+      )
+    );
+    if (!saved) return;
+
+    await setTransactions((current) =>
+      current.filter(
+        (transaction) =>
+          String(transaction.paymentEntryId) !== String(deletePayment.id) &&
+          String(transaction.id) !== `partner-investing-payment-${deletePayment.id}`
+      )
+    );
+
+    notify("Payment deleted successfully.");
+    setDeletePayment(null);
   };
 
   if (paymentAccount) {
@@ -499,6 +562,8 @@ function PartnerInvesting() {
           setPaymentDraft(null);
         }}
         onOpenPayment={openPaymentDraft}
+        onEditPayment={editPaymentEntry}
+        onDeletePayment={setDeletePayment}
         suggested={getSuggestedPayment(paymentAccount)}
       >
         {paymentDraft && (
@@ -508,6 +573,14 @@ function PartnerInvesting() {
             onChange={setPaymentDraft}
             onClose={() => setPaymentDraft(null)}
             onSave={savePayment}
+          />
+        )}
+        {deletePayment && (
+          <ConfirmModal
+            title="Delete Payment"
+            message="Are you sure you want to delete this payment record? The linked Cash Wallet transaction will also be removed."
+            onClose={() => setDeletePayment(null)}
+            onConfirm={removePaymentEntry}
           />
         )}
       </PaymentLedgerView>
@@ -836,6 +909,8 @@ function PaymentLedgerView({
   account,
   children,
   onBack,
+  onDeletePayment,
+  onEditPayment,
   onOpenPayment,
   suggested,
 }) {
@@ -951,6 +1026,7 @@ function PaymentLedgerView({
                 <th>Paid</th>
                 <th>Balance</th>
                 <th>Notes</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
@@ -999,12 +1075,34 @@ function PaymentLedgerView({
                     </span>
                   </td>
                   <td>{entry.notes || "-"}</td>
+                  <td>
+                    <div className="partner-payment-row-actions">
+                      <button
+                        type="button"
+                        className="partner-payment-icon-btn"
+                        onClick={() => onEditPayment(entry)}
+                        title="Edit payment"
+                        aria-label="Edit payment"
+                      >
+                        <SquarePen size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="partner-payment-icon-btn danger"
+                        onClick={() => onDeletePayment(entry)}
+                        title="Delete payment"
+                        aria-label="Delete payment"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
 
               {!ledger.length && (
                 <tr>
-                  <td className="partner-investing-empty" colSpan="7">
+                  <td className="partner-investing-empty" colSpan="8">
                     No payment has been recorded yet.
                   </td>
                 </tr>
@@ -1052,7 +1150,7 @@ function PaymentModal({
       >
         <div className="partner-investing-modal-title">
           <div>
-            <h2>Payment to {account.name}</h2>
+            <h2>{draft.id ? "Edit Payment" : "Payment"} to {account.name}</h2>
             <p>
               Paid amount is prefilled from Cash Wallet percentage and can
               be adjusted.
@@ -1134,7 +1232,7 @@ function PaymentModal({
             type="submit"
             className="partner-investing-primary-btn"
           >
-            Save Payment
+            {draft.id ? "Save Changes" : "Save Payment"}
           </button>
         </div>
       </form>

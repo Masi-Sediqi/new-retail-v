@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
   CalendarDays,
   ChevronLeft,
   CreditCard,
+  Crown,
   DollarSign,
   Eye,
   History,
@@ -28,7 +30,9 @@ import { currencyMatchesFilter, useBusinessCurrencyFilter } from "../hooks/useBu
 import { useTablePagination } from "../hooks/useTablePagination";
 import { notify } from "../utils/notify";
 import { formatCurrencyAmount } from "../utils/currencyExchange";
+import { LedgerAmount } from "../utils/ledgerDisplay";
 import { createRecycleEntry } from "../utils/recycleBin";
+import { limitPhoneValue, normalizePhoneRules } from "../utils/phoneRules";
 import "./Customers.css";
 
 const emptyCustomer = {
@@ -121,6 +125,7 @@ const getDateMatches = (dateValue, filter, customStartDate, customEndDate) => {
 };
 
 function Customers() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useJsonCollection("customers");
   const [sales] = useJsonCollection("billingInvoices");
   const [products] = useJsonCollection("products");
@@ -129,6 +134,7 @@ function Customers() {
   const businessCurrencyFilter = useBusinessCurrencyFilter();
 
   const company = settings[0] || {};
+  const phoneRules = normalizePhoneRules(company);
   const baseCurrency = company.baseCurrency || "AFN";
   const customerCustomFields = company.customFields?.customers || [];
 
@@ -270,6 +276,19 @@ function Customers() {
     notify(editingCustomer ? "Customer updated successfully." : "Customer added successfully.");
     setModalOpen(false);
     setEditingCustomer(null);
+  };
+
+  const toggleCustomerVip = async (event, customer) => {
+    event.stopPropagation();
+    const nextVip = !customer.vip;
+    const saved = await setCustomers((currentCustomers) =>
+      currentCustomers.map((item) =>
+        String(item.id || item.customerId) === String(customer.id || customer.customerId)
+          ? { ...item, vip: nextVip, updatedAt: new Date().toISOString() }
+          : item
+      )
+    );
+    if (saved) notify(nextVip ? "Customer marked as VIP." : "Customer removed from VIP.");
   };
 
   const removeCustomer = async () => {
@@ -427,9 +446,24 @@ function Customers() {
             </thead>
             <tbody>
               {pagination.pageItems.map((customer) => (
-                <tr key={customer.id}>
+                <tr
+                  className="customer-clickable-row"
+                  key={customer.id}
+                  onClick={() => navigate(`/customers/${encodeURIComponent(String(customer.id || customer.customerId))}`)}
+                >
                   <td className="customer-name-cell">
-                    <strong>{customer.name}</strong>
+                    <div className="customer-name-line">
+                      <button
+                        aria-label={customer.vip ? "Remove VIP status" : "Mark as VIP"}
+                        className={`customer-crown-btn ${customer.vip ? "vip" : ""}`}
+                        title={customer.vip ? "VIP customer" : "Mark as VIP"}
+                        type="button"
+                        onClick={(event) => toggleCustomerVip(event, customer)}
+                      >
+                        <Crown size={16} />
+                      </button>
+                      <strong>{customer.name}</strong>
+                    </div>
                     <span>{customer.vip ? "VIP customer" : customer.address || "No address"}</span>
                   </td>
                   <td>
@@ -448,7 +482,7 @@ function Customers() {
                       {String(customer.status).toLowerCase() === "inactive" ? "Inactive" : "Active"}
                     </span>
                   </td>
-                  <td>
+                  <td onClick={(event) => event.stopPropagation()}>
                     <FloatingActionMenu
                       ariaLabel="Customer actions"
                       actions={[
@@ -490,6 +524,7 @@ function Customers() {
         <CustomerModal
           customFields={customerCustomFields}
           initialCustomer={editingCustomer}
+          phoneRules={phoneRules}
           onClose={() => {
             setModalOpen(false);
             setEditingCustomer(null);
@@ -895,8 +930,8 @@ function ProfilePanel({ activeTab, activityRows, baseCurrency, filteredSales, le
           </span>,
           row.invoice,
           row.description,
-          row.debit > 0 ? formatCurrencyAmount(row.debit, row.currency || baseCurrency) : "-",
-          row.credit > 0 ? <span className="customer-success-text" key="credit">{formatCurrencyAmount(row.credit, row.currency || baseCurrency)}</span> : "-",
+          <LedgerAmount key="debit" type="debit" value={row.debit} currency={row.currency || baseCurrency} />,
+          <LedgerAmount key="credit" type="credit" value={row.credit} currency={row.currency || baseCurrency} />,
           <span className={row.balance > 0 ? "customer-warning-text" : "customer-success-text"} key="balance">
             {formatCurrencyAmount(row.balance, row.currency || baseCurrency)}
           </span>,
@@ -1030,7 +1065,7 @@ function ProfileTable({ columns, empty, rows }) {
   );
 }
 
-function CustomerModal({ customFields = [], initialCustomer, onClose, onSave }) {
+function CustomerModal({ customFields = [], initialCustomer, onClose, onSave, phoneRules }) {
   const [form, setForm] = useState(() => ({
     ...emptyCustomer,
     ...(initialCustomer || {}),
@@ -1064,7 +1099,7 @@ function CustomerModal({ customFields = [], initialCustomer, onClose, onSave }) 
             <input autoFocus value={form.name} onChange={(event) => update("name", event.target.value)} />
           </Field>
           <Field label="Phone Number">
-            <input inputMode="tel" value={form.phone} onChange={(event) => update("phone", event.target.value)} />
+            <input inputMode="numeric" maxLength={phoneRules?.enabled ? phoneRules.maxLength : undefined} value={form.phone} onChange={(event) => update("phone", limitPhoneValue(event.target.value, phoneRules))} />
           </Field>
           <Field label="Email">
             <input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} />

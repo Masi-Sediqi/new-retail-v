@@ -8,17 +8,22 @@ import {
   Filter,
   MinusCircle,
   PlusCircle,
+  Pencil,
   Printer,
   ReceiptText,
+  Trash2,
   Truck,
   Users,
   WalletCards,
 } from "lucide-react";
 import { useJsonCollection } from "../hooks/useJsonCollection";
+import { confirmAction } from "../utils/confirmDialog";
+import { createRecycleEntry } from "../utils/recycleBin";
 import {
   convertCurrencyAmount,
   formatCurrencyAmount,
 } from "../utils/currencyExchange";
+import { LedgerAmount } from "../utils/ledgerDisplay";
 import "../App.css";
 
 const parseNumber = (value) => {
@@ -73,8 +78,8 @@ const productSalePrice = (product) =>
   parseNumber(product.selling ?? product.sellingPrice ?? product.salePrice ?? product.price);
 
 const isCashWalletTransaction = (transaction) =>
-  /cash-wallet|cash wallet/i.test(
-    `${transaction.source || ""} ${transaction.category || ""}`
+  /cash-wallet|cash wallet|manual-expense/i.test(
+    `${transaction.source || ""} ${transaction.category || ""} ${transaction.referenceSource || ""} ${transaction.module || ""}`
   );
 
 const transactionDirection = (transaction) =>
@@ -98,7 +103,8 @@ function DashboardOverviewDetail() {
   const [expenses] = useJsonCollection("expenses");
   const [staff] = useJsonCollection("staff");
   const [suppliers] = useJsonCollection("suppliers");
-  const [transactions] = useJsonCollection("transactions");
+  const [transactions, setTransactions] = useJsonCollection("transactions");
+  const [, setDeletedItems] = useJsonCollection("deletedItems");
   const [customers] = useJsonCollection("customers");
   const [settings] = useJsonCollection("settings");
 
@@ -171,6 +177,8 @@ function DashboardOverviewDetail() {
       .map((transaction) => {
         const direction = transactionDirection(transaction);
         return {
+          id: transaction.id,
+          sourceRecord: transaction,
           date: recordDate(transaction),
           module: sourceLabel(transaction, "Cash Wallet"),
           type: direction < 0 ? "Debit" : "Credit",
@@ -318,6 +326,7 @@ function DashboardOverviewDetail() {
     return matchesModule && matchesFrom && matchesTo;
   });
   const signedTotalCards = new Set(["total-revenue", "cash-wallet", "net-profit", "pure-profit"]);
+  const signedDisplayCards = new Set(["cash-wallet", "net-profit", "pure-profit"]);
   const total = filteredRows.reduce(
     (sum, row) =>
       sum +
@@ -328,6 +337,38 @@ function DashboardOverviewDetail() {
     0
   );
   const Icon = page.icon;
+
+  const editWalletRecord = (row) => {
+    window.dispatchEvent(
+      new CustomEvent("open-cash-wallet", {
+        detail: row.sourceRecord,
+      })
+    );
+  };
+
+  const deleteWalletRecord = async (row) => {
+    if (!row.id) return;
+
+    const confirmed = await confirmAction({
+      title: "Delete Cash Wallet Record",
+      message: `Are you sure you want to delete “${row.title || "this cash wallet record"}”? This record will be moved to the Recycle Bin.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+
+    if (!confirmed) return;
+
+    const archived = await setDeletedItems((current) => [
+      createRecycleEntry("transactions", row.sourceRecord || row, row.title || "Cash Wallet Record"),
+      ...current,
+    ]);
+    if (!archived) return;
+
+    await setTransactions((current) =>
+      current.filter((transaction) => transaction.id !== row.id)
+    );
+  };
 
   return (
     <div className="dashboard-page dashboard-overview-detail-page">
@@ -419,12 +460,13 @@ function DashboardOverviewDetail() {
                 <th>Status</th>
                 <th>Amount</th>
                 <th>Details</th>
+                {activeKey === "cash-wallet" && <th className="wallet-actions-column">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td className="empty-cell" colSpan="8">
+                  <td className="empty-cell" colSpan={activeKey === "cash-wallet" ? 9 : 8}>
                     No records found.
                   </td>
                 </tr>
@@ -434,7 +476,7 @@ function DashboardOverviewDetail() {
                     <td>{row.date || "-"}</td>
                     <td>{row.module}</td>
                     <td>
-                      {activeKey === "cash-wallet" ? (
+                      {signedDisplayCards.has(activeKey) ? (
                         <span
                           className={`dashboard-wallet-flow ${
                             parseNumber(row.amount) < 0 ? "debit" : "credit"
@@ -457,7 +499,7 @@ function DashboardOverviewDetail() {
                     <td>
                       <span
                         className={
-                          activeKey === "cash-wallet"
+                          signedDisplayCards.has(activeKey)
                             ? `dashboard-wallet-amount ${
                                 parseNumber(row.amount) < 0
                                   ? "debit"
@@ -466,10 +508,41 @@ function DashboardOverviewDetail() {
                             : ""
                         }
                       >
-                        {money(row.amount, row.currency)}
+                        {signedDisplayCards.has(activeKey) ? (
+                          <LedgerAmount
+                            type={parseNumber(row.amount) < 0 ? "debit" : "credit"}
+                            value={Math.abs(parseNumber(row.amount))}
+                            currency={row.currency}
+                            formatter={(value, currency) => money(value, currency)}
+                          />
+                        ) : (
+                          money(row.amount, row.currency)
+                        )}
                       </span>
                     </td>
                     <td>{row.details}</td>
+                    {activeKey === "cash-wallet" && (
+                      <td className="wallet-row-actions">
+                        <button
+                          type="button"
+                          className="wallet-row-action edit"
+                          onClick={() => editWalletRecord(row)}
+                          aria-label={`Edit ${row.title}`}
+                          title="Edit"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          className="wallet-row-action delete"
+                          onClick={() => deleteWalletRecord(row)}
+                          aria-label={`Delete ${row.title}`}
+                          title="Delete"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

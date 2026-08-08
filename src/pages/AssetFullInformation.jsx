@@ -2828,8 +2828,8 @@ const handleEditPurchaseBillImageChange = (event) => {
         unitPrice: movement.unitPrice || "",
         salePrice: movement.salePrice || getDefaultSalePrice() || "",
         billNumber:
-            movement.invoiceNumber ||
             movement.billNumber ||
+            movement.invoiceNumber ||
             "",
         paidAmount: movement.paidAmount || "",
         salePricePerDevice: inferredSalePricePerDevice,
@@ -2842,11 +2842,6 @@ const handleEditPurchaseBillImageChange = (event) => {
         depositPrices: movement.unitDepositPrices || {},
         transferSearch: "",
         transferCategory: "All",
-
-        billNumber:
-            movement.billNumber ||
-            movement.invoiceNumber ||
-            "",
 
         billImage: movement.billImage || "",
 
@@ -2882,7 +2877,6 @@ const handleEditPurchaseBillImageChange = (event) => {
             movement.status ||
             "",
 
-        referenceNumber: movement.referenceNumber || "",
         notes: movement.notes || "",
     });
 
